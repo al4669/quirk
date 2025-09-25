@@ -41,6 +41,7 @@ class Wallboard {
     // Theme system
     this.themes = {
       default: { accent: '#f42365', name: 'Pink' },
+      pink: { accent: '#f42365', name: 'Pink' },
       blue: { accent: '#2563eb', name: 'Blue' },
       purple: { accent: '#9333ea', name: 'Purple' },
       green: { accent: '#059669', name: 'Green' },
@@ -161,6 +162,15 @@ class Wallboard {
     const savedBoards = localStorage.getItem('wallboard_boards');
     this.boards = savedBoards ? JSON.parse(savedBoards) : {};
 
+    // Check for GitHub board URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const githubBoardUrl = urlParams.get('board');
+
+    if (githubBoardUrl) {
+      this.loadGitHubBoard(githubBoardUrl);
+      return;
+    }
+
     // Get last used board or create default
     const lastBoardId = localStorage.getItem('wallboard_last_board');
 
@@ -267,6 +277,97 @@ class Wallboard {
     this.autoSaveTimeout = setTimeout(() => {
       this.saveCurrentBoard();
     }, 1000); // Save 1 second after last change
+  }
+
+  async loadGitHubBoard(githubUrl) {
+    try {
+      // Show loading state
+      this.showNotification('Loading board from GitHub...');
+
+      // Convert GitHub URL to raw content URL
+      const rawUrl = this.convertToGitHubRawUrl(githubUrl);
+      if (!rawUrl) {
+        throw new Error('Invalid GitHub URL. Please provide a valid GitHub file URL.');
+      }
+
+      // Fetch board data from GitHub
+      const response = await fetch(rawUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to load board: ${response.status} ${response.statusText}`);
+      }
+
+      const boardData = await response.json();
+
+      // Validate board data structure
+      if (!this.validateBoardData(boardData)) {
+        throw new Error('Invalid board format. The file must contain valid board data.');
+      }
+
+      // Create a new board from GitHub data
+      const boardId = 'github_' + Date.now().toString();
+      const board = {
+        id: boardId,
+        name: boardData.name || 'GitHub Board',
+        nodes: boardData.nodes || [],
+        connections: boardData.connections || [],
+        nodeIdCounter: boardData.nodeIdCounter || 0,
+        globalTheme: boardData.globalTheme || 'default',
+        nodeThemes: boardData.nodeThemes || {},
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isFromGitHub: true,
+        originalUrl: githubUrl
+      };
+
+      // Load the board
+      this.boards[boardId] = board;
+      this.currentBoardId = boardId;
+      this.loadBoard(boardId);
+
+      this.showNotification(`Successfully loaded "${board.name}" from GitHub!`);
+
+    } catch (error) {
+      console.error('Failed to load GitHub board:', error);
+      this.showNotification(`Error: ${error.message}`);
+
+      // Fall back to creating a default board
+      this.createNewBoard('My First Board');
+    }
+
+    this.setupBoardSelector();
+  }
+
+  convertToGitHubRawUrl(url) {
+    try {
+      // Handle different GitHub URL formats
+      if (url.includes('github.com')) {
+        // Convert github.com URLs to raw.githubusercontent.com
+        const githubRegex = /github\.com\/([^\/]+)\/([^\/]+)\/blob\/([^\/]+)\/(.+)/;
+        const match = url.match(githubRegex);
+
+        if (match) {
+          const [, user, repo, branch, path] = match;
+          return `https://raw.githubusercontent.com/${user}/${repo}/${branch}/${path}`;
+        }
+      } else if (url.includes('raw.githubusercontent.com')) {
+        // Already a raw URL
+        return url;
+      }
+
+      return null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  validateBoardData(data) {
+    // Check if the data has the required structure for a board
+    return (
+      typeof data === 'object' &&
+      data !== null &&
+      (Array.isArray(data.nodes) || data.nodes === undefined) &&
+      (Array.isArray(data.connections) || data.connections === undefined)
+    );
   }
 
   setupBoardSelector() {
@@ -1120,6 +1221,7 @@ addMarkdownNode() {
         typeElement.textContent = newType.toUpperCase();
         typeElement.style.display = "";
         input.remove();
+        this.autoSave();
       }
     };
 
@@ -1282,7 +1384,11 @@ addMarkdownNode() {
         <button class="close-btn" onclick="wallboard.hideThemeSelector()">×</button>
       </div>
       <div class="theme-grid">
-        ${Object.entries(this.themes).map(([key, theme]) => {
+        ${Object.entries(this.themes).filter(([key, theme]) => {
+          // For global theme selector, exclude the duplicate 'pink' theme since 'default' is already pink
+          if (!nodeId && key === 'pink') return false;
+          return true;
+        }).map(([key, theme]) => {
           let isActive = false;
           if (nodeId) {
             // For node themes, only mark active if this node has this specific theme
@@ -1292,12 +1398,18 @@ addMarkdownNode() {
             isActive = this.globalTheme === key;
           }
 
+          // For node theme selector, show "Global" instead of "Pink" for the default theme
+          const displayName = (nodeId && key === 'default') ? 'Global' : theme.name;
+
+          // For the "Global" option in node theme selector, show the current global theme color
+          const previewColor = (nodeId && key === 'default') ? this.themes[this.globalTheme].accent : theme.accent;
+
           return `
             <div class="theme-option ${isActive ? 'active' : ''}"
                  onclick="wallboard.selectTheme('${key}', ${nodeId !== null ? nodeId : 'null'})"
                  data-theme="${key}">
-              <div class="theme-preview" style="background: ${theme.accent}"></div>
-              <span class="theme-name">${theme.name}</span>
+              <div class="theme-preview" style="background: ${previewColor}"></div>
+              <span class="theme-name">${displayName}</span>
             </div>
           `;
         }).join('')}
@@ -1420,6 +1532,12 @@ addMarkdownNode() {
       if (isEditing) {
         // Save and render
         node.data.content = isEditing.value;
+
+        // Clear any width constraints that were set for editing
+        content.style.width = "";
+        content.style.minWidth = "";
+        content.style.overflow = ""; // Restore original overflow behavior
+
         // Always render as markdown since that's what we support
         content.innerHTML = `<div class="markdown-content">${marked.parse(
           node.data.content
@@ -1436,19 +1554,20 @@ addMarkdownNode() {
           this.updateConnections();
         }, 100);
       } else {
-        // Edit mode
+        // Edit mode - capture current content width before switching
+        const currentWidth = content.offsetWidth;
+
         const editor = document.createElement("textarea");
         editor.className = "text-editor";
         editor.value = node.data.content;
 
-        // Make editor match the content area size exactly
-        const contentRect = content.getBoundingClientRect();
+        // Preserve the content area width by setting it on the container
+        content.style.width = currentWidth + "px";
+        content.style.minWidth = currentWidth + "px";
+        content.style.overflow = "visible"; // Remove scrollbar from container
 
-        // Set exact width and height to match content area
-        editor.style.width = `${contentRect.width - 16}px`; // Account for padding
-        editor.style.height = Math.max(150, contentRect.height) + "px";
-        editor.style.minWidth = `${contentRect.width - 16}px`;
-        editor.style.maxWidth = `${contentRect.width - 16}px`;
+        editor.style.width = "100%";
+        editor.style.height = Math.max(150, content.offsetHeight) + "px";
 
         content.innerHTML = "";
         content.appendChild(editor);

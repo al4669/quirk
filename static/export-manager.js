@@ -529,6 +529,50 @@ connections:`;
     }
   }
 
+  // Export board as GitHub-compatible JSON file
+  exportForGitHub() {
+    if (!this.wallboard.currentBoardId) {
+      alert('No board to export!');
+      return;
+    }
+
+    const board = this.wallboard.boards[this.wallboard.currentBoardId];
+    const boardName = this.sanitizeFilename(board.name);
+
+    // Create GitHub-compatible export data
+    const githubData = {
+      name: board.name,
+      description: `Wallboard exported on ${new Date().toLocaleDateString()}`,
+      nodes: board.nodes,
+      connections: board.connections,
+      nodeIdCounter: board.nodeIdCounter,
+      globalTheme: board.globalTheme,
+      nodeThemes: board.nodeThemes,
+      version: "1.0",
+      exportedAt: new Date().toISOString()
+    };
+
+    // Download as JSON file
+    const filename = `${boardName}-wallboard.json`;
+    this.downloadFile(filename, JSON.stringify(githubData, null, 2), 'application/json');
+
+    // Show instructions
+    setTimeout(() => {
+      const githubUrl = `${window.location.origin}${window.location.pathname}?board=YOUR_GITHUB_RAW_URL`;
+
+      alert(`✅ Exported "${board.name}" as GitHub-compatible JSON!
+
+📁 File saved as: ${filename}
+
+🚀 To share this board:
+1. Upload ${filename} to a GitHub repository
+2. Get the raw file URL from GitHub
+3. Share this link: ${githubUrl.replace('YOUR_GITHUB_RAW_URL', '[paste-raw-url-here]')}
+
+Example: ${window.location.origin}${window.location.pathname}?board=https://raw.githubusercontent.com/user/repo/main/board.json`);
+    }, 100);
+  }
+
   // Export options dialog
   showExportDialog() {
     const dialog = document.createElement('div');
@@ -537,6 +581,10 @@ connections:`;
       <div class="export-dialog-content">
         <h3>Export Options</h3>
         <div class="export-options">
+          <button class="export-btn" onclick="exportManager.exportForGitHub(); this.closest('.export-dialog').remove();">
+            Export for GitHub Sharing
+            <small>JSON file for URL sharing</small>
+          </button>
           <button class="export-btn" onclick="exportManager.exportCurrentBoard(); this.closest('.export-dialog').remove();">
             Export Current Board
             <small>Markdown files + connection map</small>

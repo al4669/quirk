@@ -6,7 +6,7 @@ Thanks for your interest in improving QUIRK! This guide will help you get starte
 
 1. **Fork and clone the repository**
    ```bash
-   git clone https://github.com/al4669/quirk.git
+   git clone https://github.com/[your-username]/quirk.git
    cd quirk
    ```
 
