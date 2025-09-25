@@ -8,7 +8,7 @@
       "data": {
         "content": "# 🌐 The Journey of a Web Request\n*From Browser to Server and Back*\n\n**BEHOLD!** This graph explains what happens in the few seconds between you typing a URL and a website appearing on your screen. \n\nFollow the connections to trace the path of data across the internet."
       },
-      "position": { "x": 0, "y": 200 }
+      "position": { "x": -800, "y": -100 }
     },
     {
       "id": 2,
@@ -16,7 +16,7 @@
       "data": {
         "content": "### 1. You Enter a URL 🧑‍💻\nIt all starts when you type a URL like `https://www.google.com` into your browser and press **Enter**.\n\nThe browser now has a destination, but it's just a name. It needs to find the server's actual address, like a postal address for the internet."
       },
-      "position": { "x": 400, "y": 0 }
+      "position": { "x": -400, "y": -300 }
     },
     {
       "id": 3,
@@ -24,7 +24,7 @@
       "data": {
         "content": "### 2. DNS Lookup 🗺️\nYour browser needs to translate the human-readable domain name (`www.google.com`) into a machine-readable **IP Address** (e.g., `142.250.199.196`). This process is handled by the Domain Name System (DNS).\n\n| Lookup Location | Purpose |\n|---|---|\n| Browser Cache | Has my browser seen this recently? |\n| OS Cache | Has my computer seen this recently? |\n| Router Cache | Has my router seen this recently? |\n| ISP DNS Server | Asks your Internet Service Provider's server. |\n| Root Servers | If nobody knows, ask the internet's address book. |"
       },
-      "position": { "x": 800, "y": 0 }
+      "position": { "x": 0, "y": -300 }
     },
     {
       "id": 4,
@@ -32,7 +32,7 @@
       "data": {
         "content": "### 3. TCP Handshake 🤝\nOnce the browser has the IP address, it must establish a reliable connection with the server. This is done using the **Transmission Control Protocol (TCP)** via a process called the \"Three-Way Handshake.\"\n\n1.  **SYN**: Your computer sends a SYN (synchronize) packet to the server to start the conversation.\n2.  **SYN-ACK**: The server responds with a SYN-ACK (synchronize-acknowledgment) packet.\n3.  **ACK**: Your computer sends an ACK (acknowledgment) packet back. \n\nConnection established! Now we can send data."
       },
-      "position": { "x": 1200, "y": 0 }
+      "position": { "x": 400, "y": -300 }
     },
     {
       "id": 5,
@@ -40,7 +40,7 @@
       "data": {
         "content": "### 4. The HTTP/S Request ✉️\nYour browser crafts and sends an **HTTP (Hypertext Transfer Protocol) Request** to the server.\n\n🔒 If the URL is `https://`, this request is encrypted using **TLS/SSL** for security before being sent.\n\n```http\nGET / HTTP/1.1\nHost: [www.google.com](https://www.google.com)\nUser-Agent: Your Browser Name\nAccept-Language: en-US\n```"
       },
-      "position": { "x": 1600, "y": 0 }
+      "position": { "x": 800, "y": -300 }
     },
     {
       "id": 6,
@@ -48,7 +48,7 @@
       "data": {
         "content": "### 5. The Server Processes the Request ⚙️\nA web server (like Nginx or Apache) receives the request and acts as a gatekeeper.\n\nIt often passes the request to a backend application server to handle the logic. This is where the real work happens.\n\n- **Route Handling**: The application determines what content to serve based on the path (e.g., `/` for the homepage).\n- **Business Logic**: It might check if you're logged in, fetch your preferences, etc.\n- **Database Query**: If needed, it queries a database for information."
       },
-      "position": { "x": 1600, "y": 400 }
+      "position": { "x": 800, "y": 100 }
     },
     {
       "id": 7,
@@ -56,7 +56,7 @@
       "data": {
         "content": "### 6. The Database Query 🗄️\nThe application server sends a query to a database (like PostgreSQL or MongoDB) to retrieve or store data.\n\n```sql\n-- Example: Get the 10 latest news articles\nSELECT title, author, publish_date\nFROM articles\nORDER BY publish_date DESC\nLIMIT 10;\n```\nThe database sends the results back to the application server."
       },
-      "position": { "x": 1200, "y": 400 }
+      "position": { "x": 400, "y": 100 }
     },
     {
       "id": 8,
@@ -64,7 +64,7 @@
       "data": {
         "content": "### 7. The HTTP Response 📄\nOnce the application has the data, it assembles an **HTTP Response** and sends it back to your browser.\n\nThis response includes:\n- A **Status Code** (e.g., `200 OK`, `404 Not Found`).\n- **Headers** (metadata about the response).\n- The **Body**, which is often the website's HTML code.\n\n```http\nHTTP/1.1 200 OK\nContent-Type: text/html; charset=UTF-8\nContent-Length: 12345\n\n<!DOCTYPE html><html>...</html>\n```"
       },
-      "position": { "x": 800, "y": 400 }
+      "position": { "x": 0, "y": 100 }
     },
     {
       "id": 9,
@@ -72,7 +72,7 @@
       "data": {
         "content": "### 8. Browser Renders the Page 🎨\nYour browser receives the HTML and starts rendering the page.\n\n1.  **Parse HTML**: Builds a structure of the page called the **DOM Tree**.\n2.  **Fetch Resources**: As it parses, it finds tags for CSS, JavaScript, and images and sends *new* HTTP requests to get them.\n3.  **Build Render Tree**: Combines the HTML (structure) and CSS (style) into a Render Tree.\n4.  **Layout**: Calculates the exact size and position of every element.\n5.  **Paint**: Finally, it draws the pixels on your screen!"
       },
-      "position": { "x": 400, "y": 400 }
+      "position": { "x": -400, "y": 100 }
     },
     {
       "id": 10,
@@ -80,7 +80,7 @@
       "data": {
         "content": "# ✅ Page Displayed!\n*The journey is complete.*\n\nIn less time than it takes to blink, this entire cycle has finished, and the webpage is now interactive on your screen. Every click you make starts a new, similar journey."
       },
-      "position": { "x": 0, "y": 600 }
+      "position": { "x": -800, "y": 300 }
     }
   ],
   "connections": [
@@ -110,5 +110,5 @@
     "10": "blue"
   },
   "version": "1.0",
-  "exportedAt": "2025-09-25T20:24:08.174Z"
+  "exportedAt": "2025-09-25T20:27:20.000Z"
 }
