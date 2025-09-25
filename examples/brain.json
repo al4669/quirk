@@ -1,0 +1,219 @@
+{
+  "name": "How Your Brain Learns & Remembers",
+  "description": "An educational journey through memory formation and learning processes",
+  "nodes": [
+    {
+      "id": 1,
+      "type": "markdown",
+      "data": {
+        "content": "# 🧠 Sensory Input\n**The Gateway to Learning**\n\nEvery learning experience begins here. Your brain receives approximately **11 million bits of information per second** through your senses:\n\n- **Visual**: 10 million bits/sec\n- **Touch**: 1 million bits/sec  \n- **Hearing**: 100,000 bits/sec\n- **Smell**: 100,000 bits/sec\n- **Taste**: 1,000 bits/sec\n\n*But your conscious mind can only process about 40-50 bits per second!*"
+      },
+      "position": {
+        "x": 100,
+        "y": 100
+      }
+    },
+    {
+      "id": 2,
+      "type": "markdown",
+      "data": {
+        "content": "# 👁️ Attention Filter\n**The Bouncer of Your Brain**\n\nYour **Reticular Activating System (RAS)** decides what information deserves attention.\n\n**Key factors that grab attention:**\n- Novelty (new or unusual)\n- Emotional significance\n- Personal relevance\n- Survival importance\n- Pattern recognition\n\n💡 *This is why you notice your name in a crowded room!*"
+      },
+      "position": {
+        "x": 500,
+        "y": 100
+      }
+    },
+    {
+      "id": 3,
+      "type": "markdown",
+      "data": {
+        "content": "# ⚡ Working Memory\n**Your Mental Workspace**\n\n**Capacity**: 4-7 items (often called \"7±2\")\n**Duration**: 15-30 seconds without rehearsal\n\n**Located in**: Prefrontal cortex\n\n**Think of it like RAM in a computer:**\n- Temporary storage\n- Active processing\n- Limited capacity\n- Easily disrupted\n\n*Multitasking reduces working memory efficiency by up to 40%!*"
+      },
+      "position": {
+        "x": 900,
+        "y": 50
+      }
+    },
+    {
+      "id": 4,
+      "type": "markdown",
+      "data": {
+        "content": "# 🔄 Encoding Process\n**Making Memories Stick**\n\n**Three types of encoding:**\n\n1. **Visual** (imagery)\n2. **Acoustic** (sound)\n3. **Semantic** (meaning)\n\n**Most effective technique**: \n**Elaborative rehearsal** - connecting new info to existing knowledge\n\n*The more connections you make, the stronger the memory!*"
+      },
+      "position": {
+        "x": 1300,
+        "y": 100
+      }
+    },
+    {
+      "id": 5,
+      "type": "markdown",
+      "data": {
+        "content": "# 🏛️ Long-Term Memory\n**Your Brain's Library**\n\n**Capacity**: Virtually unlimited\n**Duration**: Lifetime (with proper maintenance)\n\n**Two main types:**\n\n**Explicit (Conscious)**\n- Episodic: Personal experiences\n- Semantic: Facts and concepts\n\n**Implicit (Unconscious)**  \n- Procedural: Skills (riding a bike)\n- Emotional: Conditioned responses"
+      },
+      "position": {
+        "x": 1700,
+        "y": 100
+      }
+    },
+    {
+      "id": 6,
+      "type": "markdown",
+      "data": {
+        "content": "# 🔍 Retrieval\n**Accessing Your Memories**\n\n**Retrieval methods:**\n- **Recall**: Retrieving without cues\n- **Recognition**: Identifying among options\n- **Relearning**: Faster the second time\n\n**Best practices:**\n- Spaced repetition\n- Context-dependent learning\n- State-dependent learning\n\n*Testing yourself is one of the most effective learning strategies!*"
+      },
+      "position": {
+        "x": 1700,
+        "y": 500
+      }
+    },
+    {
+      "id": 7,
+      "type": "markdown",
+      "data": {
+        "content": "# 😴 Sleep & Consolidation\n**The Secret Weapon**\n\n**During sleep, your brain:**\n- Replays daily experiences 5-10x faster\n- Strengthens important connections\n- Prunes unnecessary information\n- Moves memories from hippocampus to cortex\n\n**Critical stages:**\n- **REM sleep**: Emotional & procedural memories\n- **Deep sleep**: Fact-based memories\n\n*Students who sleep after studying remember 20-40% more!*"
+      },
+      "position": {
+        "x": 1300,
+        "y": 500
+      }
+    },
+    {
+      "id": 8,
+      "type": "markdown",
+      "data": {
+        "content": "# 🎯 Practical Learning Tips\n**Evidence-Based Strategies**\n\n**1. Spaced Repetition**\nReview at increasing intervals: 1 day → 3 days → 1 week → 1 month\n\n**2. Active Recall**\nTest yourself instead of re-reading\n\n**3. Interleaving**\nMix different topics/skills\n\n**4. Elaboration**\nExplain concepts in your own words\n\n**5. Dual Coding**\nCombine words with visuals\n\n**6. Sleep 7-9 hours**\nConsolidation happens during sleep!"
+      },
+      "position": {
+        "x": 900,
+        "y": 500
+      }
+    },
+    {
+      "id": 9,
+      "type": "markdown",
+      "data": {
+        "content": "# ⚠️ Forgetting Curve\n**Why We Forget**\n\n**Ebbinghaus Forgetting Curve:**\n- **1 hour later**: 50% forgotten\n- **1 day later**: 70% forgotten  \n- **1 week later**: 90% forgotten\n- **1 month later**: 95%+ forgotten\n\n**Without review, we forget exponentially!**\n\n**Combat forgetting with:**\n- Regular review\n- Meaningful connections\n- Emotional engagement\n- Practical application"
+      },
+      "position": {
+        "x": 500,
+        "y": 500
+      }
+    },
+    {
+      "id": 10,
+      "type": "markdown",
+      "data": {
+        "content": "# 🧬 Neuroplasticity\n**Your Brain Can Change!**\n\n**Key principles:**\n- Neurons that fire together, wire together\n- Practice strengthens neural pathways\n- New learning creates new connections\n- Brain remains plastic throughout life\n\n**Growth mindset matters:**\nBelieving you can improve actually helps you improve!\n\n*Learning a new skill creates thousands of new neural connections.*"
+      },
+      "position": {
+        "x": 100,
+        "y": 500
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "1-2",
+      "start": {"nodeId": 1},
+      "end": {"nodeId": 2}
+    },
+    {
+      "id": "2-3",
+      "start": {"nodeId": 2},
+      "end": {"nodeId": 3}
+    },
+    {
+      "id": "3-4",
+      "start": {"nodeId": 3},
+      "end": {"nodeId": 4}
+    },
+    {
+      "id": "4-5",
+      "start": {"nodeId": 4},
+      "end": {"nodeId": 5}
+    },
+    {
+      "id": "5-6",
+      "start": {"nodeId": 5},
+      "end": {"nodeId": 6}
+    },
+    {
+      "id": "4-7",
+      "start": {"nodeId": 4},
+      "end": {"nodeId": 7}
+    },
+    {
+      "id": "7-5",
+      "start": {"nodeId": 7},
+      "end": {"nodeId": 5}
+    },
+    {
+      "id": "3-8",
+      "start": {"nodeId": 3},
+      "end": {"nodeId": 8}
+    },
+    {
+      "id": "4-8",
+      "start": {"nodeId": 4},
+      "end": {"nodeId": 8}
+    },
+    {
+      "id": "8-7",
+      "start": {"nodeId": 8},
+      "end": {"nodeId": 7}
+    },
+    {
+      "id": "3-9",
+      "start": {"nodeId": 3},
+      "end": {"nodeId": 9}
+    },
+    {
+      "id": "5-9",
+      "start": {"nodeId": 5},
+      "end": {"nodeId": 9}
+    },
+    {
+      "id": "9-8",
+      "start": {"nodeId": 9},
+      "end": {"nodeId": 8}
+    },
+    {
+      "id": "1-10",
+      "start": {"nodeId": 1},
+      "end": {"nodeId": 10}
+    },
+    {
+      "id": "10-9",
+      "start": {"nodeId": 10},
+      "end": {"nodeId": 9}
+    },
+    {
+      "id": "8-6",
+      "start": {"nodeId": 8},
+      "end": {"nodeId": 6}
+    },
+    {
+      "id": "6-8",
+      "start": {"nodeId": 6},
+      "end": {"nodeId": 8}
+    }
+  ],
+  "nodeIdCounter": 11,
+  "globalTheme": "blue",
+  "nodeThemes": {
+    "1": "purple",
+    "2": "blue",
+    "3": "orange",
+    "4": "green",
+    "5": "indigo",
+    "6": "teal",
+    "7": "violet",
+    "8": "lime",
+    "9": "rose",
+    "10": "cyan"
+  },
+  "version": "1.0",
+  "exportedAt": "2025-09-26T12:00:00.000Z"
+}
