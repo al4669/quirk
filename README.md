@@ -3,7 +3,7 @@
 A fast, intuitive visual knowledge base that lets you create, connect, and organize markdown notes with smooth drag-and-drop interactions.
 
 
-**Live Demo**: [Try QUIRK online]([https://quirk.uk](https://quirk.uk/?board=https://github.com/al4669/quirk/blob/main/examples/math.json))
+**Live Demo**: [Try QUIRK online](https://quirk.uk/?board=https://github.com/al4669/quirk/blob/main/examples/math.json)
 
 ## Features
 
