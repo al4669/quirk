@@ -1,6 +1,6 @@
 {
   "name": "The Tree of Mathematics",
-  "description": "How mathematical fields branch and interconnect from ancient foundations to modern frontiers",
+  "description": "Wallboard exported on 9/26/2025",
   "nodes": [
     {
       "id": 1,
@@ -9,8 +9,8 @@
         "content": "# 🌱 Ancient Foundations\n**The Seeds of Mathematics (3000 BCE - 500 CE)**\n\n**Counting & Arithmetic**\n- Natural numbers (1, 2, 3...)\n- Basic operations (+, −, ×, ÷)\n- Fractions and ratios\n\n**Early Geometry**\n- Egyptian rope stretchers\n- Babylonian clay tablets\n- Measuring land and buildings\n\n**Key figures:** Pythagoras, Euclid, Archimedes\n\n*\"Mathematics is the language in which God has written the universe.\" - Galileo*"
       },
       "position": {
-        "x": 4800,
-        "y": 3600
+        "x": 4399.666666666665,
+        "y": 3009.166666666666
       }
     },
     {
@@ -20,8 +20,8 @@
         "content": "# 📐 Geometry\n**The Study of Shape & Space**\n\n**Branches:**\n- **Euclidean**: Flat surfaces, parallel lines\n- **Non-Euclidean**: Curved spaces (spherical, hyperbolic)\n- **Analytic**: Geometry via coordinates (x, y, z)\n- **Differential**: Curves and surfaces using calculus\n- **Topology**: Properties unchanged by stretching\n\n**Applications:** Architecture, computer graphics, GPS, general relativity\n\n*A coffee cup and a donut are the same in topology!*"
       },
       "position": {
-        "x": 4200,
-        "y": 3900
+        "x": 4060.012451171875,
+        "y": 3654.493489583333
       }
     },
     {
@@ -31,8 +31,8 @@
         "content": "# 🔢 Algebra\n**The Language of Patterns**\n\n**Evolution:**\n- **Elementary**: Solving equations (x + 5 = 12)\n- **Abstract**: Groups, rings, fields\n- **Linear**: Matrices and vector spaces\n- **Boolean**: Logic and computer circuits\n\n**Key insight:** Variables represent unknowns or general cases\n\n**Applications:** Cryptography, quantum mechanics, machine learning\n\n*Algebra lets us solve problems we haven't even encountered yet!*"
       },
       "position": {
-        "x": 4800,
-        "y": 3900
+        "x": 4737.90476190476,
+        "y": 3709.04761904762
       }
     },
     {
@@ -42,8 +42,8 @@
         "content": "# ∞ Calculus\n**The Mathematics of Change**\n\n**Two big ideas:**\n- **Differential**: Rates of change (derivatives)\n- **Integral**: Accumulation (area under curves)\n\n**Founders:** Newton & Leibniz (1660s)\n\n**Core concepts:**\n- Limits and infinitesimals\n- Optimization\n- Related rates\n\n**Applications:** Physics, engineering, economics, medicine\n\n*How fast is the universe expanding? Calculus tells us!*"
       },
       "position": {
-        "x": 5400,
-        "y": 3900
+        "x": 5212.833333333333,
+        "y": 3055.833333333333
       }
     },
     {
@@ -53,8 +53,8 @@
         "content": "# 🎲 Probability & Statistics\n**The Science of Uncertainty**\n\n**Probability Theory:**\n- Random events and outcomes\n- Expected value\n- Distributions (normal, binomial, etc.)\n\n**Statistics:**\n- Data collection and analysis\n- Hypothesis testing\n- Regression and correlation\n\n**Born from:** Gambling problems in 1600s France!\n\n**Applications:** Medicine, finance, AI, weather forecasting\n\n*Every time you see a poll, that's statistics at work!*"
       },
       "position": {
-        "x": 4200,
-        "y": 4200
+        "x": 4120.571428571428,
+        "y": 4453.428571428571
       }
     },
     {
@@ -64,8 +64,8 @@
         "content": "# 🔬 Analysis\n**Rigorous Study of Continuous Math**\n\n**Core areas:**\n- **Real Analysis**: Properties of real numbers\n- **Complex Analysis**: Functions of complex numbers\n- **Functional Analysis**: Infinite-dimensional spaces\n- **Harmonic Analysis**: Wave functions & Fourier transforms\n\n**Key concept:** Making calculus rigorous with limits and proofs\n\n**Applications:** Signal processing, quantum mechanics, PDEs\n\n*Turns calculus intuitions into airtight mathematical proofs!*"
       },
       "position": {
-        "x": 4800,
-        "y": 4200
+        "x": 5484.666666666666,
+        "y": 4409.333333333333
       }
     },
     {
@@ -75,8 +75,8 @@
         "content": "# 🧮 Number Theory\n**The Queen of Mathematics**\n\n**Studies:** Properties of integers\n\n**Classic problems:**\n- Prime numbers (infinite, but mysterious)\n- Fermat's Last Theorem (proved after 358 years!)\n- Goldbach's conjecture (still unsolved)\n- Modular arithmetic\n\n**Applications:** \n- Internet security (RSA encryption)\n- Error-correcting codes\n- Cryptography\n\n*\"Mathematics is the queen of sciences, and number theory is the queen of mathematics.\" - Gauss*"
       },
       "position": {
-        "x": 5400,
-        "y": 4200
+        "x": 5524.904761904762,
+        "y": 3712.4523809523807
       }
     },
     {
@@ -86,8 +86,8 @@
         "content": "# 🧩 Mathematical Logic\n**The Rules of Reasoning**\n\n**Core topics:**\n- Set theory (foundation of all math)\n- Proof theory\n- Model theory\n- Computability theory\n\n**Mind-blowing results:**\n- Gödel's Incompleteness Theorems\n- Cantor's infinity hierarchies\n- The Halting Problem\n\n**Applications:** Computer science, AI, programming languages\n\n*Some mathematical truths can never be proven!*"
       },
       "position": {
-        "x": 3900,
-        "y": 4200
+        "x": 3414.666666666667,
+        "y": 4172
       }
     },
     {
@@ -97,8 +97,8 @@
         "content": "# 🌐 Combinatorics & Graph Theory\n**Counting and Connections**\n\n**Combinatorics:** How many ways?\n- Permutations and combinations\n- Counting techniques\n- Pigeonhole principle\n\n**Graph Theory:** Networks and relationships\n- Vertices and edges\n- Euler paths, Hamiltonian cycles\n- Coloring problems\n\n**Applications:** Social networks, optimization, scheduling, DNA sequencing\n\n*Facebook's friend network is a massive graph!*"
       },
       "position": {
-        "x": 3900,
-        "y": 3900
+        "x": 3471.333333333334,
+        "y": 3079.333333333334
       }
     },
     {
@@ -108,116 +108,200 @@
         "content": "# 🚀 Modern Applications\n**Where Math Meets the Real World**\n\n**Hot fields:**\n- **Machine Learning**: Linear algebra + calculus + probability\n- **Cryptography**: Number theory + algebra\n- **Computer Graphics**: Geometry + linear algebra\n- **Financial Math**: Stochastic calculus + probability\n- **Data Science**: Statistics + linear algebra\n- **Quantum Computing**: Complex analysis + linear algebra\n\n*Every major technology today runs on mathematics!*"
       },
       "position": {
-        "x": 4800,
-        "y": 4500
+        "x": 4758.285714285716,
+        "y": 4428.571428571429
       }
     }
   ],
   "connections": [
     {
       "id": "1-2",
-      "start": {"nodeId": 1},
-      "end": {"nodeId": 2}
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 2
+      }
     },
     {
       "id": "1-3",
-      "start": {"nodeId": 1},
-      "end": {"nodeId": 3}
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 3
+      }
     },
     {
       "id": "1-4",
-      "start": {"nodeId": 1},
-      "end": {"nodeId": 4}
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 4
+      }
     },
     {
       "id": "1-9",
-      "start": {"nodeId": 1},
-      "end": {"nodeId": 9}
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 9
+      }
     },
     {
       "id": "3-6",
-      "start": {"nodeId": 3},
-      "end": {"nodeId": 6}
+      "start": {
+        "nodeId": 3
+      },
+      "end": {
+        "nodeId": 6
+      }
     },
     {
       "id": "4-6",
-      "start": {"nodeId": 4},
-      "end": {"nodeId": 6}
+      "start": {
+        "nodeId": 4
+      },
+      "end": {
+        "nodeId": 6
+      }
     },
     {
       "id": "2-6",
-      "start": {"nodeId": 2},
-      "end": {"nodeId": 6}
+      "start": {
+        "nodeId": 2
+      },
+      "end": {
+        "nodeId": 6
+      }
     },
     {
       "id": "3-7",
-      "start": {"nodeId": 3},
-      "end": {"nodeId": 7}
+      "start": {
+        "nodeId": 3
+      },
+      "end": {
+        "nodeId": 7
+      }
     },
     {
       "id": "1-7",
-      "start": {"nodeId": 1},
-      "end": {"nodeId": 7}
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 7
+      }
     },
     {
       "id": "9-8",
-      "start": {"nodeId": 9},
-      "end": {"nodeId": 8}
+      "start": {
+        "nodeId": 9
+      },
+      "end": {
+        "nodeId": 8
+      }
     },
     {
       "id": "3-8",
-      "start": {"nodeId": 3},
-      "end": {"nodeId": 8}
+      "start": {
+        "nodeId": 3
+      },
+      "end": {
+        "nodeId": 8
+      }
     },
     {
       "id": "9-5",
-      "start": {"nodeId": 9},
-      "end": {"nodeId": 5}
+      "start": {
+        "nodeId": 9
+      },
+      "end": {
+        "nodeId": 5
+      }
     },
     {
       "id": "4-5",
-      "start": {"nodeId": 4},
-      "end": {"nodeId": 5}
+      "start": {
+        "nodeId": 4
+      },
+      "end": {
+        "nodeId": 5
+      }
     },
     {
       "id": "2-10",
-      "start": {"nodeId": 2},
-      "end": {"nodeId": 10}
+      "start": {
+        "nodeId": 2
+      },
+      "end": {
+        "nodeId": 10
+      }
     },
     {
       "id": "3-10",
-      "start": {"nodeId": 3},
-      "end": {"nodeId": 10}
+      "start": {
+        "nodeId": 3
+      },
+      "end": {
+        "nodeId": 10
+      }
     },
     {
       "id": "4-10",
-      "start": {"nodeId": 4},
-      "end": {"nodeId": 10}
+      "start": {
+        "nodeId": 4
+      },
+      "end": {
+        "nodeId": 10
+      }
     },
     {
       "id": "5-10",
-      "start": {"nodeId": 5},
-      "end": {"nodeId": 10}
+      "start": {
+        "nodeId": 5
+      },
+      "end": {
+        "nodeId": 10
+      }
     },
     {
       "id": "6-10",
-      "start": {"nodeId": 6},
-      "end": {"nodeId": 10}
+      "start": {
+        "nodeId": 6
+      },
+      "end": {
+        "nodeId": 10
+      }
     },
     {
       "id": "7-10",
-      "start": {"nodeId": 7},
-      "end": {"nodeId": 10}
+      "start": {
+        "nodeId": 7
+      },
+      "end": {
+        "nodeId": 10
+      }
     },
     {
       "id": "8-10",
-      "start": {"nodeId": 8},
-      "end": {"nodeId": 10}
+      "start": {
+        "nodeId": 8
+      },
+      "end": {
+        "nodeId": 10
+      }
     },
     {
       "id": "9-10",
-      "start": {"nodeId": 9},
-      "end": {"nodeId": 10}
+      "start": {
+        "nodeId": 9
+      },
+      "end": {
+        "nodeId": 10
+      }
     }
   ],
   "nodeIdCounter": 11,
@@ -235,5 +319,5 @@
     "10": "red"
   },
   "version": "1.0",
-  "exportedAt": "2025-09-26T12:00:00.000Z"
+  "exportedAt": "2025-09-25T20:52:36.529Z"
 }
