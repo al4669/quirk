@@ -1,0 +1,324 @@
+{
+  "name": "Quantum Computing: The Complete Map",
+  "description": "A comprehensive journey through quantum computing - from fundamental physics to revolutionary applications reshaping our world",
+  "nodes": [
+    {
+      "id": 1,
+      "type": "Foundation",
+      "data": {
+        "content": "# ⚛️ The Quantum Revolution\n**Why Classical Computing Has Hit Its Limits**\n\n**Moore's Law is dying:**\n- Transistors now ~5nm (20 atoms wide)\n- Quantum tunneling breaks classical logic\n- Heat dissipation approaching physical limits\n- We need a fundamentally different approach\n\n**The quantum solution:**\n- Harness superposition & entanglement\n- Exponential scaling vs linear\n- Solve previously impossible problems\n\n**Market size:** $125B by 2030\n**Active quantum computers:** 100+ worldwide\n\n*\"Nature isn't classical, dammit, and if you want to make a simulation of nature, you'd better make it quantum mechanical.\" - Richard Feynman*"
+      },
+      "position": {
+        "x": 4800,
+        "y": 3200
+      }
+    },
+    {
+      "id": 2,
+      "type": "Classical vs Quantum",
+      "data": {
+        "content": "# 🔄 Bits vs Qubits\n**The Fundamental Difference**\n\n**Classical Bit:**\n- State: 0 OR 1 (definite)\n- Processing: Sequential\n- 8 bits = 256 possible states (one at a time)\n\n**Quantum Bit (Qubit):**\n- State: α|0⟩ + β|1⟩ (superposition)\n- Processing: Parallel\n- 8 qubits = 256 states SIMULTANEOUSLY\n- **n qubits = 2ⁿ states at once**\n\n**The power:**\n- 300 qubits > atoms in universe for parallel computation\n- Certain problems: exponential speedup\n- Cryptography: break RSA in hours vs billions of years\n\n**Key principle:** Measurement collapses superposition to classical state"
+      },
+      "position": {
+        "x": 4800,
+        "y": 3500
+      }
+    },
+    {
+      "id": 3,
+      "type": "Superposition",
+      "data": {
+        "content": "# 🌊 Superposition\n**Being Multiple States Simultaneously**\n\n**Mathematical representation:**\n|ψ⟩ = α|0⟩ + β|1⟩\n- α, β are complex probability amplitudes\n- |α|² + |β|² = 1 (probabilities sum to 1)\n\n**Visual analogy:**\n- Spinning coin is in superposition (heads AND tails)\n- Landing coin collapses to definite state\n- Quantum systems maintain superposition until measured\n\n**Bloch Sphere:**\nEvery qubit state maps to point on sphere\n- North pole: |0⟩\n- South pole: |1⟩  \n- Equator: equal superposition\n\n**Power:** Explore all solution paths simultaneously, constructively interfere correct answer"
+      },
+      "position": {
+        "x": 4200,
+        "y": 3800
+      }
+    },
+    {
+      "id": 4,
+      "type": "Entanglement",
+      "data": {
+        "content": "# 🔗 Quantum Entanglement\n**Spooky Action at a Distance**\n\n**Einstein's \"spooky\" phenomenon:**\n- Two particles linked regardless of distance\n- Measuring one INSTANTLY affects the other\n- No classical explanation exists\n\n**Bell State example:**\n|Φ⁺⟩ = (|00⟩ + |11⟩)/√2\n- Measure first qubit as 0 → second is 0\n- Measure first qubit as 1 → second is 1\n- 100% correlation, faster than light\n\n**Applications:**\n- Quantum teleportation (information, not matter)\n- Quantum cryptography (unhackable)\n- Distributed quantum computing\n\n**Key insight:** Entanglement provides exponentially more correlations than classical systems can achieve"
+      },
+      "position": {
+        "x": 5400,
+        "y": 3800
+      }
+    },
+    {
+      "id": 5,
+      "type": "Quantum Gates",
+      "data": {
+        "content": "# ⚙️ Quantum Logic Gates\n**The Building Blocks of Quantum Circuits**\n\n**Single-qubit gates:**\n- **Hadamard (H):** Creates superposition\n  |0⟩ → (|0⟩+|1⟩)/√2\n- **Pauli-X:** Quantum NOT (bit flip)\n- **Pauli-Z:** Phase flip\n- **T-gate:** π/8 rotation (for universality)\n\n**Two-qubit gates:**\n- **CNOT:** Controlled-NOT (creates entanglement)\n- **SWAP:** Exchange qubit states\n- **Controlled-Z:** Phase kickback\n\n**Universal gate sets:** {H, T, CNOT} can compute ANY quantum algorithm\n\n**Circuit depth:** Number of sequential gates (limited by decoherence)\n\n*Quantum gates are reversible (unitary matrices) - no information loss!*"
+      },
+      "position": {
+        "x": 4800,
+        "y": 3800
+      }
+    },
+    {
+      "id": 6,
+      "type": "Decoherence & Error",
+      "data": {
+        "content": "# 🌡️ Decoherence: The Great Challenge\n**Why Quantum Computers Are So Hard to Build**\n\n**The problem:**\n- Qubits interact with environment\n- Superposition/entanglement destroyed in microseconds\n- Coherence time: 100μs (superconducting) to 100s (trapped ions)\n\n**Error sources:**\n- Thermal noise (need ~10-100 mK temperature)\n- Electromagnetic interference\n- Control pulse imperfections\n- Cosmic rays (!)\n\n**Error rates:**\n- Physical qubits: 0.1% - 1% error per gate\n- Need: <0.01% for useful computation\n\n**Solutions:**\n- Quantum error correction (encode 1 logical qubit in many physical)\n- Better qubit designs (topological qubits)\n- Cryogenic isolation\n\n*Current challenge: Need ~1000 physical qubits per 1 logical qubit*"
+      },
+      "position": {
+        "x": 4200,
+        "y": 4100
+      }
+    },
+    {
+      "id": 7,
+      "type": "Hardware Platforms",
+      "data": {
+        "content": "# 🔬 Quantum Hardware Technologies\n**Five Competing Approaches**\n\n**1. Superconducting Qubits** (IBM, Google)\n- Artificial atoms on chips\n- Pros: Scalable manufacturing, fast gates\n- Cons: Ultra-cold (15 mK), short coherence\n\n**2. Trapped Ions** (IonQ, Honeywell)\n- Individual atoms in electromagnetic trap\n- Pros: Long coherence, high fidelity\n- Cons: Slow gates, hard to scale\n\n**3. Photonic** (Xanadu, PsiQuantum)\n- Light particles for qubits\n- Pros: Room temperature, network-friendly\n- Cons: Difficult two-qubit gates\n\n**4. Neutral Atoms** (QuEra, Pasqal)\n- Arrays of laser-trapped atoms\n- Pros: Scalable, reconfigurable\n\n**5. Topological** (Microsoft)\n- Exotic quasiparticles (Majorana fermions)\n- Pros: Inherently error-resistant\n- Cons: Not yet demonstrated"
+      },
+      "position": {
+        "x": 5400,
+        "y": 4100
+      }
+    },
+    {
+      "id": 8,
+      "type": "Key Algorithms",
+      "data": {
+        "content": "# 🧮 Quantum Algorithms\n**Where Quantum Computers Excel**\n\n**Shor's Algorithm (1994):**\n- Factor large numbers exponentially faster\n- Breaks RSA encryption (2048-bit in hours)\n- Classical: billions of years\n- Requires ~20M qubits (we have ~1000)\n\n**Grover's Algorithm (1996):**\n- Search unsorted database\n- Quadratic speedup: √N vs N\n- Breaks symmetric crypto (AES-256 → AES-128 security)\n\n**Quantum Simulation:**\n- Simulate quantum systems naturally\n- Drug discovery, materials science\n- Exponential advantage\n\n**VQE (Variational Quantum Eigensolver):**\n- Find molecular ground states\n- Chemistry, drug design\n- NISQ-era algorithm (works on noisy qubits)\n\n**QAOA (Quantum Approx. Optimization):**\n- Combinatorial optimization\n- Logistics, finance, ML"
+      },
+      "position": {
+        "x": 4800,
+        "y": 4100
+      }
+    },
+    {
+      "id": 9,
+      "type": "Cryptography Impact",
+      "data": {
+        "content": "# 🔐 The Cryptographic Apocalypse\n**Q-Day: When Quantum Breaks the Internet**\n\n**What breaks:**\n- **RSA:** Public key encryption (2048-bit crackable)\n- **ECC:** Elliptic curve crypto (gone)\n- **Diffie-Hellman:** Key exchange (broken)\n- Impact: Banking, HTTPS, VPNs, blockchain\n\n**Timeline:**\n- Current: Adversaries storing encrypted data\n- 2030-2035: Likely Q-Day (cryptographically relevant quantum computer)\n- Harvest now, decrypt later threat\n\n**Post-Quantum Cryptography (PQC):**\n- NIST standardized algorithms (2024)\n- Lattice-based (CRYSTALS-Kyber)\n- Hash-based signatures\n- Code-based crypto\n\n**Action items:**\n- Migrate to PQC NOW (data with 10+ year sensitivity)\n- Crypto-agility in systems\n- Quantum Key Distribution (QKD) for ultra-secure"
+      },
+      "position": {
+        "x": 4200,
+        "y": 4400
+      }
+    },
+    {
+      "id": 10,
+      "type": "Drug Discovery",
+      "data": {
+        "content": "# 💊 Quantum in Pharmaceuticals\n**Revolutionizing Drug Design**\n\n**The challenge:**\n- Protein folding: 10^300 possible configurations\n- Classical: Impossible to simulate accurately\n- Takes 10+ years, $2B per drug\n\n**Quantum advantage:**\n- Simulate molecular interactions exactly\n- Predict protein folding\n- Design molecules with target properties\n- Screen billions of candidates in silico\n\n**Current progress:**\n- IBM + Cleveland Clinic: Drug discovery cloud\n- Roche + Cambridge Quantum: Alzheimer's research  \n- Moderna: mRNA optimization\n\n**Impact timeline:**\n- 2025-2027: First quantum-accelerated drug candidates\n- 2030s: Standard tool in pharma\n\n**Example:** COVID-19 vaccine could have been designed in weeks vs months with quantum simulation"
+      },
+      "position": {
+        "x": 4800,
+        "y": 4400
+      }
+    },
+    {
+      "id": 11,
+      "type": "Financial Modeling",
+      "data": {
+        "content": "# 💰 Quantum Finance\n**Optimizing the Global Economy**\n\n**Applications:**\n\n**Portfolio Optimization:**\n- Analyze millions of scenarios simultaneously\n- Real-time risk assessment\n- QAOA for asset allocation\n- Goldman Sachs, JPMorgan active projects\n\n**Derivative Pricing:**\n- Monte Carlo simulation speedup\n- Option pricing in quantum time\n- Credit risk modeling\n\n**Fraud Detection:**\n- Quantum ML for pattern recognition\n- Real-time anomaly detection\n- Network analysis via quantum walks\n\n**High-Frequency Trading:**\n- Quantum advantage in prediction\n- Optimization at microsecond scales\n\n**Challenge:** First mover advantage could be worth billions, driving massive investment\n\n*\"Quantum computing will be the next arms race in finance\" - JPM*"
+      },
+      "position": {
+        "x": 5400,
+        "y": 4400
+      }
+    },
+    {
+      "id": 12,
+      "type": "AI & Machine Learning",
+      "data": {
+        "content": "# 🤖 Quantum Machine Learning\n**The Ultimate AI Accelerator**\n\n**Quantum advantage for ML:**\n\n**Training speedup:**\n- Quantum neural networks (QNNs)\n- Exponentially large feature spaces\n- Quantum kernel methods\n- Grover-accelerated gradient descent\n\n**Key algorithms:**\n- **HHL:** Linear systems exponentially faster\n- **qGAN:** Quantum generative models  \n- **Quantum SVM:** Classification in Hilbert space\n- **Quantum PCA:** Dimensionality reduction\n\n**Applications:**\n- Image recognition at quantum scale\n- Natural language processing\n- Drug-target prediction\n- Climate modeling\n\n**Current state:**\n- Google: Quantum ML benchmarks\n- IBM Qiskit ML toolkit\n- PennyLane: Quantum ML framework\n\n*Combining quantum + classical = hybrid intelligence*"
+      },
+      "position": {
+        "x": 3900,
+        "y": 4400
+      }
+    },
+    {
+      "id": 13,
+      "type": "Climate & Energy",
+      "data": {
+        "content": "# 🌍 Saving the Planet with Qubits\n**Quantum Solutions for Climate Crisis**\n\n**Carbon Capture:**\n- Simulate catalyst designs for CO₂ conversion\n- Find materials that bind carbon efficiently\n- Mercedes-Benz: Battery chemistry optimization\n\n**Fusion Energy:**\n- Plasma simulation (quantum many-body problem)\n- Optimize magnetic confinement\n- Model fusion reactions accurately\n\n**Solar Cells:**\n- Design materials with perfect bandgap\n- Quantum photovoltaics\n- 50%+ efficiency possible\n\n**Grid Optimization:**\n- Balance renewable energy sources\n- Real-time load distribution\n- Minimize waste\n\n**Nitrogen Fixation:**\n- Design catalysts for ammonia synthesis (fertilizer)\n- Replace Haber-Bosch (2% global energy use)\n\n*Quantum computing could solve climate change before it's too late*"
+      },
+      "position": {
+        "x": 3900,
+        "y": 4100
+      }
+    },
+    {
+      "id": 14,
+      "type": "Getting Started",
+      "data": {
+        "content": "# 🚀 Build Your First Quantum Program\n**Accessible Tools & Resources**\n\n**Cloud quantum computers (FREE):**\n- IBM Quantum (127 qubits)\n- Amazon Braket\n- Azure Quantum\n- Google Quantum AI\n\n**Programming frameworks:**\n- **Qiskit** (Python) - Most popular\n- **Cirq** (Google)\n- **Q#** (Microsoft)\n- **PennyLane** (ML focus)\n\n**First project:** Quantum random number generator\n```python\nfrom qiskit import QuantumCircuit\nqc = QuantumCircuit(1, 1)\nqc.h(0)  # Superposition\nqc.measure(0, 0)\n# True randomness!\n```\n\n**Learning paths:**\n- IBM Quantum Learning\n- Microsoft Quantum Katas\n- Qiskit Textbook (free)\n- MIT xPRO Quantum Computing\n\n*Start coding today - real quantum hardware awaits!*"
+      },
+      "position": {
+        "x": 4800,
+        "y": 4700
+      }
+    },
+    {
+      "id": 15,
+      "type": "The Road Ahead",
+      "data": {
+        "content": "# 🔮 Quantum Future: 2025-2045\n**Milestones on the Horizon**\n\n**2025-2027: NISQ Era Matures**\n- 1,000+ qubit systems\n- First practical advantages (optimization, ML)\n- Quantum internet prototypes\n\n**2028-2032: Fault-Tolerant Dawn**\n- Error-corrected logical qubits\n- Break RSA-2048\n- Quantum-designed drugs hit market\n\n**2033-2038: Quantum Advantage**\n- Million+ qubit systems\n- Climate crisis solutions\n- AGI accelerated by quantum ML\n\n**2040-2045: Quantum Everywhere**\n- Room-temperature qubits possible\n- Personal quantum devices\n- Quantum-classical hybrid computing standard\n- Economic impact: $850B annually\n\n**The race is on:** US, China, EU investing $30B+ combined\n\n*\"Quantum computing will be to the 21st century what electricity was to the 20th\" - Michio Kaku*"
+      },
+      "position": {
+        "x": 4800,
+        "y": 5000
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "1-2",
+      "start": {"nodeId": 1},
+      "end": {"nodeId": 2}
+    },
+    {
+      "id": "2-3",
+      "start": {"nodeId": 2},
+      "end": {"nodeId": 3}
+    },
+    {
+      "id": "2-4",
+      "start": {"nodeId": 2},
+      "end": {"nodeId": 4}
+    },
+    {
+      "id": "2-5",
+      "start": {"nodeId": 2},
+      "end": {"nodeId": 5}
+    },
+    {
+      "id": "3-5",
+      "start": {"nodeId": 3},
+      "end": {"nodeId": 5}
+    },
+    {
+      "id": "4-5",
+      "start": {"nodeId": 4},
+      "end": {"nodeId": 5}
+    },
+    {
+      "id": "5-6",
+      "start": {"nodeId": 5},
+      "end": {"nodeId": 6}
+    },
+    {
+      "id": "5-7",
+      "start": {"nodeId": 5},
+      "end": {"nodeId": 7}
+    },
+    {
+      "id": "5-8",
+      "start": {"nodeId": 5},
+      "end": {"nodeId": 8}
+    },
+    {
+      "id": "6-8",
+      "start": {"nodeId": 6},
+      "end": {"nodeId": 8}
+    },
+    {
+      "id": "7-8",
+      "start": {"nodeId": 7},
+      "end": {"nodeId": 8}
+    },
+    {
+      "id": "8-9",
+      "start": {"nodeId": 8},
+      "end": {"nodeId": 9}
+    },
+    {
+      "id": "8-10",
+      "start": {"nodeId": 8},
+      "end": {"nodeId": 10}
+    },
+    {
+      "id": "8-11",
+      "start": {"nodeId": 8},
+      "end": {"nodeId": 11}
+    },
+    {
+      "id": "8-12",
+      "start": {"nodeId": 8},
+      "end": {"nodeId": 12}
+    },
+    {
+      "id": "8-13",
+      "start": {"nodeId": 8},
+      "end": {"nodeId": 13}
+    },
+    {
+      "id": "9-14",
+      "start": {"nodeId": 9},
+      "end": {"nodeId": 14}
+    },
+    {
+      "id": "10-14",
+      "start": {"nodeId": 10},
+      "end": {"nodeId": 14}
+    },
+    {
+      "id": "11-14",
+      "start": {"nodeId": 11},
+      "end": {"nodeId": 14}
+    },
+    {
+      "id": "12-14",
+      "start": {"nodeId": 12},
+      "end": {"nodeId": 14}
+    },
+    {
+      "id": "13-14",
+      "start": {"nodeId": 13},
+      "end": {"nodeId": 14}
+    },
+    {
+      "id": "14-15",
+      "start": {"nodeId": 14},
+      "end": {"nodeId": 15}
+    },
+    {
+      "id": "6-7",
+      "start": {"nodeId": 6},
+      "end": {"nodeId": 7}
+    },
+    {
+      "id": "3-6",
+      "start": {"nodeId": 3},
+      "end": {"nodeId": 6}
+    },
+    {
+      "id": "4-7",
+      "start": {"nodeId": 4},
+      "end": {"nodeId": 7}
+    },
+    {
+      "id": "13-10",
+      "start": {"nodeId": 13},
+      "end": {"nodeId": 10}
+    }
+  ],
+  "nodeIdCounter": 16,
+  "globalTheme": "violet",
+  "nodeThemes": {
+    "1": "purple",
+    "2": "indigo",
+    "3": "blue",
+    "4": "cyan",
+    "5": "teal",
+    "6": "orange",
+    "7": "amber",
+    "8": "green",
+    "9": "red",
+    "10": "pink",
+    "11": "emerald",
+    "12": "violet",
+    "13": "lime",
+    "14": "sky",
+    "15": "fuchsia"
+  },
+  "version": "1.0",
+  "exportedAt": "2025-09-26T13:00:00.000Z"
+}
