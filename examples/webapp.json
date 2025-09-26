@@ -1,0 +1,241 @@
+{
+  "name": "Build Your First Web App",
+  "description": "A complete step-by-step guide to creating a functional web application from zero to deployment",
+  "nodes": [
+    {
+      "id": 1,
+      "type": "START HERE",
+      "data": {
+        "content": "# 🎯 Your Mission\n**Build a Todo List Web App in 7 Days**\n\nYou'll learn:\n- HTML structure\n- CSS styling\n- JavaScript interactivity\n- Data persistence\n- Deployment\n\n**Time required:** 1-2 hours per day\n**Prerequisites:** Just a computer and determination!\n\n**What you'll build:** A functional todo app that saves your tasks, looks great, and works on any device.\n\nLet's begin! 👉"
+      },
+      "position": {
+        "x": 4800,
+        "y": 3400
+      }
+    },
+    {
+      "id": 2,
+      "type": "Day 1: Setup",
+      "data": {
+        "content": "# 💻 Development Environment\n\n**Step 1: Install VS Code**\n- Download from code.visualstudio.com\n- Free, lightweight, powerful\n\n**Step 2: Create Project Folder**\n```\nmy-todo-app/\n  ├── index.html\n  ├── style.css\n  └── script.js\n```\n\n**Step 3: Install Extensions**\n- Live Server (instant preview)\n- Prettier (auto-formatting)\n\n**Test it:** Create index.html, type `!` + Tab for template, then right-click → Open with Live Server\n\n✅ If you see a blank page in browser, you're ready!"
+      },
+      "position": {
+        "x": 4800,
+        "y": 3700
+      }
+    },
+    {
+      "id": 3,
+      "type": "Day 2: HTML Structure",
+      "data": {
+        "content": "# 📝 Building the Skeleton\n\n**Create your HTML structure:**\n\n```html\n<div class=\"container\">\n  <h1>My Todo List</h1>\n  \n  <div class=\"input-section\">\n    <input type=\"text\" id=\"taskInput\" \n           placeholder=\"Add a new task...\">\n    <button id=\"addBtn\">Add</button>\n  </div>\n  \n  <ul id=\"taskList\"></ul>\n</div>\n```\n\n**Key concepts:**\n- `id` = unique identifier for JavaScript\n- `class` = reusable style name\n- Semantic HTML = meaningful tags\n\n✅ You should see text input and button (ugly but functional!)"
+      },
+      "position": {
+        "x": 4200,
+        "y": 3900
+      }
+    },
+    {
+      "id": 4,
+      "type": "Day 3: CSS Styling",
+      "data": {
+        "content": "# 🎨 Making It Beautiful\n\n**Essential CSS (style.css):**\n\n```css\n* {\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n}\n\nbody {\n  font-family: 'Segoe UI', sans-serif;\n  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n  min-height: 100vh;\n  display: flex;\n  justify-content: center;\n  align-items: center;\n}\n\n.container {\n  background: white;\n  padding: 2rem;\n  border-radius: 10px;\n  box-shadow: 0 10px 40px rgba(0,0,0,0.1);\n  width: 400px;\n}\n```\n\n✅ Now it looks professional!"
+      },
+      "position": {
+        "x": 4800,
+        "y": 3900
+      }
+    },
+    {
+      "id": 5,
+      "type": "Day 4: JavaScript Basics",
+      "data": {
+        "content": "# ⚡ Adding Interactivity\n\n**Make the Add button work:**\n\n```javascript\nconst taskInput = document.getElementById('taskInput');\nconst addBtn = document.getElementById('addBtn');\nconst taskList = document.getElementById('taskList');\n\naddBtn.addEventListener('click', function() {\n  const taskText = taskInput.value;\n  \n  if (taskText === '') {\n    alert('Please enter a task!');\n    return;\n  }\n  \n  const li = document.createElement('li');\n  li.textContent = taskText;\n  taskList.appendChild(li);\n  \n  taskInput.value = ''; // Clear input\n});\n```\n\n✅ Click Add → task appears!"
+      },
+      "position": {
+        "x": 5400,
+        "y": 3900
+      }
+    },
+    {
+      "id": 6,
+      "type": "Day 5: Delete & Toggle",
+      "data": {
+        "content": "# ✨ Advanced Features\n\n**Add delete and complete functionality:**\n\n```javascript\nfunction createTask(text) {\n  const li = document.createElement('li');\n  li.innerHTML = `\n    <span>${text}</span>\n    <button class=\"delete\">❌</button>\n  `;\n  \n  // Toggle complete\n  li.querySelector('span').addEventListener('click', function() {\n    li.classList.toggle('completed');\n  });\n  \n  // Delete task\n  li.querySelector('.delete').addEventListener('click', function() {\n    li.remove();\n  });\n  \n  return li;\n}\n```\n\n✅ Click task → strikethrough! Click ❌ → deleted!"
+      },
+      "position": {
+        "x": 5400,
+        "y": 4200
+      }
+    },
+    {
+      "id": 7,
+      "type": "Day 6: Data Persistence",
+      "data": {
+        "content": "# 💾 Save Your Data\n\n**Store tasks in localStorage:**\n\n```javascript\nfunction saveTasks() {\n  const tasks = [];\n  document.querySelectorAll('#taskList li').forEach(li => {\n    tasks.push({\n      text: li.querySelector('span').textContent,\n      completed: li.classList.contains('completed')\n    });\n  });\n  localStorage.setItem('tasks', JSON.stringify(tasks));\n}\n\nfunction loadTasks() {\n  const tasks = JSON.parse(localStorage.getItem('tasks')) || [];\n  tasks.forEach(task => {\n    const li = createTask(task.text);\n    if (task.completed) li.classList.add('completed');\n    taskList.appendChild(li);\n  });\n}\n\nloadTasks(); // Run on page load\n```\n\n✅ Refresh page → tasks stay!"
+      },
+      "position": {
+        "x": 4800,
+        "y": 4200
+      }
+    },
+    {
+      "id": 8,
+      "type": "Day 7: Deploy",
+      "data": {
+        "content": "# 🚀 Share With The World\n\n**Free deployment options:**\n\n**Option 1: GitHub Pages (easiest)**\n1. Create GitHub account\n2. Create new repository\n3. Upload your files\n4. Settings → Pages → Deploy from main branch\n5. Your site: `username.github.io/repo-name`\n\n**Option 2: Netlify**\n1. Sign up at netlify.com\n2. Drag & drop your folder\n3. Get instant URL\n\n**Option 3: Vercel**\n1. Sign up at vercel.com\n2. Import project\n3. Auto-deploys on changes\n\n✅ Share your URL with friends!"
+      },
+      "position": {
+        "x": 4200,
+        "y": 4200
+      }
+    },
+    {
+      "id": 9,
+      "type": "BONUS: Next Steps",
+      "data": {
+        "content": "# 🎓 Level Up Your Skills\n\n**Now that you've built your first app:**\n\n**Immediate improvements:**\n- Add categories/tags\n- Due dates & priorities\n- Dark mode toggle\n- Search/filter tasks\n- Drag & drop reordering\n\n**Learn next:**\n- React/Vue (modern frameworks)\n- Backend with Node.js\n- Database (MongoDB/PostgreSQL)\n- Authentication (user accounts)\n- API integration\n\n**Resources:**\n- freeCodeCamp.org\n- JavaScript.info\n- MDN Web Docs\n\n🎉 You're now a web developer!"
+      },
+      "position": {
+        "x": 4800,
+        "y": 4500
+      }
+    },
+    {
+      "id": 10,
+      "type": "Debug Help",
+      "data": {
+        "content": "# 🐛 Common Issues & Fixes\n\n**Problem: Button doesn't work**\n- Check: Did you link script.js in HTML?\n- Check: Is script tag at end of body?\n- Check: Any errors in browser console? (F12)\n\n**Problem: Styling not applied**\n- Check: Did you link style.css in HTML?\n- Check: Correct file path?\n- Check: Clear browser cache (Ctrl+Shift+R)\n\n**Problem: Tasks don't save**\n- Check: Is localStorage enabled?\n- Check: Are you calling saveTasks()?\n- Check: Private browsing disables storage\n\n**Pro tip:** Always check Console (F12) for errors first!"
+      },
+      "position": {
+        "x": 3900,
+        "y": 3900
+      }
+    },
+    {
+      "id": 11,
+      "type": "Key Concepts",
+      "data": {
+        "content": "# 🧠 What You Learned\n\n**1. DOM Manipulation**\n- Selecting elements (getElementById)\n- Creating elements (createElement)\n- Modifying content (textContent, innerHTML)\n\n**2. Event Handling**\n- Click events (addEventListener)\n- User input (input.value)\n- Dynamic event listeners\n\n**3. Data Management**\n- Arrays & objects\n- JSON (parse & stringify)\n- localStorage API\n\n**4. CSS Fundamentals**\n- Flexbox layout\n- Responsive design\n- Modern styling\n\n**These skills apply to ANY web project!**"
+      },
+      "position": {
+        "x": 3900,
+        "y": 4200
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "1-2",
+      "start": {"nodeId": 1},
+      "end": {"nodeId": 2}
+    },
+    {
+      "id": "2-3",
+      "start": {"nodeId": 2},
+      "end": {"nodeId": 3}
+    },
+    {
+      "id": "2-10",
+      "start": {"nodeId": 2},
+      "end": {"nodeId": 10}
+    },
+    {
+      "id": "3-4",
+      "start": {"nodeId": 3},
+      "end": {"nodeId": 4}
+    },
+    {
+      "id": "4-5",
+      "start": {"nodeId": 4},
+      "end": {"nodeId": 5}
+    },
+    {
+      "id": "5-6",
+      "start": {"nodeId": 5},
+      "end": {"nodeId": 6}
+    },
+    {
+      "id": "6-7",
+      "start": {"nodeId": 6},
+      "end": {"nodeId": 7}
+    },
+    {
+      "id": "7-8",
+      "start": {"nodeId": 7},
+      "end": {"nodeId": 8}
+    },
+    {
+      "id": "8-9",
+      "start": {"nodeId": 8},
+      "end": {"nodeId": 9}
+    },
+    {
+      "id": "7-9",
+      "start": {"nodeId": 7},
+      "end": {"nodeId": 9}
+    },
+    {
+      "id": "10-3",
+      "start": {"nodeId": 10},
+      "end": {"nodeId": 3}
+    },
+    {
+      "id": "10-4",
+      "start": {"nodeId": 10},
+      "end": {"nodeId": 4}
+    },
+    {
+      "id": "10-5",
+      "start": {"nodeId": 10},
+      "end": {"nodeId": 5}
+    },
+    {
+      "id": "3-11",
+      "start": {"nodeId": 3},
+      "end": {"nodeId": 11}
+    },
+    {
+      "id": "4-11",
+      "start": {"nodeId": 4},
+      "end": {"nodeId": 11}
+    },
+    {
+      "id": "5-11",
+      "start": {"nodeId": 5},
+      "end": {"nodeId": 11}
+    },
+    {
+      "id": "6-11",
+      "start": {"nodeId": 6},
+      "end": {"nodeId": 11}
+    },
+    {
+      "id": "7-11",
+      "start": {"nodeId": 7},
+      "end": {"nodeId": 11}
+    },
+    {
+      "id": "11-9",
+      "start": {"nodeId": 11},
+      "end": {"nodeId": 9}
+    }
+  ],
+  "nodeIdCounter": 12,
+  "globalTheme": "blue",
+  "nodeThemes": {
+    "1": "purple",
+    "2": "green",
+    "3": "blue",
+    "4": "pink",
+    "5": "orange",
+    "6": "teal",
+    "7": "indigo",
+    "8": "red",
+    "9": "amber",
+    "10": "rose",
+    "11": "cyan"
+  },
+  "version": "1.0",
+  "exportedAt": "2025-09-26T12:30:00.000Z"
+}
