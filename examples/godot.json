@@ -1,0 +1,149 @@
+{
+  "name": "The Path to Godot Mastery",
+  "description": "Structured GDScript & Godot learning curriculum — exported for visual study",
+  "nodes": [
+    {
+      "id": 1,
+      "type": "Origins",
+      "data": {
+        "content": "# 🎮 Lesson 1: First Steps in Godot\n**Setting Up & Hello World**\n\n- Install Godot 4.x\n- Understand scenes, nodes, and the editor\n- Create a `Node2D` scene\n- Add a `Sprite2D` and load a texture\n- Attach a script and print \"Hello, Godot!\"\n- Run your first project!\n\n**Key Concept:** Everything is a node. Scenes are reusable.\n\n*\"The journey of a thousand games begins with a single node.\"*"
+      },
+      "position": {
+        "x": 4400,
+        "y": 3000
+      }
+    },
+    {
+      "id": 2,
+      "type": "Core Concepts",
+      "data": {
+        "content": "# 🧱 Lesson 2: GDScript Basics\n**Variables, Functions & Control Flow**\n\n- Syntax: indentation, `var`, `func`\n- Data types: `int`, `float`, `String`, `bool`, `Array`, `Dictionary`\n- Conditionals: `if`/`elif`/`else`\n- Loops: `for`, `while`\n- Built-in functions: `print()`, `randi()`, etc.\n\n**Practice:** Make a coin flipper or dice roller!\n\n*GDScript is Python-like but built for games.*"
+      },
+      "position": {
+        "x": 4060,
+        "y": 3650
+      }
+    },
+    {
+      "id": 3,
+      "type": "Input & Interaction",
+      "data": {
+        "content": "# ⌨️ Lesson 3: Handling Input\n**Player Control & Events**\n\n- Use `_process(delta)` and `_physics_process(delta)`\n- Detect keyboard/mouse input: `Input.is_action_pressed()`\n- Set up input actions in **Project > Project Settings > Input Map**\n- Move a sprite with arrow keys\n\n**Key Insight:** Frame rate independence via `delta`\n\n*Your player won’t move without input!*"
+      },
+      "position": {
+        "x": 4740,
+        "y": 3710
+      }
+    },
+    {
+      "id": 4,
+      "type": "Physics & Movement",
+      "data": {
+        "content": "# 🚀 Lesson 4: 2D Physics\n**RigidBodies, Collisions & Forces**\n\n- Use `CharacterBody2D` (for players)\n- Add `CollisionShape2D`\n- Use `move_and_slide()`\n- Gravity, jumping, ground detection\n- Kinematic vs. Rigid bodies\n\n**Project:** Platformer prototype with jump!\n\n*Physics makes games feel real.*"
+      },
+      "position": {
+        "x": 5210,
+        "y": 3060
+      }
+    },
+    {
+      "id": 5,
+      "type": "Game Systems",
+      "data": {
+        "content": "# 🧠 Lesson 5: Signals & Communication\n**Decoupled Game Logic**\n\n- What are signals? (`signal hit`)\n- Connect signals in code or editor\n- Emit signals on events (e.g., enemy dies → score updates)\n- Observer pattern made easy\n\n**Best Practice:** Use signals instead of direct node references when possible.\n\n*Signals keep your code clean and modular!*"
+      },
+      "position": {
+        "x": 4120,
+        "y": 4450
+      }
+    },
+    {
+      "id": 6,
+      "type": "Scene Management",
+      "data": {
+        "content": "# 🌍 Lesson 6: Scenes & Instancing\n**Building Modular Games**\n\n- Create reusable scenes (e.g., `Enemy.tscn`)\n- Instance scenes via code: `add_child(preload(\"res://Enemy.tscn\").instantiate())`\n- Change scenes: `get_tree().change_scene_to_file(\"res://Game.tscn\")`\n- Use singletons (autoloads) for global data (e.g., score, audio)\n\n**Golden Rule:** Favor composition over inheritance.\n\n*Scenes are Godot’s superpower.*"
+      },
+      "position": {
+        "x": 5480,
+        "y": 4410
+      }
+    },
+    {
+      "id": 7,
+      "type": "Visuals & UI",
+      "data": {
+        "content": "# 🎨 Lesson 7: UI & Cameras\n**HUDs, Menus & Views**\n\n- Use `Control` nodes for UI (Label, Button, Panel)\n- Anchor & layout for responsive design\n- `Camera2D` to follow player\n- Screen boundaries and zoom\n\n**Project:** Add health bar, score counter, and pause menu!\n\n*Great games need great feedback.*"
+      },
+      "position": {
+        "x": 5520,
+        "y": 3710
+      }
+    },
+    {
+      "id": 8,
+      "type": "Architecture",
+      "data": {
+        "content": "# 🏗️ Lesson 8: Project Structure\n**Organization & Best Practices**\n\n- Folder structure: `/scenes`, `/scripts`, `/assets`\n- Script naming: `Player.gd`, `EnemyAI.gd`\n- Avoid `_process` when possible (use signals or `_ready`)\n- Document with comments and groups\n- Use version control (Git!)\n\n**Pro Tip:** Keep scripts under 200 lines.\n\n*Clean code = happy developer.*"
+      },
+      "position": {
+        "x": 3410,
+        "y": 4170
+      }
+    },
+    {
+      "id": 9,
+      "type": "Assets & Tools",
+      "data": {
+        "content": "# 🎨 Lesson 9: Working with Assets\n**Art, Sound & Animation**\n\n- Import PNG, WAV, TSCN files\n- Use `AnimatedSprite2D` or `AnimationPlayer`\n- TileMaps for levels\n- AudioStreamPlayer for SFX/music\n- Free asset sources: Kenney.nl, itch.io\n\n**Workflow:** Prototype with placeholders → polish later.\n\n*Content brings your game to life.*"
+      },
+      "position": {
+        "x": 3470,
+        "y": 3080
+      }
+    },
+    {
+      "id": 10,
+      "type": "Capstone",
+      "data": {
+        "content": "# 🏁 Lesson 10: Build Your First Game!\n**From Prototype to Publish**\n\n**Mini-Game Ideas:**\n- Endless runner\n- Top-down shooter\n- Puzzle platformer\n- Clicker/idle game\n\n**Final Steps:**\n- Polish UI & feedback\n- Add sound & particles\n- Export to Web, Windows, or Linux\n- Share with friends!\n\n*You’re now a game developer.* 🎉"
+      },
+      "position": {
+        "x": 4760,
+        "y": 4430
+      }
+    }
+  ],
+  "connections": [
+    { "id": "1-2", "start": { "nodeId": 1 }, "end": { "nodeId": 2 } },
+    { "id": "1-3", "start": { "nodeId": 1 }, "end": { "nodeId": 3 } },
+    { "id": "1-9", "start": { "nodeId": 1 }, "end": { "nodeId": 9 } },
+    { "id": "2-3", "start": { "nodeId": 2 }, "end": { "nodeId": 3 } },
+    { "id": "3-4", "start": { "nodeId": 3 }, "end": { "nodeId": 4 } },
+    { "id": "2-8", "start": { "nodeId": 2 }, "end": { "nodeId": 8 } },
+    { "id": "4-5", "start": { "nodeId": 4 }, "end": { "nodeId": 5 } },
+    { "id": "3-7", "start": { "nodeId": 3 }, "end": { "nodeId": 7 } },
+    { "id": "5-6", "start": { "nodeId": 5 }, "end": { "nodeId": 6 } },
+    { "id": "6-10", "start": { "nodeId": 6 }, "end": { "nodeId": 10 } },
+    { "id": "4-10", "start": { "nodeId": 4 }, "end": { "nodeId": 10 } },
+    { "id": "7-10", "start": { "nodeId": 7 }, "end": { "nodeId": 10 } },
+    { "id": "9-10", "start": { "nodeId": 9 }, "end": { "nodeId": 10 } },
+    { "id": "8-10", "start": { "nodeId": 8 }, "end": { "nodeId": 10 } },
+    { "id": "2-5", "start": { "nodeId": 2 }, "end": { "nodeId": 5 } }
+  ],
+  "nodeIdCounter": 11,
+  "globalTheme": "indigo",
+  "nodeThemes": {
+    "1": "amber",
+    "2": "blue",
+    "3": "purple",
+    "4": "green",
+    "5": "orange",
+    "6": "teal",
+    "7": "rose",
+    "8": "violet",
+    "9": "cyan",
+    "10": "red"
+  },
+  "version": "1.0",
+  "exportedAt": "2025-09-26T10:00:00.000Z"
+}
