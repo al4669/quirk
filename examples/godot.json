@@ -1,149 +1,231 @@
 {
   "name": "The Path to Godot Mastery",
-  "description": "Structured GDScript & Godot learning curriculum — exported for visual study",
+  "description": "Wallboard exported on 9/28/2025",
   "nodes": [
     {
       "id": 1,
-      "type": "Origins",
+      "type": "Introduction",
       "data": {
-        "content": "# 🎮 Lesson 1: First Steps in Godot\n**Setting Up & Hello World**\n\n- Install Godot 4.x\n- Understand scenes, nodes, and the editor\n- Create a `Node2D` scene\n- Add a `Sprite2D` and load a texture\n- Attach a script and print \"Hello, Godot!\"\n- Run your first project!\n\n**Key Concept:** Everything is a node. Scenes are reusable.\n\n*\"The journey of a thousand games begins with a single node.\"*"
+        "content": "# 🎮 Lesson 1: First Steps in Godot\n\nWelcome to your game development journey\\! This first lesson will guide you through installing the Godot engine, understanding its core concepts, and creating your very own \"Hello, World\\!\" project. Let's get started.\n\n*\"The journey of a thousand games begins with a single node.\"*\n\n-----\n\n## Setting Up & Hello World\n\n### 1\\. Install Godot 4.x\n\nFirst things first, you need the engine\\! Godot is free, open-source, and lightweight.\n\n  - **Download:** Head over to the official [Godot Engine download page](https://godotengine.org/download/).\n  - **Choose a Version:** You'll see two main versions: **Standard** and **.NET**. For this tutorial series, we'll be using the **Standard version**, which uses Godot's native scripting language, GDScript.\n  - **No Installation Needed:** Godot is a portable application. Just unzip the downloaded file and run the executable. That's it\\! You're ready to create a new project.\n\n### 2\\. Understand Scenes, Nodes, and the Editor\n\nWhen you first open Godot and create a new project, you'll be greeted by the editor. It might look complex, but let's break down the core ideas.\n\n  - **Nodes:** The fundamental building blocks in Godot. Think of them as individual components. A node could be a character, a light, a timer, or a sound player. Each node has specific properties and functions.\n  - **Scenes:** A collection of nodes organized in a tree structure. You can think of a scene as a blueprint for an object in your game. A player character scene might contain a `CharacterBody2D` node (for movement), a `Sprite2D` node (for visuals), and a `CollisionShape2D` node (for physics). Scenes can be saved, reused, and even nested inside other scenes.\n  - **The Editor:**\n      - **Scene Dock (Top-Left):** Shows the tree of nodes in your current scene.\n      - **FileSystem Dock (Bottom-Left):** Lets you browse your project files (scenes, scripts, images, etc.).\n      - **Main Viewport (Center):** Your workspace where you visually arrange your scene.\n      - **Inspector (Right):** Displays the properties of the currently selected node, allowing you to modify them.\n\n**Key Concept:** Everything in Godot is a node. You build your game by combining these nodes into scenes.\n\n### 3\\. Create a `Node2D` Scene\n\nLet's create our first scene. Since we're making a 2D project, we'll start with a basic 2D node.\n\n1.  In the **Scene** dock, click the **+** button or **2D Scene**.\n2.  This will create a new scene with a `Node2D` as its **root node**. The root node is the top-level node of your scene.\n3.  Rename the `Node2D` to something descriptive like `HelloWorld` by double-clicking it.\n4.  Save the scene by pressing `Ctrl+S` (or `Cmd+S` on Mac). Name it `hello_world.tscn`. A good practice is to use `snake_case` for file names.\n\n### 4\\. Add a `Sprite2D` and Load a Texture\n\nNow, let's add something visible to our scene. A `Sprite2D` node is used to display a 2D image or \"texture.\"\n\n1.  **Right-click** on your `HelloWorld` node in the Scene dock and select **Add Child Node**.\n2.  Search for `Sprite2D` and click **Create**. The `Sprite2D` will now appear nested under `HelloWorld`.\n3.  With the `Sprite2D` node selected, look at the **Inspector** on the right. You'll see a property called **Texture**. It currently says `[empty]`.\n4.  Drag the default Godot icon, `icon.svg`, from the **FileSystem** dock into the **Texture** slot in the Inspector. You should now see the Godot logo in the center of your viewport\\!\n\n### 5\\. Attach a Script and Print \"Hello, Godot\\!\"\n\nThis is where we add behavior. We'll attach a script to our root node to make it *do* something.\n\n1.  Select the `HelloWorld` node.\n2.  In the **Scene** dock or the **Inspector**, click the small icon that looks like a scroll with a plus sign (`+`) to attach a new script.\n3.  A window will pop up. The settings should be fine by default (Language: GDScript, inherits: Node2D). Click **Create**.\n4.  The script editor will open. It will have some default code. We're interested in the `_ready()` function. This function is automatically called by Godot once a node has entered the scene tree. It's the perfect place for setup code.\n5.  Inside the `_ready()` function, add this line of code:\n\n<!-- end list -->\n\n```gdscript\nextends Node2D\n\n# Called when the node enters the scene tree for the first time.\nfunc _ready():\n\tprint(\"Hello, Godot!\") # This line will print a message to the output log.\n\n# Called every frame. 'delta' is the elapsed time since the previous frame.\nfunc _process(delta):\n\tpass\n```\n\n### 6\\. Run Your First Project\\!\n\nTime to see it in action\\!\n\n1.  Look for the **Play** button in the top-right corner of the editor (it looks like a clapperboard or a play symbol).\n2.  The first time you run the project, Godot will ask you to select a **Main Scene**. This is the scene that will load when your game starts. Click **Select Current** to choose your `hello_world.tscn`.\n3.  The game window will pop up, displaying your Godot icon. It doesn't do much yet, but check the **Output** panel at the bottom of the Godot editor. You should see your message: **\"Hello, Godot\\!\"**\n\nCongratulations\\! 🎉 You've just created and run your very first Godot project. You learned how to create scenes, add nodes, work with the editor, and make something happen with a script.\n\n-----\n\n**Next up:** \\# 🧱 Lesson 2: GDScript Basics"
       },
       "position": {
-        "x": 4400,
-        "y": 3000
+        "x": 4208.769841269841,
+        "y": 3328.607142857143
       }
     },
     {
       "id": 2,
       "type": "Core Concepts",
       "data": {
-        "content": "# 🧱 Lesson 2: GDScript Basics\n**Variables, Functions & Control Flow**\n\n- Syntax: indentation, `var`, `func`\n- Data types: `int`, `float`, `String`, `bool`, `Array`, `Dictionary`\n- Conditionals: `if`/`elif`/`else`\n- Loops: `for`, `while`\n- Built-in functions: `print()`, `randi()`, etc.\n\n**Practice:** Make a coin flipper or dice roller!\n\n*GDScript is Python-like but built for games.*"
+        "content": "# 🧱 Lesson 2: GDScript Basics\n\nWelcome back\\! In the last lesson, you printed a simple message. Now it's time to learn the fundamentals of GDScript, the language you'll use to bring your game logic to life. It's designed to be easy to read and learn.\n\n*GDScript is Python-like but built for games.*\n\n-----\n\n## Variables, Functions & Control Flow\n\n### 1\\. Syntax: Indentation, `var`, `func`\n\nGDScript's syntax is clean and readable. The two most important keywords you'll use are `var` to create variables and `func` to create functions.\n\nLike Python, **GDScript uses indentation** (tabs or spaces) to define code blocks. This means instead of using curly braces `{}` like in other languages, the level of indentation determines what code belongs to a function or an `if` statement.\n\n```gdscript\n# This is a comment. The engine ignores it.\n\n# Use 'var' to declare a variable.\n# It can hold data that might change.\nvar player_health = 100\n\n# Use 'func' to declare a function.\n# Functions are blocks of code that perform a task.\nfunc take_damage(amount):\n    player_health -= amount # Subtract the amount from health\n    print(\"Player health is now: \", player_health)\n```\n\n### 2\\. Data Types\n\nVariables can hold different types of data. Here are the most common ones:\n\n  - **`int`** (Integer): Whole numbers, like `-5`, `0`, `100`.\n  - **`float`** (Floating-Point): Numbers with a decimal point, like `3.14`, `-0.5`.\n  - **`String`**: Text, enclosed in quotes, like `\"Hello, World!\"`.\n  - **`bool`** (Boolean): Can only be `true` or `false`.\n  - **`Array`**: An ordered list of values. Example: `[10, \"sword\", true]`\n  - **`Dictionary`**: A collection of key-value pairs. Example: `{\"name\": \"Goblin\", \"hp\": 25}`\n\nGDScript is **dynamically typed**, meaning you don't have to specify the data type. You can use `:=` as a shortcut to declare and assign a variable at the same time.\n\n```gdscript\nvar score := 0         # Godot infers this is an int\nvar player_name := \"Alex\" # This is a String\nvar is_ready := true      # This is a bool\n```\n\n### 3\\. Conditionals: `if` / `elif` / `else`\n\nConditionals allow your code to make decisions and run different blocks of code based on whether a condition is `true` or `false`.\n\n```gdscript\nfunc check_score(score):\n    if score >= 100:\n        print(\"You win!\")\n    elif score > 50:\n        print(\"You're halfway there!\")\n    else:\n        print(\"Keep trying!\")\n```\n\n### 4\\. Loops: `for`, `while`\n\nLoops are used to repeat a block of code multiple times.\n\n  - **`for` loop:** Repeats code for each item in a sequence (like an Array or a range of numbers).\n\n<!-- end list -->\n\n```gdscript\n# This will print the numbers 0, 1, 2, 3, 4\nfor i in range(5):\n    print(i)\n```\n\n  - **`while` loop:** Repeats code as long as a condition remains `true`.\n\n<!-- end list -->\n\n```gdscript\nvar countdown := 3\nwhile countdown > 0:\n    print(countdown)\n    countdown -= 1 # Decrease countdown by 1\nprint(\"Liftoff!\")\n```\n\n### 5\\. Built-in Functions\n\nGodot provides many helpful functions you can use without writing them yourself. You've already used `print()`. Another very useful one for games is `randi()`, which generates a random integer.\n\n  - **`print(value)`**: Displays a value in the output console.\n  - **`randi()`**: Returns a random non-negative integer.\n  - **`randi() % N`**: Returns a random integer between `0` and `N-1`.\n  - **`randi_range(min, max)`**: Returns a random integer between `min` and `max` (inclusive).\n\n-----\n\n## Practice: Make a Dice Roller\\!\n\nLet's put it all together. Create a new `Node2D` scene, attach a script to it, and replace the entire script content with the following code. This program will simulate rolling a six-sided die and a twenty-sided die.\n\n```gdscript\nextends Node2D\n\n# The _ready() function is called automatically when the scene starts.\nfunc _ready():\n    roll_dice()\n\n# Our custom function to handle the dice rolling logic.\nfunc roll_dice():\n    print(\"Let's roll some dice!\")\n\n    # --- Roll a 6-sided die (D6) ---\n    # randi() % 6 gives a number from 0 to 5. We add 1 to get 1 to 6.\n    var d6_roll = randi() % 6 + 1\n    print(\"You rolled a D6 and got: \", d6_roll)\n\n    # --- Roll a 20-sided die (D20) ---\n    # randi_range is often easier for specific ranges.\n    var d20_roll = randi_range(1, 20)\n    print(\"You rolled a D20 and got: \", d20_roll)\n\n    # --- Use a conditional to check the D20 roll ---\n    if d20_roll == 20:\n        print(\"Natural 20! Critical hit!\")\n    elif d20_roll == 1:\n        print(\"Oof, a 1. Critical failure.\")\n    else:\n        print(\"A solid roll.\")\n\n```\n\nRun the scene (`F5`) and check the **Output** panel. You'll see the results of your random dice rolls. Run it again to get different numbers\\!\n\nYou now have a grasp of the basic building blocks of GDScript. In the next lessons, we'll start using these concepts to move objects and respond to player input."
       },
       "position": {
-        "x": 4060,
-        "y": 3650
+        "x": 4832.658136599911,
+        "y": 3328.607142857143
       }
     },
     {
       "id": 3,
       "type": "Input & Interaction",
       "data": {
-        "content": "# ⌨️ Lesson 3: Handling Input\n**Player Control & Events**\n\n- Use `_process(delta)` and `_physics_process(delta)`\n- Detect keyboard/mouse input: `Input.is_action_pressed()`\n- Set up input actions in **Project > Project Settings > Input Map**\n- Move a sprite with arrow keys\n\n**Key Insight:** Frame rate independence via `delta`\n\n*Your player won’t move without input!*"
+        "content": "# ⌨️ Lesson 3: Handling Input\n\n**Player Control & Events**\n\nGreat job so far\\! You've learned the basics of scenes, nodes, and scripting. Now, let's make something happen on screen. This lesson covers how to capture player input from a keyboard or mouse to control game objects.\n\n*Your player won’t move without input\\!*\n\n-----\n\n### 1\\. `_process(delta)` and `_physics_process(delta)`\n\nGodot provides two essential built-in functions that run on every frame, allowing you to update your game continuously.\n\n  - **`_process(delta)`**: This function is called on **every single rendered frame**. It's ideal for things that need to be updated visually, like animations or UI elements. The frame rate can fluctuate, so it's not the best for physics.\n  - **`_physics_process(delta)`**: This function is called at a **fixed interval**, by default 60 times per second. This is the place for all physics-related code, like movement, to ensure consistent behavior regardless of the player's frame rate.\n\nThe **`delta`** parameter is crucial. It represents the time (in seconds) that has passed since the last frame. Multiplying your movement by `delta` makes it **frame-rate independent**. An object moving at `100 pixels * delta` will move 100 pixels per second, whether the game is running at 30 FPS or 120 FPS.\n\n**Key Insight:** Frame rate independence via `delta` is fundamental for smooth and predictable game mechanics.\n\n-----\n\n### 2\\. Setting Up Input Actions\n\nInstead of checking for specific keys like \"W\" or \"Up Arrow,\" Godot uses an **Input Map**. This system lets you create abstract actions (like `\"move_forward\"`) and then assign multiple keys or buttons to that action. This makes it easy to manage controls and allow players to rebind keys later.\n\n1.  Go to the top menu and click **Project \\> Project Settings**.\n2.  Navigate to the **Input Map** tab.\n3.  At the top, type a new action name, for example, `move_right`, and click **Add**.\n4.  Click the **+** icon next to your new action to add a key or button.\n5.  In the pop-up, select **Physical Key** and then press the key you want to assign (e.g., the **Right Arrow** key). Click **OK**.\n\nRepeat this process to create four actions:\n\n  - `move_right` (mapped to the Right Arrow key)\n  - `move_left` (mapped to the Left Arrow key)\n  - `move_up` (mapped to the Up Arrow key)\n  - `move_down` (mapped to the Down Arrow key)\n\n-----\n\n### 3\\. Detecting Input in Code\n\nGodot gives you a global object called `Input` that you can access from any script to check for player input. The most common method is `Input.is_action_pressed()`, which returns `true` if the player is currently holding down any key mapped to that action.\n\n```gdscript\n# This code checks if the 'jump' action is being pressed right now.\nif Input.is_action_pressed(\"jump\"):\n    # Make the player jump\n    print(\"Jump action is pressed!\")\n```\n\n-----\n\n### 4\\. Practice: Move a Sprite\\!\n\nLet's apply these concepts.\n\n1.  Create a new scene with a `Sprite2D` as the root node. You can use the `icon.svg` as its texture again.\n2.  Save the scene (e.g., `player.tscn`) and attach a new script to the `Sprite2D` node.\n3.  Replace the entire script content with the code below.\n4.  Make sure you've set up the `move_right`, `move_left`, `move_up`, and `move_down` actions in your Input Map\\!\n\n<!-- end list -->\n\n```gdscript\nextends Sprite2D\n\n# We can define variables at the top of the script.\n# 'export' makes it visible in the Inspector.\n@export var speed = 200.0 # How fast the sprite will move (pixels/sec).\n\n# We use _physics_process for movement logic.\nfunc _physics_process(delta):\n    # Create a vector to store the direction of movement.\n    # Vector2(0, 0) means no movement.\n    var direction = Vector2.ZERO\n\n    # Check for input and update the direction vector.\n    if Input.is_action_pressed(\"move_right\"):\n        direction.x += 1\n    if Input.is_action_pressed(\"move_left\"):\n        direction.x -= 1\n    if Input.is_action_pressed(\"move_down\"):\n        direction.y += 1\n    if Input.is_action_pressed(\"move_up\"):\n        direction.y -= 1\n\n    # In 2D, a positive 'y' value is downwards.\n\n    # 'position' is a built-in property of all Node2D objects.\n    # We update the position based on direction, speed, and delta.\n    position += direction.normalized() * speed * delta\n    # .normalized() ensures the sprite doesn't move faster diagonally.\n```\n\nNow, run the scene (`F6` to run only the current scene). Use your arrow keys, and the Godot icon should move around the screen smoothly\\! Try changing the **Speed** value in the Inspector to see how it affects the movement."
       },
       "position": {
-        "x": 4740,
-        "y": 3710
+        "x": 5426.546431929976,
+        "y": 3328.607142857143
       }
     },
     {
       "id": 4,
       "type": "Physics & Movement",
       "data": {
-        "content": "# 🚀 Lesson 4: 2D Physics\n**RigidBodies, Collisions & Forces**\n\n- Use `CharacterBody2D` (for players)\n- Add `CollisionShape2D`\n- Use `move_and_slide()`\n- Gravity, jumping, ground detection\n- Kinematic vs. Rigid bodies\n\n**Project:** Platformer prototype with jump!\n\n*Physics makes games feel real.*"
+        "content": "# 🚀 Lesson 4: 2D Physics\n\n**RigidBodies, Collisions & Forces**\n\nYou've learned how to move an object with code, but what happens when it hits a wall? How does it fall or jump? This lesson introduces Godot's physics engine, which handles collisions and simulates forces like gravity for you.\n\n*Physics makes games feel real.*\n\n-----\n\n### 1\\. Kinematic vs. Rigid Bodies\n\nGodot offers different types of physics bodies for different needs. The two most common in 2D are:\n\n  - **`RigidBody2D`**: This body is controlled by the physics engine. You don't set its position directly; instead, you apply forces to it (like gravity or a push) and the engine calculates its movement, collisions, and bouncing. Think of a thrown rock or a bowling ball.\n  - **`CharacterBody2D`**: This is a special type of kinematic body designed for characters controlled by a player. You calculate its velocity in your script, and then a special function, `move_and_slide()`, handles the movement and collisions for you. It won't bounce or spin uncontrollably. **This is what we'll use for our player.**\n\n-----\n\n### 2\\. Setting Up a Player Character\n\nLet's build a character that can interact with a game world.\n\n1.  Create a new scene. Click **Other Node** and search for `CharacterBody2D`. Make this the root node and rename it `Player`.\n2.  Add a `Sprite2D` as a child of the `Player` so we can see it. Use the `icon.svg` texture.\n3.  **Crucially**, physics bodies need a shape to detect collisions. Add a **`CollisionShape2D`** as a child of the `Player`.\n4.  With `CollisionShape2D` selected, look in the **Inspector** and click the `[empty]` slot next to the **Shape** property. Choose **New CapsuleShape2D** or **New RectangleShape2D**.\n5.  Use the handles in the viewport to resize the blue shape to roughly match your sprite. You will see a warning icon next to the node until you've assigned a shape.\n\n-----\n\n### 3\\. Gravity, Jumping, and `move_and_slide()`\n\nTo create a platformer character, we need to simulate three things: gravity, movement, and jumping.\n\n  - **Gravity**: This is a constant downward force. In each physics frame, we'll add to our character's vertical velocity to pull it down.\n  - **Jumping**: This is a strong upward impulse. When the player hits the jump button, we'll instantly set their vertical velocity to a high negative number (since `y` is down in 2D).\n  - **Ground Detection**: We only want to allow a jump when the character is on the floor. `CharacterBody2D` has a handy built-in function, `is_on_floor()`, that tells us if it's currently touching a surface that it considers the ground.\n  - **`move_and_slide()`**: This is the magic function for `CharacterBody2D`. You calculate the `velocity` vector for your character, and then you call `move_and_slide()`. The engine takes over, moves the character by that velocity, stops it if it hits a wall, and makes it slide along surfaces.\n\n-----\n\n### 4\\. Project: Platformer Prototype with Jump\\!\n\nNow, let's build the platformer.\n\n#### Part A: The Player Script\n\nAttach a new script to your `Player` (`CharacterBody2D`) node and replace the default content with this:\n\n```gdscript\nextends CharacterBody2D\n\n# Player movement variables. Exporting them makes them editable in the Inspector.\n@export var speed = 150.0\n@export var jump_velocity = -350.0\n\n# Get the gravity from the project settings.\nvar gravity = ProjectSettings.get_setting(\"physics/2d/default_gravity\")\n\nfunc _physics_process(delta):\n    # Add the gravity.\n    # We only apply gravity if the character is not on the floor.\n    if not is_on_floor():\n        velocity.y += gravity * delta\n\n    # Handle Jump.\n    # This checks for the \"ui_accept\" action (Spacebar by default) and if the player is on the floor.\n    if Input.is_action_just_pressed(\"ui_accept\") and is_on_floor():\n        velocity.y = jump_velocity\n\n    # Get input for left/right movement.\n    var direction = Input.get_axis(\"ui_left\", \"ui_right\") # \"ui_left\" and \"ui_right\" are default actions for arrow keys.\n\n    # Apply movement.\n    if direction:\n        velocity.x = direction * speed\n    else:\n        # If no input, slow down (friction).\n        velocity.x = move_toward(velocity.x, 0, speed)\n\n    # This is the magic function that moves the character.\n    move_and_slide()\n```\n\n#### Part B: Creating a \"World\"\n\nYour player needs a floor to stand on\\!\n\n1.  Create a **new scene**.\n2.  Add a `StaticBody2D` node as the root. This is a physics body that doesn't move. It's perfect for floors and walls.\n3.  Give it a `CollisionShape2D` child and select a `RectangleShape2D` as its shape.\n4.  Resize the rectangle to be a long, flat platform.\n5.  Optionally, add a `Sprite2D` or `ColorRect` as a child so you can see the platform.\n6.  Save this scene as `world.tscn`.\n7.  Go back to your `player.tscn` scene and **instance** the world scene. You can do this by dragging `world.tscn` from the FileSystem dock into the viewport of your player scene.\n\nNow, run the scene (`F6`). You should see your character fall onto the platform. You can move left and right with the arrow keys and jump with the spacebar\\!"
       },
       "position": {
-        "x": 5210,
-        "y": 3060
+        "x": 5990.434727260044,
+        "y": 3328.607142857143
       }
     },
     {
       "id": 5,
       "type": "Game Systems",
       "data": {
-        "content": "# 🧠 Lesson 5: Signals & Communication\n**Decoupled Game Logic**\n\n- What are signals? (`signal hit`)\n- Connect signals in code or editor\n- Emit signals on events (e.g., enemy dies → score updates)\n- Observer pattern made easy\n\n**Best Practice:** Use signals instead of direct node references when possible.\n\n*Signals keep your code clean and modular!*"
+        "content": "# 🧠 Lesson 5: Signals & Communication\n\nIn our last lesson, we built a character that can run and jump. But games are all about interaction! How does a coin know the player picked it up? How does the UI know when to update the score? The answer is **Signals**.\n\n### Decoupled Game Logic\n\nImagine your Player script needed to tell the ScoreLabel to update. You could write something like this:\n\n```gdscript\n# The WRONG way (most of the time)\nfunc _on_coin_collected():\n    var score_label = get_node(\"/root/Game/UI/ScoreLabel\")\n    score_label.update_score()\n```\n\nThis is called **tight coupling**. The Player *needs to know exactly where the ScoreLabel is*. If you ever move the label or rename a node in that path, the code breaks! This becomes a nightmare to manage in a big project.\n\nSignals let us do the opposite: **decouple** our logic.\n\n*   The **Emitter** (e.g., a Coin) just shouts, \"I was collected!\" It doesn't know or care who is listening.\n*   The **Listener** (e.g., the UI) tunes into that specific announcement and reacts when it hears it.\n\nThis is the **Observer Pattern**, and Godot makes it incredibly easy to use.\n\n### What are Signals? (`signal hit`)\n\nA signal is a message that a node can send out (or \"emit\") when a specific event happens. Other nodes can connect to that signal to respond to the event.\n\nMany nodes have built-in signals. For example, a `Button` has a `pressed` signal, and an `Area2D` has a `body_entered` signal.\n\nYou can also create your own custom signals. Defining one is simple. You just declare it at the top of your script:\n\n```gdscript\n# In a script for an enemy\nextends CharacterBody2D\n\n# This defines a new signal that this node can emit.\n# We can also pass data with it, like the enemy's point value.\nsignal died(points_value)\n```\n\n### Connect Signals in the Editor or in Code\n\nOnce a signal exists, you need to tell another node to listen to it. This is called \"connecting\" the signal.\n\n**1. Connecting in the Editor (The Visual Way)**\n\nThis is the most common and straightforward method.\n\n*   Select the node that will **emit** the signal (e.g., your Enemy).\n*   Go to the **Node** tab next to the Inspector.\n*   You will see a list of all the signals for that node, including any custom ones you defined.\n*   Double-click the signal you want to use (e.g., `died`).\n*   A new window will pop up. Select the node that should **listen** to the signal (e.g., your UI or Player node).\n*   Godot will automatically create a function name for you (like `_on_enemy_died`). Click \"Connect\".\n*   Godot will open the listener's script and create the new function for you, ready to be filled in!\n\n**2. Connecting in Code (The Dynamic Way)**\n\nSometimes you need to create connections programmatically (e.g., for enemies you spawn during the game).\n\n```gdscript\n# In your main game script's _ready() function\n\nfunc _ready():\n    # Get the two nodes you want to connect.\n    var my_enemy = $Enemy\n    var my_ui = $UI\n\n    # Connect the \"died\" signal from the enemy to a function called \"_on_enemy_died\" in the UI script.\n    my_enemy.died.connect(my_ui._on_enemy_died)\n```\n\n### Emit Signals on Events\n\nDefining and connecting a signal doesn't do anything on its own. The final step is to *emit* the signal at the right moment.\n\nLet's go back to our enemy script. We want to emit the `died` signal when its health reaches zero.\n\n```gdscript\n# In the enemy's script\nextends CharacterBody2D\n\nsignal died(points_value)\n\nvar health = 100\nvar points = 50\n\nfunc take_damage(amount):\n    health -= amount\n    if health <= 0:\n        # The event happened! Emit the signal.\n        # We also pass the 'points' value, as we defined in the signal.\n        died.emit(points)\n        queue_free() # The enemy removes itself from the game.\n```\n\nNow, the UI script, which we connected to this signal, will have its `_on_enemy_died` function automatically called, receiving the `points` value!\n\n```gdscript\n# In the UI script\nvar score = 0\n\nfunc _on_enemy_died(points_value):\n    score += points_value\n    $ScoreLabel.text = \"Score: \" + str(score)\n```\n\nNotice how the `Enemy` script has no idea that a `UI` script even exists. It just sends its signal. This is clean, modular, and powerful.\n\n---\n\n**Best Practice:** Use signals instead of direct node references (`get_node()`) whenever you want one node to react to an event in another node.\n\n***Signals keep your code clean and modular!***"
       },
       "position": {
-        "x": 4120,
-        "y": 4450
+        "x": 5990.434727260044,
+        "y": 4002.9385683574365
       }
     },
     {
       "id": 6,
       "type": "Scene Management",
       "data": {
-        "content": "# 🌍 Lesson 6: Scenes & Instancing\n**Building Modular Games**\n\n- Create reusable scenes (e.g., `Enemy.tscn`)\n- Instance scenes via code: `add_child(preload(\"res://Enemy.tscn\").instantiate())`\n- Change scenes: `get_tree().change_scene_to_file(\"res://Game.tscn\")`\n- Use singletons (autoloads) for global data (e.g., score, audio)\n\n**Golden Rule:** Favor composition over inheritance.\n\n*Scenes are Godot’s superpower.*"
+        "content": "# 🏃 Lesson 6: Animation\n**Bringing Your Game to Life**\n\n- `AnimationPlayer` for complex animations (movement, rotation, properties)\n- Keyframing properties over time\n- `call_method` tracks for event timing\n- `AnimatedSprite2D` for simple frame-based animation\n- Blend animations for smooth transitions\n\n**Core Idea:** Almost any property of any node can be animated.\n\n*Animation adds personality and polish.*\n\n### `AnimatedSprite2D` vs. `AnimationPlayer`\n\nYou've already used `AnimatedSprite2D` for our coin. It's fantastic for one simple job: flipping through a series of images (frames). This is often called **frame-based animation**. It's perfect for a character's walk cycle, an explosion, or a flickering torch.\n\nBut what if you want to do more? What if you want an animation to:\n*   Move a node from point A to point B?\n*   Fade a node in or out?\n*   Rotate a spinning blade?\n*   Play a footstep sound effect precisely when the character's foot hits the ground?\n\nFor this, you need the far more powerful **`AnimationPlayer`** node.\n\n### The `AnimationPlayer` Node\n\nThe `AnimationPlayer` is like a conductor for your scenes. It doesn't have an appearance itself; instead, it manipulates the properties of *other nodes* over time.\n\n**How it works:**\n1.  Add an `AnimationPlayer` node to your scene (usually as a child of the root node you want to animate).\n2.  Select it and open the **Animation** panel at the bottom of the editor.\n3.  Create a new animation (e.g., \"fade_in\", \"attack\", \"open_door\").\n4.  Select a node you want to animate (e.g., a `Sprite2D`). In the Inspector, you'll see small key icons next to most properties.\n5.  Move the timeline cursor in the Animation panel to the start (e.g., 0.0 seconds).\n6.  Set the property's initial value (e.g., set the `Modulate` property's alpha to fully transparent) and click the **key icon** to create a **keyframe**.\n7.  Move the timeline cursor to the end (e.g., 1.0 second).\n8.  Set the property's final value (e.g., set the `Modulate` property's alpha to fully visible) and click the key icon again.\n\nYou've just created an animation! The `AnimationPlayer` will now automatically interpolate (or \"tween\") that property between the keyframes. You can add tracks for position, scale, rotation—almost anything!\n\n### Call Method Tracks for Events\n\nThis is one of `AnimationPlayer`'s most powerful features. You can add a special \"Call Method Track\" to an animation, which allows you to call a function on a script at a precise moment in time.\n\nThis is perfect for timing events with your visuals:\n*   **Attack Animation:** At the exact frame the sword swings, use a call method track to call a function like `deal_damage()` which enables a hitbox `Area2D`.\n*   **Walk Animation:** At the frames where the feet touch the ground, call a `play_footstep_sound()` function.\n*   **Door Animation:** When the door-opening animation finishes, call a `finished_opening()` function that emits a signal.\n\n### Playing Animations from Code\n\nTo trigger these animations, you simply get a reference to the `AnimationPlayer` node and call its `play()` method.\n\n```gdscript\n# In your player's script\n@onready var animation_player = $AnimationPlayer\n\nfunc _physics_process(delta):\n    # ... your movement code ...\n\n    if is_on_floor():\n        if velocity.x != 0:\n            animation_player.play(\"run\")\n        else:\n            animation_player.play(\"idle\")\n    else:\n        animation_player.play(\"jump\")\n\n```\n\nYou can use the `AnimationPlayer`'s `animation_finished` signal to know when an animation is done, allowing you to chain animations together or trigger other logic."
       },
       "position": {
-        "x": 5480,
-        "y": 4410
+        "x": 5426.546431929976,
+        "y": 4002.9385683574365
       }
     },
     {
       "id": 7,
       "type": "Visuals & UI",
       "data": {
-        "content": "# 🎨 Lesson 7: UI & Cameras\n**HUDs, Menus & Views**\n\n- Use `Control` nodes for UI (Label, Button, Panel)\n- Anchor & layout for responsive design\n- `Camera2D` to follow player\n- Screen boundaries and zoom\n\n**Project:** Add health bar, score counter, and pause menu!\n\n*Great games need great feedback.*"
+        "content": "# 🎨 Lesson 7: UI & Cameras\n**HUDs, Menus & Views**\n\n- Use `Control` nodes for UI (Label, Button, Panel)\n- Anchor & layout for responsive design\n- `Camera2D` to follow the player\n- Screen boundaries and zoom\n\n**Project:** Add a health bar, score counter, and pause menu!\n\n*Great games need great feedback.*\n\n### The UI System: Control Nodes\n\nSo far, all the nodes we've used (`CharacterBody2D`, `Sprite2D`, etc.) are derived from `Node2D`. They live in the 2D game world and have a position, rotation, and scale.\n\nFor User Interface (UI) elements like menus, health bars, and score displays, Godot has a separate and parallel system based on the **`Control`** node. These nodes are designed for 2D interfaces and are positioned relative to rectangles (their parent control node or the viewport).\n\nCommon `Control` nodes include:\n*   **Label:** For displaying text.\n*   **Button:** A clickable button that emits a `pressed` signal.\n*   **TextureRect:** For displaying a static image in your UI.\n*   **ProgressBar:** Perfect for a health or experience bar.\n*   **Panel / PanelContainer:** A simple styled background panel. Containers automatically arrange their children, which is incredibly useful.\n\nTo keep your UI separate from your game world and ensure it always draws on top, it's best practice to create a `CanvasLayer` node in your main scene and build your entire UI as children of it.\n\n### Anchors & Layout for Responsive Design\n\nHow do you make sure your score stays in the top-right corner, no matter what size the game window is? The answer is **Anchors**.\n\nWhen you select a `Control` node, you'll see a \"Layout\" menu at the top of the 2D viewport. This menu provides presets for anchoring your UI element. Anchors define how the node's corners are \"pinned\" to the corners or edges of its parent container.\n\n*   An anchor value of `0` means the edge is pinned to the top/left.\n*   An anchor value of `1` means the edge is pinned to the bottom/right.\n*   A value of `0.5` means it's pinned to the center.\n\nFor complex layouts, you can use **Container** nodes (like `VBoxContainer`, `HBoxContainer`, `GridContainer`). These automatically arrange their `Control` node children in a specific layout, saving you a massive amount of time.\n\n### `Camera2D` to Follow the Player\n\nIn a level that's bigger than a single screen, you need the camera to follow the player. This is incredibly simple in Godot.\n\n1.  Add a **`Camera2D`** node as a **child of your Player scene**.\n2.  That's it.\n\nBy default, the `Camera2D` will make its parent the center of the screen. Since it's now part of the Player scene, it will automatically move wherever the player moves.\n\nIn the Inspector for the `Camera2D`, you can enable properties to improve the feel:\n*   **Enabled:** Toggles this camera to be the active one.\n*   **Smoothing:** Makes the camera's movement less jerky and more fluid as it follows its target. A value around 5 is often a good starting point.\n*   **Limits:** You can set top, left, right, and bottom pixel limits to prevent the camera from showing the gray area outside your level.\n*   **Zoom:** You can change the `Zoom` property (e.g., `Vector2(2, 2)` for 2x zoom) to make your pixels appear larger or to zoom in and out dynamically from code."
       },
       "position": {
-        "x": 5520,
-        "y": 3710
+        "x": 4832.658136599911,
+        "y": 4002.938446287124
       }
     },
     {
       "id": 8,
       "type": "Architecture",
       "data": {
-        "content": "# 🏗️ Lesson 8: Project Structure\n**Organization & Best Practices**\n\n- Folder structure: `/scenes`, `/scripts`, `/assets`\n- Script naming: `Player.gd`, `EnemyAI.gd`\n- Avoid `_process` when possible (use signals or `_ready`)\n- Document with comments and groups\n- Use version control (Git!)\n\n**Pro Tip:** Keep scripts under 200 lines.\n\n*Clean code = happy developer.*"
+        "content": "# 🏗️ Lesson 8: Project Structure\n**Organization & Best Practices**\n\n- Folder structure: `/scenes`, `/scripts`, `/assets`\n- Script naming: `Player.gd`, `EnemyAI.gd`\n- Avoid `_process` when possible (use signals or `_ready`)\n- Document with comments and groups\n- Use version control (Git!)\n\n**Pro Tip:** Keep scripts under 200 lines.\n\n*Clean code = a happy developer.*\n\n### Folder Structure\n\nAs your project grows from a simple prototype to a full game, the FileSystem dock can become a mess. A clean folder structure is your first line of defense against chaos. While there's no single \"correct\" way, a common and highly effective structure is:\n\n```\n/project.godot\n/scenes/\n    /player/\n        Player.tscn\n        Player.gd\n    /enemies/\n        Goomba.tscn\n        Goomba.gd\n    /levels/\n        Level1.tscn\n    /ui/\n        MainMenu.tscn\n        HUD.tscn\n/scripts/\n    /singletons/\n        GameManager.gd\n        AudioBus.gd\n/assets/\n    /art/\n        /player_sprites/\n        /environment/\n    /sfx/\n        jump.wav\n        coin.wav\n    /music/\n        level_theme.ogg\n```\n\nThe key idea is to group files by their **function and relationship**. Keeping a scene and its primary script in the same folder is often a great idea.\n\n### Naming Conventions\n\nConsistency is crucial. Adopt a naming convention and stick to it. The standard Godot community convention is:\n*   **Nodes:** `PascalCase` (e.g., `Player`, `HealthBar`, `AnimationPlayer`).\n*   **Files (Scenes & Scripts):** `PascalCase` to match the root node (e.g., `Player.tscn`, `Player.gd`).\n*   **Variables & Functions:** `snake_case` (e.g., `var max_health`, `func handle_input()`).\n*   **Constants:** `SNAKE_CASE_UPPER` (e.g., `const MAX_JUMPS = 2`).\n\n### Avoid `_process` When Possible\n\nThe `_physics_process(delta)` and `_process(delta)` functions are powerful, but they run **every single frame**. This is necessary for things that must be checked constantly, like player input.\n\nHowever, using `_process` for everything is a common beginner mistake that can hurt performance. Ask yourself: \"Does this code *really* need to run 60 times a second?\"\n*   **Instead of:** Checking `if health <= 0:` in `_process`.\n*   **Use:** A signal! When the player takes damage, have the `take_damage` function do the health check right then and there. This is **event-driven**, not constant polling.\n\nUse signals for reactions, `_ready` for one-time setup, and `Timer` nodes for actions that need to happen periodically but not every frame.\n\n### Document with Comments and Groups\n\nCode you write today should still make sense to you in six months.\n*   **Comments (`#`):** Use comments to explain the *why*, not the *what*.\n    ```gdscript\n    # BAD:\n    # Add gravity to velocity\n    velocity.y += gravity * delta\n\n    # GOOD:\n    # Apply custom gravity only when airborne to allow for better jump control.\n    if not is_on_floor():\n        velocity.y += gravity * delta\n    ```\n*   **Groups (`@export_group`):** Use export groups to organize variables in the Inspector, making them much easier to use for you and your designers.\n    ```gdscript\n    @export_group(\"Movement\")\n    @export var speed = 300.0\n    @export var acceleration = 0.5\n\n    @export_group(\"Jumping\")\n    @export var jump_velocity = -400.0\n    ```\n\n### Use Version Control (Git!)\n\nVersion control, especially **Git**, is like a superpower for development. It's a system that tracks every change you make to your project.\n*   **Mistake Recovery:** Did you break everything? Git lets you rewind time to any previous working version. It's the ultimate undo button.\n*   **Experimentation:** Want to try a crazy new feature? Create a \"branch\" to work on it in isolation. If it doesn't work out, you can delete the branch without affecting your main project.\n*   **Collaboration:** Git is the industry standard for teams working together on the same codebase.\n\nLearning the basics of Git is a non-negotiable skill for any serious developer. Services like GitHub or GitLab provide free hosting for your project repositories."
       },
       "position": {
-        "x": 3410,
-        "y": 4170
+        "x": 4208.769841269841,
+        "y": 4002.9385683574365
       }
     },
     {
       "id": 9,
       "type": "Assets & Tools",
       "data": {
-        "content": "# 🎨 Lesson 9: Working with Assets\n**Art, Sound & Animation**\n\n- Import PNG, WAV, TSCN files\n- Use `AnimatedSprite2D` or `AnimationPlayer`\n- TileMaps for levels\n- AudioStreamPlayer for SFX/music\n- Free asset sources: Kenney.nl, itch.io\n\n**Workflow:** Prototype with placeholders → polish later.\n\n*Content brings your game to life.*"
+        "content": "# 🎨 Lesson 9: Working with Assets\n**Art, Sound & Animation**\n\n- Import PNG, WAV, OGG files\n- `AnimatedSprite2D` vs. `AnimationPlayer` recap\n- `TileMap` for level design\n- `AudioStreamPlayer` for SFX/music\n- Free asset sources: Kenney.nl, itch.io\n\n**Workflow:** Prototype with placeholders → polish later.\n\n*Content brings your game to life.*\n\n### Importing Assets\n\nGodot makes importing assets incredibly simple. You just need to drag and drop your files (like `.png`, `.jpg`, `.wav`, `.ogg`, `.mp3`) directly into the **FileSystem** dock in the editor.\n\nGodot handles the rest automatically. When you select an imported asset in the FileSystem, an **Import** tab will appear next to the Scene tab. This dock is powerful. You can change settings like:\n*   **Texture Filtering:** For pixel art, you'll want to select the texture, go to the Import tab, change the Preset to \"2D Pixel\", and click \"Reimport\". This disables filtering and keeps your pixels sharp.\n*   **Audio Looping:** For music or ambient sounds, you can enable looping in the Import dock for your audio file.\n*   **SVG Scaling:** Set the scale at which to import vector graphics.\n\n### `AnimatedSprite2D` vs. `AnimationPlayer`\n\nAs a quick recap from our animation lesson, knowing which tool to use for your art is key:\n*   **Use `AnimatedSprite2D`** when your animation is a simple sequence of images (a spritesheet). This is perfect for a character's walk cycle or an explosion effect.\n*   **Use `AnimationPlayer`** for everything else. It can animate any property, including the `frame` of a `Sprite2D`, making it a more powerful alternative for spritesheets. It's essential for moving, rotating, fading, or calling functions in time with your animations.\n\n### TileMaps for Level Design\n\nFor any game with a grid-based world (platformers, top-down RPGs, puzzle games), building levels piece by piece is tedious. This is where the **`TileMap`** node shines.\n\nA `TileMap` allows you to \"paint\" your level using a collection of tiles (a `TileSet`).\nThe workflow is:\n1.  **Create a `TileMap` node.**\n2.  In its Inspector, create a new `TileSet` resource.\n3.  Click the `TileSet` to open the **Tile Set** panel at the bottom.\n4.  Drag your spritesheet (a single image containing all your tiles) into the left side of the panel. Godot will ask if you want to automatically create tiles; say yes.\n5.  In the Tile Set panel, you can select individual tiles and add properties to them, most importantly **Physics Layers** to define which tiles are solid walls and floors.\n6.  Once your `TileSet` is configured, select the `TileMap` node again, and you can now paint your level in the main viewport.\n\nThis is an extremely fast and efficient way to build and iterate on level designs.\n\n### `AudioStreamPlayer` for SFX/Music\n\nSound is critical for creating an immersive experience. Godot has a few nodes for this, but the main one you'll use in 2D is **`AudioStreamPlayer`**.\n1.  Add an `AudioStreamPlayer` node to your scene.\n2.  In its Inspector, find the `Stream` property and drag your audio file (`.wav` is best for short sound effects, `.ogg` is best for longer music tracks) into the slot.\n3.  To play the sound from code, get the node and call the `play()` function.\n\n```gdscript\n# Get the node reference\n@onready var jump_sound = $JumpSoundPlayer\n\n# In your jump code...\nfunc jump():\n    velocity.y = JUMP_VELOCITY\n    jump_sound.play()\n```\n\nFor sounds that originate from a specific location in the game world (like an enemy's footsteps), use **`AudioStreamPlayer2D`**. It automatically handles making the sound louder when the player is near and panning it left or right.\n\n### Free Asset Sources\n\nYou don't need to be an artist or a musician to make a great-looking and great-sounding game. There is a huge community of creators who provide high-quality, free assets for developers.\n*   **[Kenney.nl](https://kenney.nl/assets):** Often called the \"asset god,\" Kenney provides enormous packs of clean, consistent 2D and 3D assets, UI elements, and sounds, completely free to use.\n*   **[itch.io](https://itch.io/game-assets/free):** A massive repository where creators upload their own assets. You can find almost any style imaginable here. Always check the license before using.\n*   **[OpenGameArt.org](https://opengameart.org/):** One of the oldest and largest communities for open-source game assets.\n\n---\n**Workflow Tip:** Don't wait for perfect art. Start building your game's mechanics using simple placeholder shapes (like Godot's `ColorRect` or a white box you drew in Paint). This is called \"programmer art.\" It allows you to prove that your game is fun to *play* before investing time and effort into making it look good. Once the mechanics are solid, you can drop in the final, polished assets."
       },
       "position": {
-        "x": 3470,
-        "y": 3080
+        "x": 4208.770044720362,
+        "y": 4650.833333333331
       }
     },
     {
       "id": 10,
       "type": "Capstone",
       "data": {
-        "content": "# 🏁 Lesson 10: Build Your First Game!\n**From Prototype to Publish**\n\n**Mini-Game Ideas:**\n- Endless runner\n- Top-down shooter\n- Puzzle platformer\n- Clicker/idle game\n\n**Final Steps:**\n- Polish UI & feedback\n- Add sound & particles\n- Export to Web, Windows, or Linux\n- Share with friends!\n\n*You’re now a game developer.* 🎉"
+        "content": "# 🔩 Chapter 10: Physics & Layers\n**Collisions, Forces & Interactions**\n\nWe've worked with `CharacterBody2D`, which is fantastic for direct player control. However, Godot's physics engine is much deeper. To build a truly interactive world, you need to understand the different roles physics objects can play and, most importantly, how to control who can interact with whom.\n\n### The Three Core Physics Bodies\n\nThink of these as the primary building blocks for all physical interactions in your game.\n\n1.  **`StaticBody2D` (The Wall)**\n    *   **What it is:** A physics body that **does not move**. It is a solid, immovable object in the game world.\n    *   **When to use it:** For anything that should have a physical presence but is not affected by gravity or forces. This includes floors, walls, and static platforms.\n    *   **How it works:** You place it, and it stays there, acting as a barrier to other physics objects.\n\n2.  **`RigidBody2D` (The Rock)**\n    *   **What it is:** An object completely simulated by the physics engine. You don't control its position directly; you influence it by applying forces.\n    *   **When to use it:** For objects that need to react realistically to the world. Think of bouncing balls, falling debris, physics-based puzzles, or a crate the player can push.\n    *   **How it works:** You apply forces (`apply_force`) or impulses (`apply_impulse`) to it, and Godot's physics engine calculates its movement, including gravity, friction, and collisions. Trying to set its `position` directly every frame will fight the physics engine and cause strange behavior.\n\n3.  **`Area2D` (The Tripwire)**\n    *   **What it is:** A region that **detects** other bodies entering or leaving it, but has no solidity. Objects pass right through it.\n    *   **When to use it:** For detection and events, not collision. A coin's pickup radius, a trap's trigger zone, a camera's activation area, or an enemy's line-of-sight cone.\n    *   **How it works:** It uses signals like `body_entered(body)` and `area_entered(area)` to tell you when something has entered its shape. It's the \"spy\" of the physics world.\n\n### Collision Layers & Masks: The Godot Superpower\n\nThis is one of the most important and powerful concepts in Godot. It is the system that manages which objects are allowed to interact. It prevents you from having to write endless `if` statements in your code to check what you've hit.\n\nEvery physics body has two crucial properties: **Layers** and **Masks**.\n\n*   **Collision Layer (I am in this group):** This property defines which group(s) the object belongs to. Think of it as putting on a jersey. You can be on one team (Layer 1: \"Players\") or multiple teams (Layer 1: \"Players\" and Layer 2: \"Attackable\").\n*   **Collision Mask (I look for these groups):** This property defines which group(s) the object will scan for. This is what it pays attention to.\n\n**A Practical Example:**\n\nImagine you have a game with a Player, an Enemy, and Coins. You don't want enemies to collide with each other, and you don't want coins to block the player.\n\nFirst, let's assign the layers in **Project -> Project Settings -> 2D Physics**.\n*   Layer 1: `player`\n*   Layer 2: `enemies`\n*   Layer 3: `world`\n*   Layer 4: `coins`\n\nNow, we set up each object's Layer and Mask in its Inspector:\n\n*   **Player (`CharacterBody2D`)**\n    *   **Layer:** It's a player, so it's on the `player` layer.\n    *   **Mask:** It needs to stand on the ground (`world`) and be hit by enemies (`enemies`). So its mask checks for `world` and `enemies`.\n\n*   **Enemy (`CharacterBody2D`)**\n    *   **Layer:** It's an enemy, so it's on the `enemies` layer.\n    *   **Mask:** It needs to stand on the ground (`world`) and run into the player (`player`). It **does not** need to check for other `enemies`, so we leave that unchecked. Now enemies will pass through each other!\n\n*   **Coin (`Area2D`)**\n    *   **Layer:** It's a coin, so it's on the `coins` layer.\n    *   **Mask:** It only cares about detecting the player. So its mask only checks for `player`. When the player's shape enters its shape, the `body_entered` signal will fire.\n\nThis system gives you precise, efficient control over all game interactions without writing a single line of code.\n\n---\n**Key Concept:** `Area2D` detects, `StaticBody2D` collides and stays put, `RigidBody2D` collides and reacts.\n\n*Mastering collision layers is a Godot superpower.*"
       },
       "position": {
-        "x": 4760,
-        "y": 4430
+        "x": 4832.658136599911,
+        "y": 4650.833333333331
       }
     }
   ],
   "connections": [
-    { "id": "1-2", "start": { "nodeId": 1 }, "end": { "nodeId": 2 } },
-    { "id": "1-3", "start": { "nodeId": 1 }, "end": { "nodeId": 3 } },
-    { "id": "1-9", "start": { "nodeId": 1 }, "end": { "nodeId": 9 } },
-    { "id": "2-3", "start": { "nodeId": 2 }, "end": { "nodeId": 3 } },
-    { "id": "3-4", "start": { "nodeId": 3 }, "end": { "nodeId": 4 } },
-    { "id": "2-8", "start": { "nodeId": 2 }, "end": { "nodeId": 8 } },
-    { "id": "4-5", "start": { "nodeId": 4 }, "end": { "nodeId": 5 } },
-    { "id": "3-7", "start": { "nodeId": 3 }, "end": { "nodeId": 7 } },
-    { "id": "5-6", "start": { "nodeId": 5 }, "end": { "nodeId": 6 } },
-    { "id": "6-10", "start": { "nodeId": 6 }, "end": { "nodeId": 10 } },
-    { "id": "4-10", "start": { "nodeId": 4 }, "end": { "nodeId": 10 } },
-    { "id": "7-10", "start": { "nodeId": 7 }, "end": { "nodeId": 10 } },
-    { "id": "9-10", "start": { "nodeId": 9 }, "end": { "nodeId": 10 } },
-    { "id": "8-10", "start": { "nodeId": 8 }, "end": { "nodeId": 10 } },
-    { "id": "2-5", "start": { "nodeId": 2 }, "end": { "nodeId": 5 } }
+    {
+      "id": "1-2",
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 2
+      }
+    },
+    {
+      "id": "2-3",
+      "start": {
+        "nodeId": 2
+      },
+      "end": {
+        "nodeId": 3
+      }
+    },
+    {
+      "id": "3-4",
+      "start": {
+        "nodeId": 3
+      },
+      "end": {
+        "nodeId": 4
+      }
+    },
+    {
+      "id": "4-5",
+      "start": {
+        "nodeId": 4
+      },
+      "end": {
+        "nodeId": 5
+      }
+    },
+    {
+      "id": "5-6",
+      "start": {
+        "nodeId": 5
+      },
+      "end": {
+        "nodeId": 6
+      }
+    },
+    {
+      "id": "6-7",
+      "start": {
+        "nodeId": 6
+      },
+      "end": {
+        "nodeId": 7
+      }
+    },
+    {
+      "id": "7-8",
+      "start": {
+        "nodeId": 7
+      },
+      "end": {
+        "nodeId": 8
+      }
+    },
+    {
+      "id": "1-2",
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 2
+      }
+    },
+    {
+      "id": "2-1",
+      "start": {
+        "nodeId": 2
+      },
+      "end": {
+        "nodeId": 1
+      }
+    },
+    {
+      "id": "3-4",
+      "start": {
+        "nodeId": 3
+      },
+      "end": {
+        "nodeId": 4
+      }
+    },
+    {
+      "id": "8-9",
+      "start": {
+        "nodeId": 8
+      },
+      "end": {
+        "nodeId": 9
+      }
+    },
+    {
+      "id": "9-10",
+      "start": {
+        "nodeId": 9
+      },
+      "end": {
+        "nodeId": 10
+      }
+    }
   ],
-  "nodeIdCounter": 11,
-  "globalTheme": "indigo",
-  "nodeThemes": {
-    "1": "amber",
-    "2": "blue",
-    "3": "purple",
-    "4": "green",
-    "5": "orange",
-    "6": "teal",
-    "7": "rose",
-    "8": "violet",
-    "9": "cyan",
-    "10": "red"
-  },
+  "nodeIdCounter": 12,
+  "globalTheme": "green",
+  "nodeThemes": {},
   "version": "1.0",
-  "exportedAt": "2025-09-26T10:00:00.000Z"
+  "exportedAt": "2025-09-28T13:21:08.563Z"
 }
