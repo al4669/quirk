@@ -3,30 +3,20 @@
 A fast, intuitive visual knowledge base that lets you create, connect, and organize markdown notes with smooth drag-and-drop interactions.
 
 
-**Live Demo**: [Try QUIRK online](https://quirk.uk/?board=https://github.com/al4669/quirk/blob/main/examples/math.json)
+**Live Demo**: [Try QUIRK online](https://quirk.uk)
 
 ## Features
 
 🔒 **Privacy First** - Your data never leaves your device
-
 🏠 **Local Storage** - Works completely offline, no account required
-
 ✨ **Visual Node Interface** - Drag and drop markdown cards
-
 🔗 **Smart Connections** - Draw relationships between ideas
-
 📝 **Full Markdown** - Rich text with syntax highlighting
-
 🖼️ **Images & Code** - Support for images via URL and code blocks
-
 🎨 **16 Beautiful Themes** - Customize individual nodes or global workspace
-
 🌐 **GitHub Sharing** - Load and share board templates via public GitHub repositories
-
 📤 **Own Your Data** - Export as standard markdown files
-
 ⚡ **Zero Setup** - Just open index.html in any browser
-
 🚀 **Scales Smoothly** - Handles hundreds of nodes without performance loss
 
 ## Quick Start

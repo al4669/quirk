@@ -16,6 +16,7 @@ class Wallboard {
   constructor() {
     this.nodes = [];
     this.selectedNode = null;
+    this.selectedNodes = new Set(); // For multi-select
     this.contextNode = null;
     this.isConnecting = false;
     this.connectStart = null;
@@ -27,6 +28,11 @@ class Wallboard {
     this.draggedNode = null;
     this.dragOffset = { x: 0, y: 0 };
     this.isDragging = false;
+
+    // Group dragging state
+    this.isGroupDragging = false;
+    this.groupDragOffsets = new Map(); // nodeId -> {x, y} offset from primary node
+    this.primaryDragNode = null;
 
     // Properties for connection dragging
     this.isConnectionDrag = false;
@@ -122,16 +128,8 @@ class Wallboard {
       }
     });
 
-    // Keyboard shortcuts
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Delete" && this.selectedNode) {
-        this.deleteNode();
-      }
-      if (e.key === "Escape") {
-        this.cancelConnection();
-        this.cancelCutting();
-      }
-    });
+    // Initialize keyboard shortcuts manager
+    this.keyboardShortcuts = new KeyboardShortcuts(this);
 
     // Optimized drag event listeners - attached to document for better performance
     document.addEventListener("mousemove", this.handleMouseMove.bind(this), {
@@ -303,11 +301,14 @@ class Wallboard {
         throw new Error('Invalid board format. The file must contain valid board data.');
       }
 
-      // Create a new board from GitHub data
+      // Create a new board from GitHub data with duplicate handling
+      const baseName = boardData.name || 'GitHub Board';
+      const uniqueName = this.generateUniqueBoardName(baseName);
       const boardId = 'github_' + Date.now().toString();
+
       const board = {
         id: boardId,
-        name: boardData.name || 'GitHub Board',
+        name: uniqueName,
         nodes: boardData.nodes || [],
         connections: boardData.connections || [],
         nodeIdCounter: boardData.nodeIdCounter || 0,
@@ -319,10 +320,14 @@ class Wallboard {
         originalUrl: githubUrl
       };
 
-      // Load the board
+      // Load the board and persist it
       this.boards[boardId] = board;
       this.currentBoardId = boardId;
       this.loadBoard(boardId);
+      this.saveBoardsToStorage(); // Ensure persistence
+
+      // Clear URL parameter to prevent re-import
+      this.clearUrlParameter();
 
       this.showNotification(`Successfully loaded "${board.name}" from GitHub!`);
 
@@ -368,6 +373,35 @@ class Wallboard {
       (Array.isArray(data.nodes) || data.nodes === undefined) &&
       (Array.isArray(data.connections) || data.connections === undefined)
     );
+  }
+
+  generateUniqueBoardName(baseName) {
+    // Check if base name exists
+    const existingNames = Object.values(this.boards).map(board => board.name);
+
+    if (!existingNames.includes(baseName)) {
+      return baseName;
+    }
+
+    // Generate numbered variants: "Board Name (1)", "Board Name (2)", etc.
+    let counter = 1;
+    let uniqueName;
+
+    do {
+      uniqueName = `${baseName} (${counter})`;
+      counter++;
+    } while (existingNames.includes(uniqueName));
+
+    return uniqueName;
+  }
+
+  clearUrlParameter() {
+    // Remove the 'board' parameter from the URL without refreshing the page
+    if (window.history && window.history.replaceState) {
+      const url = new URL(window.location);
+      url.searchParams.delete('board');
+      window.history.replaceState({}, document.title, url.toString());
+    }
   }
 
   setupBoardSelector() {
@@ -740,6 +774,11 @@ addMarkdownNode() {
   }
 
   createNode(type, data) {
+    // Record change for undo/redo BEFORE making changes
+    if (this.keyboardShortcuts) {
+      this.keyboardShortcuts.recordChange('create_node', { type, data });
+    }
+
     const node = {
       id: this.nodeIdCounter++,
       type: type,
@@ -766,6 +805,13 @@ addMarkdownNode() {
     header.innerHTML = `
                     <div class="node-type" id="type-${node.id}">${node.type.toUpperCase()}</div>
                     <div class="node-actions">
+                        <button class="node-btn" onclick="wallboard.maximizeNode(${
+                          node.id
+                        })" title="Maximize">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3m8 0h3a2 2 0 0 0 2-2v-3"></path>
+                            </svg>
+                        </button>
                         <button class="node-btn" onclick="wallboard.showThemeSelector(${
                           node.id
                         })" title="Change theme">
@@ -819,6 +865,14 @@ addMarkdownNode() {
       content.innerHTML = `<div class="markdown-content">${marked.parse(
         node.data.content
       )}</div>`;
+
+      // Apply syntax highlighting to initial render
+      setTimeout(() => {
+        const codeBlocks = content.querySelectorAll('pre code');
+        codeBlocks.forEach(block => {
+          Prism.highlightElement(block);
+        });
+      }, 0);
     } else if (node.type === "image") {
       if (node.data.url) {
         content.innerHTML = `<div class="image-node"><img src="${node.data.url}" alt="Node image"></div>`;
@@ -886,7 +940,7 @@ addMarkdownNode() {
     // Selection
     nodeEl.addEventListener("click", (e) => {
       e.stopPropagation();
-      this.selectNode(node);
+      this.selectNode(node, e.shiftKey);
     });
 
     // Context menu
@@ -1075,8 +1129,27 @@ addMarkdownNode() {
   handleNodeDragStart(e, node, element) {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
 
+    // Record change for undo/redo at the START of drag
+    if (this.keyboardShortcuts) {
+      const nodeIds = this.selectedNodes.size > 1 && this.selectedNodes.has(node.id)
+        ? Array.from(this.selectedNodes)
+        : [node.id];
+      this.keyboardShortcuts.recordChange('move_nodes', { nodeIds });
+    }
+
     this.isDragging = true;
     this.draggedNode = { node, element };
+    this.primaryDragNode = node;
+
+    // Check if this node is part of a multi-selection
+    if (this.selectedNodes.size > 1 && this.selectedNodes.has(node.id)) {
+      this.isGroupDragging = true;
+      this.setupGroupDrag(node);
+    } else {
+      // Single node drag - don't change selection here, let click handler do it
+      this.isGroupDragging = false;
+    }
+
     element.classList.add("dragging");
 
     // Convert mouse coordinates to canvas coordinate system
@@ -1089,16 +1162,62 @@ addMarkdownNode() {
     e.preventDefault();
   }
 
+  setupGroupDrag(primaryNode) {
+    // Clear any existing group drag offsets
+    this.groupDragOffsets.clear();
+
+    // Calculate relative offsets for all selected nodes from the primary node
+    this.selectedNodes.forEach(nodeId => {
+      if (nodeId !== primaryNode.id) {
+        const node = this.nodes.find(n => n.id === nodeId);
+        if (node) {
+          this.groupDragOffsets.set(nodeId, {
+            x: node.position.x - primaryNode.position.x,
+            y: node.position.y - primaryNode.position.y
+          });
+
+          // Add dragging class to all group members
+          const nodeElement = document.getElementById(`node-${nodeId}`);
+          if (nodeElement) {
+            nodeElement.classList.add("dragging");
+          }
+        }
+      }
+    });
+  }
+
   handleNodeDrag(e) {
     const { node, element } = this.draggedNode;
 
     requestAnimationFrame(() => {
       // Convert mouse coordinates to canvas coordinate system
       const canvasCoords = this.screenToCanvas(e.clientX, e.clientY);
-      node.position.x = canvasCoords.x - this.dragOffset.x;
-      node.position.y = canvasCoords.y - this.dragOffset.y;
+      const newX = canvasCoords.x - this.dragOffset.x;
+      const newY = canvasCoords.y - this.dragOffset.y;
 
+      // Update primary node position
+      node.position.x = newX;
+      node.position.y = newY;
       element.style.transform = `translate3d(${node.position.x}px, ${node.position.y}px, 0)`;
+
+      // If group dragging, update all other selected nodes
+      if (this.isGroupDragging) {
+        this.groupDragOffsets.forEach((offset, nodeId) => {
+          const groupNode = this.nodes.find(n => n.id === nodeId);
+          if (groupNode) {
+            // Apply the same position plus the stored offset
+            groupNode.position.x = newX + offset.x;
+            groupNode.position.y = newY + offset.y;
+
+            // Update DOM position
+            const groupElement = document.getElementById(`node-${nodeId}`);
+            if (groupElement) {
+              groupElement.style.transform = `translate3d(${groupNode.position.x}px, ${groupNode.position.y}px, 0)`;
+            }
+          }
+        });
+      }
+
       this.connectionManager.updateConnections();
     });
   }
@@ -1112,6 +1231,25 @@ addMarkdownNode() {
       this.draggedNode.element.classList.remove("dragging");
       this.draggedNode = null;
     }
+
+    // Clean up group dragging state
+    if (this.isGroupDragging) {
+      // Remove dragging class from all group members
+      this.groupDragOffsets.forEach((offset, nodeId) => {
+        const nodeElement = document.getElementById(`node-${nodeId}`);
+        if (nodeElement) {
+          nodeElement.classList.remove("dragging");
+        }
+      });
+
+      this.groupDragOffsets.clear();
+      this.isGroupDragging = false;
+    }
+
+    this.primaryDragNode = null;
+
+    // Auto-save after node position changes
+    this.autoSave();
   }
 
   // --- Connection Dragging ---
@@ -1277,6 +1415,14 @@ addMarkdownNode() {
   // --- Theme Management ---
 
   setGlobalTheme(themeKey) {
+    // Record change for undo/redo
+    if (this.keyboardShortcuts) {
+      this.keyboardShortcuts.recordChange('set_global_theme', {
+        oldTheme: this.globalTheme,
+        newTheme: themeKey
+      });
+    }
+
     this.globalTheme = themeKey;
     this.applyGlobalTheme();
     this.updateAllNodeThemes();
@@ -1284,6 +1430,15 @@ addMarkdownNode() {
   }
 
   setNodeTheme(nodeId, themeKey) {
+    // Record change for undo/redo
+    if (this.keyboardShortcuts) {
+      this.keyboardShortcuts.recordChange('set_node_theme', {
+        nodeId: nodeId,
+        oldTheme: this.nodeThemes[nodeId] || 'default',
+        newTheme: themeKey
+      });
+    }
+
     if (themeKey === 'default') {
       // Remove custom theme - node will use global theme
       delete this.nodeThemes[nodeId];
@@ -1543,6 +1698,14 @@ addMarkdownNode() {
           node.data.content
         )}</div>`;
 
+        // Re-highlight syntax after DOM update
+        setTimeout(() => {
+          const codeBlocks = content.querySelectorAll('pre code');
+          codeBlocks.forEach(block => {
+            Prism.highlightElement(block);
+          });
+        }, 0);
+
         // Update editing state
         this.updateEditingState();
 
@@ -1645,15 +1808,17 @@ addMarkdownNode() {
       const connectionPoints = this.calculateEdgeConnectionPoints(startRect, endRect);
 
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      const d = this.createSmoothPath(connectionPoints.start, connectionPoints.end);
+      const d = this.createSmoothPath(connectionPoints.start, connectionPoints.end, connectionPoints.direction);
       path.setAttribute("d", d);
       path.setAttribute("class", "connection-line");
+      path.setAttribute("marker-end", "url(#arrow)");
 
       svg.appendChild(path);
     });
   }
 
-  calculateEdgeConnectionPoints(startRect, endRect) {
+
+    calculateEdgeConnectionPoints(startRect, endRect) {
     // Get centers
     const startCenter = {
       x: startRect.left + startRect.width / 2,
@@ -1664,99 +1829,154 @@ addMarkdownNode() {
       y: endRect.top + endRect.height / 2
     };
 
+    // Calculate edges properly from rect properties
+    const startRight = startRect.left + startRect.width;
+    const startBottom = startRect.top + startRect.height;
+    const endRight = endRect.left + endRect.width;
+    const endBottom = endRect.top + endRect.height;
+
     // Calculate which edges to connect based on relative positions
     const dx = endCenter.x - startCenter.x;
     const dy = endCenter.y - startCenter.y;
 
-    let startPoint, endPoint;
+    // Minimal offset from node edge - just enough so arrow tip touches the edge
+    const offset = 2;
+
+    let startPoint, endPoint, direction;
 
     // Determine best connection points based on angle between nodes
     if (Math.abs(dx) > Math.abs(dy)) {
       // Horizontal connection preferred
+      direction = 'horizontal';
       if (dx > 0) {
-        // Start from right edge of start node
+        // Start from right edge center of start node (with offset)
         startPoint = {
-          x: startRect.right,
+          x: startRight + offset,
           y: startCenter.y
         };
-        // End at left edge of end node
+        // End at left edge center of end node
         endPoint = {
           x: endRect.left,
           y: endCenter.y
         };
       } else {
-        // Start from left edge of start node
+        // Start from left edge center of start node (with offset)
         startPoint = {
-          x: startRect.left,
+          x: startRect.left - offset,
           y: startCenter.y
         };
-        // End at right edge of end node
+        // End at right edge center of end node
         endPoint = {
-          x: endRect.right,
+          x: endRight,
           y: endCenter.y
         };
       }
     } else {
       // Vertical connection preferred
+      direction = 'vertical';
       if (dy > 0) {
-        // Start from bottom edge of start node
+        // Start from bottom edge center of start node (with offset)
         startPoint = {
           x: startCenter.x,
-          y: startRect.bottom
+          y: startBottom + offset
         };
-        // End at top edge of end node
+        // End at top edge center of end node
         endPoint = {
           x: endCenter.x,
           y: endRect.top
         };
       } else {
-        // Start from top edge of start node
+        // Start from top edge center of start node (with offset)
         startPoint = {
           x: startCenter.x,
-          y: startRect.top
+          y: startRect.top - offset
         };
-        // End at bottom edge of end node
+        // End at bottom edge center of end node
         endPoint = {
           x: endCenter.x,
-          y: endRect.bottom
+          y: endBottom
         };
       }
     }
 
-    return { start: startPoint, end: endPoint };
+    return { start: startPoint, end: endPoint, direction };
   }
 
-  createSmoothPath(start, end) {
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
+  createSmoothPath(start, end, direction) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
 
-    // Create more natural curves based on connection direction
-    let cp1x, cp1y, cp2x, cp2y;
-    const offset = Math.min(distance * 0.4, 120);
+  // If nodes are very close, use simple direct connection
+  if (Math.abs(dx) < 60 && Math.abs(dy) < 60) {
+    return `M ${start.x},${start.y} L ${end.x},${end.y}`;
+  }
 
-    if (Math.abs(dx) > Math.abs(dy)) {
-      // Horizontal-dominant connection
-      cp1x = start.x + (dx > 0 ? offset : -offset);
-      cp1y = start.y;
-      cp2x = end.x + (dx > 0 ? -offset : offset);
-      cp2y = end.y;
+  // For horizontal connections (connecting left/right edges)
+  // we want to go horizontally from start, then approach the end point horizontally
+  if (direction === 'horizontal') {
+    // If already horizontally aligned, just go straight
+    if (Math.abs(dy) < 20) {
+      return `M ${start.x},${start.y} L ${end.x},${end.y}`;
+    }
+    // Go horizontally from start, then vertically, then horizontally to end
+    const midX = (start.x + end.x) / 2;
+    return `M ${start.x},${start.y} L ${midX},${start.y} L ${midX},${end.y} L ${end.x},${end.y}`;
+  }
+  // For vertical connections (connecting top/bottom edges)
+  // we want to go vertically from start, then approach the end point vertically
+  else {
+    // If already vertically aligned, just go straight
+    if (Math.abs(dx) < 20) {
+      return `M ${start.x},${start.y} L ${end.x},${end.y}`;
+    }
+    // Go vertically from start, then horizontally, then vertically to end
+    const midY = (start.y + end.y) / 2;
+    return `M ${start.x},${start.y} L ${start.x},${midY} L ${end.x},${midY} L ${end.x},${end.y}`;
+  }
+}
+
+
+  selectNode(node, isShiftClick = false) {
+    if (isShiftClick) {
+      // Multi-select mode
+      if (this.selectedNodes.has(node.id)) {
+        // Deselect if already selected
+        this.selectedNodes.delete(node.id);
+        document.getElementById(`node-${node.id}`).classList.remove("selected");
+
+        // Update single selected node
+        if (this.selectedNodes.size === 1) {
+          const remainingId = Array.from(this.selectedNodes)[0];
+          this.selectedNode = this.nodes.find(n => n.id === remainingId);
+        } else {
+          this.selectedNode = null;
+        }
+      } else {
+        // Add to selection
+        this.selectedNodes.add(node.id);
+        document.getElementById(`node-${node.id}`).classList.add("selected");
+
+        // Set as primary selected node if it's the only one
+        if (this.selectedNodes.size === 1) {
+          this.selectedNode = node;
+        }
+      }
     } else {
-      // Vertical-dominant connection
-      cp1x = start.x;
-      cp1y = start.y + (dy > 0 ? offset : -offset);
-      cp2x = end.x;
-      cp2y = end.y + (dy > 0 ? -offset : offset);
+      // Single select mode
+      this.deselectAll();
+      this.selectedNode = node;
+      this.selectedNodes.add(node.id);
+      document.getElementById(`node-${node.id}`).classList.add("selected");
     }
 
-    return `M ${start.x},${start.y} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${end.x},${end.y}`;
-  }
-
-
-  selectNode(node) {
-    this.deselectAll();
-    this.selectedNode = node;
-    document.getElementById(`node-${node.id}`).classList.add("selected");
+    // Highlight connections - if multiple nodes selected, highlight all their connections
+    if (this.selectedNodes.size > 1) {
+      this.connectionManager.highlightConnectionsForMultipleNodes(Array.from(this.selectedNodes));
+    } else if (this.selectedNode) {
+      this.connectionManager.highlightConnectionsForNode(this.selectedNode.id);
+    } else {
+      this.connectionManager.clearConnectionHighlighting();
+    }
   }
 
   deselectAll() {
@@ -1764,6 +1984,10 @@ addMarkdownNode() {
       .querySelectorAll(".node")
       .forEach((n) => n.classList.remove("selected"));
     this.selectedNode = null;
+    this.selectedNodes.clear();
+
+    // Clear connection highlighting when no node is selected
+    this.connectionManager.clearConnectionHighlighting();
   }
 
   exitAllEditModes() {
@@ -1782,10 +2006,18 @@ addMarkdownNode() {
 
   showContextMenu(e, node) {
     this.contextNode = node;
-    const menu = document.getElementById("contextMenu");
-    menu.style.left = e.clientX + "px";
-    menu.style.top = e.clientY + "px";
-    menu.classList.add("show");
+
+    // Check if this is a multi-select context menu
+    if (this.selectedNodes.size > 1) {
+      // Show alignment menu for multiple nodes
+      this.alignmentManager.showAlignmentMenu(e, Array.from(this.selectedNodes));
+    } else {
+      // Show regular context menu for single node
+      const menu = document.getElementById("contextMenu");
+      menu.style.left = e.clientX + "px";
+      menu.style.top = e.clientY + "px";
+      menu.classList.add("show");
+    }
   }
 
   hideContextMenu() {
@@ -1847,6 +2079,236 @@ addMarkdownNode() {
     this.autoSave();
 
     this.mockAPICall("deleteNode", { nodeId });
+  }
+
+  maximizeNode(nodeId) {
+    const node = this.nodes.find((n) => n.id === nodeId);
+    if (!node) return;
+
+    // Exit edit mode if currently editing
+    if (document.querySelector('.text-editor')) {
+      this.exitAllEditModes();
+    }
+
+    // Create fullscreen overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'fullscreen-overlay';
+    overlay.id = `overlay-${nodeId}`;
+
+    // Create the maximized node content
+    const maximizedNode = document.createElement('div');
+    maximizedNode.className = 'maximized-node';
+
+    // Apply the node's theme if it has a custom one
+    const nodeTheme = this.nodeThemes[nodeId];
+    if (nodeTheme && this.themes[nodeTheme]) {
+      const theme = this.themes[nodeTheme];
+      maximizedNode.style.setProperty('--accent', theme.accent);
+      maximizedNode.style.setProperty('--accent-glow', `${theme.accent}40`);
+      maximizedNode.style.setProperty('--accent-light', this.lightenColor(theme.accent, 20));
+      maximizedNode.classList.add('custom-theme');
+    }
+
+    // Add header with edit and close buttons
+    const header = document.createElement('div');
+    header.className = 'maximized-header';
+    header.innerHTML = `
+      <div class="maximized-title">${node.type.toUpperCase()}</div>
+      <div class="maximized-actions">
+        <button class="maximize-btn" onclick="wallboard.toggleMaximizedEdit(${nodeId})" title="Edit">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+        </button>
+        <button class="close-maximize-btn" onclick="wallboard.minimizeNode(${nodeId})" title="Minimize">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 14h6m0 0v6m0-6L4 20M20 10h-6m0 0V4m0 6l6-6"></path>
+          </svg>
+        </button>
+      </div>
+    `;
+
+    // Create content area
+    const content = document.createElement('div');
+    content.className = 'maximized-content';
+    content.tabIndex = 0; // Make it focusable for scrolling
+
+    // Copy the node content
+    const originalContent = document.getElementById(`content-${nodeId}`);
+    if (originalContent) {
+      content.innerHTML = originalContent.innerHTML;
+    }
+
+    // Assemble the maximized node
+    maximizedNode.appendChild(header);
+    maximizedNode.appendChild(content);
+    overlay.appendChild(maximizedNode);
+
+    // Add to DOM
+    document.body.appendChild(overlay);
+
+    // Animate in
+    requestAnimationFrame(() => {
+      overlay.classList.add('active');
+      // Focus the content area after animation starts for better scrolling
+      setTimeout(() => {
+        content.focus();
+      }, 100);
+    });
+
+    // Add click listener to close when clicking on overlay background
+    const clickListener = (e) => {
+      if (e.target === overlay) {
+        this.minimizeNode(nodeId);
+      }
+    };
+    overlay.addEventListener('click', clickListener);
+    overlay._clickListener = clickListener;
+
+    // Prevent scroll events from being blocked
+    overlay.addEventListener('wheel', (e) => {
+      e.stopPropagation();
+    });
+
+    // Allow scrolling to work properly in the content area
+    content.addEventListener('wheel', (e) => {
+      e.stopPropagation();
+    });
+
+    // Add ESC key listener
+    const escListener = (e) => {
+      if (e.key === 'Escape') {
+        this.minimizeNode(nodeId);
+        document.removeEventListener('keydown', escListener);
+      }
+    };
+    document.addEventListener('keydown', escListener);
+    overlay._escListener = escListener;
+  }
+
+  minimizeNode(nodeId) {
+    const overlay = document.getElementById(`overlay-${nodeId}`);
+    if (overlay) {
+      // Save any changes if in edit mode before closing
+      const content = overlay.querySelector('.maximized-content');
+      const editor = content.querySelector('.text-editor');
+      if (editor) {
+        const node = this.nodes.find((n) => n.id === nodeId);
+        if (node && node.data && node.data.content !== undefined) {
+          node.data.content = editor.value;
+          // Update the original node content as well
+          const originalContent = document.getElementById(`content-${nodeId}`);
+          if (originalContent) {
+            originalContent.innerHTML = `<div class="markdown-content">${marked.parse(node.data.content)}</div>`;
+
+            // Re-highlight syntax for original node
+            setTimeout(() => {
+              const codeBlocks = originalContent.querySelectorAll('pre code');
+              codeBlocks.forEach(block => {
+                Prism.highlightElement(block);
+              });
+            }, 0);
+          }
+          this.autoSave();
+        }
+      }
+
+      // Remove listeners
+      if (overlay._escListener) {
+        document.removeEventListener('keydown', overlay._escListener);
+      }
+      if (overlay._clickListener) {
+        overlay.removeEventListener('click', overlay._clickListener);
+      }
+
+      // Animate out
+      overlay.classList.remove('active');
+      setTimeout(() => {
+        overlay.remove();
+      }, 300);
+    }
+  }
+
+  toggleMaximizedEdit(nodeId) {
+    const node = this.nodes.find((n) => n.id === nodeId);
+    if (!node) return;
+
+    const overlay = document.getElementById(`overlay-${nodeId}`);
+    if (!overlay) return;
+
+    const content = overlay.querySelector('.maximized-content');
+    if (!content) return;
+
+    // Check if already editing
+    const isEditing = content.querySelector('.text-editor');
+
+    if (isEditing) {
+      // Save and switch to view mode
+      if (node.data && node.data.content !== undefined) {
+        node.data.content = isEditing.value;
+
+        // Restore view mode
+        content.style.width = "";
+        content.style.minWidth = "";
+        content.classList.remove('editing');
+        content.innerHTML = `<div class="markdown-content">${marked.parse(node.data.content)}</div>`;
+
+        // Re-highlight syntax after DOM update for maximized view
+        setTimeout(() => {
+          const codeBlocks = content.querySelectorAll('pre code');
+          codeBlocks.forEach(block => {
+            Prism.highlightElement(block);
+          });
+        }, 0);
+
+        // Update the original node content as well
+        const originalContent = document.getElementById(`content-${nodeId}`);
+        if (originalContent) {
+          originalContent.innerHTML = `<div class="markdown-content">${marked.parse(node.data.content)}</div>`;
+
+          // Re-highlight syntax for original node too
+          setTimeout(() => {
+            const codeBlocks = originalContent.querySelectorAll('pre code');
+            codeBlocks.forEach(block => {
+              Prism.highlightElement(block);
+            });
+          }, 0);
+        }
+
+        this.autoSave();
+      }
+    } else {
+      // Switch to edit mode
+      if (node.data && node.data.content !== undefined) {
+        // Capture current content width before switching
+        const currentWidth = content.offsetWidth;
+
+        const editor = document.createElement("textarea");
+        editor.className = "text-editor maximized-editor";
+        editor.value = node.data.content;
+
+        // Preserve the content area width
+        content.style.width = currentWidth + "px";
+        content.style.minWidth = currentWidth + "px";
+        content.classList.add('editing');
+
+        // Set editor height to fill the content area
+        const availableHeight = content.offsetHeight - 80; // Account for padding
+        editor.style.width = "100%";
+        editor.style.height = Math.max(400, availableHeight) + "px";
+
+        content.innerHTML = "";
+        content.appendChild(editor);
+        editor.focus();
+
+        // Auto-resize height for editor
+        editor.addEventListener("input", () => {
+          editor.style.height = "auto";
+          editor.style.height = Math.max(400, editor.scrollHeight) + "px";
+        });
+      }
+    }
   }
 
   uploadImage(nodeId) {
@@ -1920,6 +2382,10 @@ const wallboard = new Wallboard();
 
 // Initialize export manager
 const exportManager = new ExportManager(wallboard);
+
+// Initialize alignment manager
+const alignmentManager = new AlignmentManager(wallboard);
+wallboard.alignmentManager = alignmentManager;
 
 // Initialize theme system
 wallboard.applyGlobalTheme();

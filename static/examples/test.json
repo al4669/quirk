@@ -1,0 +1,593 @@
+{
+  "name": "My awesome board",
+  "description": "Wallboard exported on 9/26/2025",
+  "nodes": [
+    {
+      "id": 160,
+      "type": "markdown",
+      "data": {
+        "content": "# 🧙‍♂️ The Grand Grimoire of Supreme Organization\n*BEHOLD! The most MAGICALLY SUPERIOR incantation for note mastery!*\n\n**ANCIENT PROPHECY FULFILLED**: \"When chaos reigns, a superior tool shall rise!\"\n\n- Cast \"Organizus Supremus\" on your scattered thoughts\n- Brew the Potion of Infinite Productivity\n- Summon the Spirit of Perfect Planning\n- Transform base chaos into organizational gold\n\n| Spell | Power Level | Mana Cost |\n|-------|-------------|-----------|\n| Clarity Vision | LEGENDARY | 5 coffee cups |\n| Time Multiplication | MYTHICAL | 3 energy drinks |\n| Chaos Banishment | GODLIKE | 1 good night's sleep |\n\n```javascript\nconst castSpell = (wisdom, superior_notes) => {\n  return \"✨ POOF! Your life is now magically organized! ✨\";\n};\n```"
+      },
+      "position": {
+        "x": 3973.433612394727,
+        "y": 3854.227099572564
+      }
+    },
+    {
+      "id": 161,
+      "type": "markdown",
+      "data": {
+        "content": "- [ ] Todo 1\n- [ ] Todo 2\n- [ ] Todo 3\n- [ ] Todo 4\n- [ ] Todo 5\n- [ ] Todo 5\n"
+      },
+      "position": {
+        "x": 4514.909036377201,
+        "y": 3769.674726410629
+      }
+    },
+    {
+      "id": 162,
+      "type": "Hmmmm",
+      "data": {
+        "content": "# 🚀 Galactic Emperor's Master Plan\n*The most ASTRONOMICALLY SUPERIOR note-taking technology in the known universe!*\n\n**COSMIC BREAKTHROUGH**: Scientists across 47 galaxies confirm this tool's supremacy!\n\n- Conquer the Procrastination Nebula\n- Establish mining colonies on Productivity Prime\n- Build the Death Star of Organization (but for good!)\n- Unite all star systems under one superior note-taking alliance\n\n| Galaxy | Conquest Status | Resources |\n|--------|----------------|-----------|\n| Productivity Prime | 100% CONQUERED | Infinite motivation ore |\n| Organization Alpha | 95% DOMINATED | Pure focus crystals |\n| Chaos Void | 0% (avoid at all costs) | Nothing but confusion |\n\n```javascript\nconst galacticDomination = (fleets, superior_notes) => {\n  return \"The universe bows before your organizational might!\";\n};\n```"
+      },
+      "position": {
+        "x": 4700.230408009548,
+        "y": 4168.526839234104
+      }
+    },
+    {
+      "id": 163,
+      "type": "markdown",
+      "data": {
+        "content": "# 🦸‍♀️ Superhero Academy Admissions\n*Finally, a note-taking tool worthy of your secret identity!*\n\n**This superior organizational system** has been approved by 9 out of 10 caped crusaders!\n\n- Master the art of dramatic entrances\n- Learn to brood professionally on rooftops\n- Advanced cape management techniques\n- How to maintain secret identity while taking notes\n\n| Superpower | Training Level | Weakness |\n|------------|----------------|----------|\n| Flight | Advanced | Low ceilings |\n| Invisibility | Beginner | Forgetting you're invisible |\n| Super Speed | Expert | Speed bumps |\n\n```javascript\nconst saveTheWorld = (heroName, superPower) => {\n  return `${heroName} used ${superPower}! It's super effective!`;\n};\n```"
+      },
+      "position": {
+        "x": 5390.784462714991,
+        "y": 3861.507100118151
+      }
+    },
+    {
+      "id": 164,
+      "type": "markdown",
+      "data": {
+        "content": "# 🧠 Brain Upgrade Protocol v2.0\n*This note-taking tool is literally making you smarter right now. No refunds on genius!*\n\n**WARNING**: May cause explosive productivity and uncontrollable organization addiction!\n\n- Download more RAM for your brain\n- Install creativity.exe \n- Debug your procrastination loops\n- Compile your thoughts into pure genius\n\n| Upgrade | Success Rate | Side Effects |\n|---------|-------------|--------------|\n| Memory Boost | 200% | Remembering everything |\n| Focus Enhancement | 150% | Laser-like concentration |\n| Creativity Injection | 300% | Uncontainable ideas |\n\n```javascript\nconst brainPower = (coffee, sleep, notes) => {\n  return coffee * sleep * notes === \"UNLIMITED POWER!\";\n};\n```"
+      },
+      "position": {
+        "x": 4830.81392277178,
+        "y": 3545.3026193923906
+      }
+    },
+    {
+      "id": 165,
+      "type": "markdown",
+      "data": {
+        "content": "# 🦸‍♀️ Superhero Academy Admissions\n*Finally, a note-taking tool worthy of your secret identity!*\n\n**This superior organizational system** has been approved by 9 out of 10 caped crusaders!\n\n- Master the art of dramatic entrances\n- Learn to brood professionally on rooftops\n- Advanced cape management techniques\n- How to maintain secret identity while taking notes\n\n| Superpower | Training Level | Weakness |\n|------------|----------------|----------|\n| Flight | Advanced | Low ceilings |\n| Invisibility | Beginner | Forgetting you're invisible |\n| Super Speed | Expert | Speed bumps |\n\n```javascript\nconst saveTheWorld = (heroName, superPower) => {\n  return `${heroName} used ${superPower}! It's super effective!`;\n};\n```"
+      },
+      "position": {
+        "x": 5992.565268529448,
+        "y": 3524.473592287143
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "0-1",
+      "start": {
+        "nodeId": 0
+      },
+      "end": {
+        "nodeId": 1
+      }
+    },
+    {
+      "id": "0-1",
+      "start": {
+        "nodeId": 0
+      },
+      "end": {
+        "nodeId": 1
+      }
+    },
+    {
+      "id": "0-2",
+      "start": {
+        "nodeId": 0
+      },
+      "end": {
+        "nodeId": 2
+      }
+    },
+    {
+      "id": "0-3",
+      "start": {
+        "nodeId": 0
+      },
+      "end": {
+        "nodeId": 3
+      }
+    },
+    {
+      "id": "0-4",
+      "start": {
+        "nodeId": 0
+      },
+      "end": {
+        "nodeId": 4
+      }
+    },
+    {
+      "id": "0-6",
+      "start": {
+        "nodeId": 0
+      },
+      "end": {
+        "nodeId": 6
+      }
+    },
+    {
+      "id": "40-37",
+      "start": {
+        "nodeId": 40
+      },
+      "end": {
+        "nodeId": 37
+      }
+    },
+    {
+      "id": "40-38",
+      "start": {
+        "nodeId": 40
+      },
+      "end": {
+        "nodeId": 38
+      }
+    },
+    {
+      "id": "0-42",
+      "start": {
+        "nodeId": 0
+      },
+      "end": {
+        "nodeId": 42
+      }
+    },
+    {
+      "id": "39-38",
+      "start": {
+        "nodeId": 39
+      },
+      "end": {
+        "nodeId": 38
+      }
+    },
+    {
+      "id": "4-36",
+      "start": {
+        "nodeId": 4
+      },
+      "end": {
+        "nodeId": 36
+      }
+    },
+    {
+      "id": "33-34",
+      "start": {
+        "nodeId": 33
+      },
+      "end": {
+        "nodeId": 34
+      }
+    },
+    {
+      "id": "80-81",
+      "start": {
+        "nodeId": 80
+      },
+      "end": {
+        "nodeId": 81
+      }
+    },
+    {
+      "id": "81-82",
+      "start": {
+        "nodeId": 81
+      },
+      "end": {
+        "nodeId": 82
+      }
+    },
+    {
+      "id": "81-83",
+      "start": {
+        "nodeId": 81
+      },
+      "end": {
+        "nodeId": 83
+      }
+    },
+    {
+      "id": "80-83",
+      "start": {
+        "nodeId": 80
+      },
+      "end": {
+        "nodeId": 83
+      }
+    },
+    {
+      "id": "83-84",
+      "start": {
+        "nodeId": 83
+      },
+      "end": {
+        "nodeId": 84
+      }
+    },
+    {
+      "id": "82-85",
+      "start": {
+        "nodeId": 82
+      },
+      "end": {
+        "nodeId": 85
+      }
+    },
+    {
+      "id": "85-86",
+      "start": {
+        "nodeId": 85
+      },
+      "end": {
+        "nodeId": 86
+      }
+    },
+    {
+      "id": "85-87",
+      "start": {
+        "nodeId": 85
+      },
+      "end": {
+        "nodeId": 87
+      }
+    },
+    {
+      "id": "84-88",
+      "start": {
+        "nodeId": 84
+      },
+      "end": {
+        "nodeId": 88
+      }
+    },
+    {
+      "id": "86-89",
+      "start": {
+        "nodeId": 86
+      },
+      "end": {
+        "nodeId": 89
+      }
+    },
+    {
+      "id": "88-89",
+      "start": {
+        "nodeId": 88
+      },
+      "end": {
+        "nodeId": 89
+      }
+    },
+    {
+      "id": "86-89",
+      "start": {
+        "nodeId": 86
+      },
+      "end": {
+        "nodeId": 89
+      }
+    },
+    {
+      "id": "87-89",
+      "start": {
+        "nodeId": 87
+      },
+      "end": {
+        "nodeId": 89
+      }
+    },
+    {
+      "id": "103-82",
+      "start": {
+        "nodeId": 103
+      },
+      "end": {
+        "nodeId": 82
+      }
+    },
+    {
+      "id": "100-82",
+      "start": {
+        "nodeId": 100
+      },
+      "end": {
+        "nodeId": 82
+      }
+    },
+    {
+      "id": "101-82",
+      "start": {
+        "nodeId": 101
+      },
+      "end": {
+        "nodeId": 82
+      }
+    },
+    {
+      "id": "101-82",
+      "start": {
+        "nodeId": 101
+      },
+      "end": {
+        "nodeId": 82
+      }
+    },
+    {
+      "id": "102-82",
+      "start": {
+        "nodeId": 102
+      },
+      "end": {
+        "nodeId": 82
+      }
+    },
+    {
+      "id": "95-82",
+      "start": {
+        "nodeId": 95
+      },
+      "end": {
+        "nodeId": 82
+      }
+    },
+    {
+      "id": "101-84",
+      "start": {
+        "nodeId": 101
+      },
+      "end": {
+        "nodeId": 84
+      }
+    },
+    {
+      "id": "101-83",
+      "start": {
+        "nodeId": 101
+      },
+      "end": {
+        "nodeId": 83
+      }
+    },
+    {
+      "id": "101-88",
+      "start": {
+        "nodeId": 101
+      },
+      "end": {
+        "nodeId": 88
+      }
+    },
+    {
+      "id": "103-88",
+      "start": {
+        "nodeId": 103
+      },
+      "end": {
+        "nodeId": 88
+      }
+    },
+    {
+      "id": "99-88",
+      "start": {
+        "nodeId": 99
+      },
+      "end": {
+        "nodeId": 88
+      }
+    },
+    {
+      "id": "101-86",
+      "start": {
+        "nodeId": 101
+      },
+      "end": {
+        "nodeId": 86
+      }
+    },
+    {
+      "id": "101-86",
+      "start": {
+        "nodeId": 101
+      },
+      "end": {
+        "nodeId": 86
+      }
+    },
+    {
+      "id": "102-82",
+      "start": {
+        "nodeId": 102
+      },
+      "end": {
+        "nodeId": 82
+      }
+    },
+    {
+      "id": "158-87",
+      "start": {
+        "nodeId": 158
+      },
+      "end": {
+        "nodeId": 87
+      }
+    },
+    {
+      "id": "158-89",
+      "start": {
+        "nodeId": 158
+      },
+      "end": {
+        "nodeId": 89
+      }
+    },
+    {
+      "id": "159-89",
+      "start": {
+        "nodeId": 159
+      },
+      "end": {
+        "nodeId": 89
+      }
+    },
+    {
+      "id": "83-86",
+      "start": {
+        "nodeId": 83
+      },
+      "end": {
+        "nodeId": 86
+      }
+    },
+    {
+      "id": "81-86",
+      "start": {
+        "nodeId": 81
+      },
+      "end": {
+        "nodeId": 86
+      }
+    },
+    {
+      "id": "151-86",
+      "start": {
+        "nodeId": 151
+      },
+      "end": {
+        "nodeId": 86
+      }
+    },
+    {
+      "id": "156-86",
+      "start": {
+        "nodeId": 156
+      },
+      "end": {
+        "nodeId": 86
+      }
+    },
+    {
+      "id": "159-87",
+      "start": {
+        "nodeId": 159
+      },
+      "end": {
+        "nodeId": 87
+      }
+    },
+    {
+      "id": "158-88",
+      "start": {
+        "nodeId": 158
+      },
+      "end": {
+        "nodeId": 88
+      }
+    },
+    {
+      "id": "101-88",
+      "start": {
+        "nodeId": 101
+      },
+      "end": {
+        "nodeId": 88
+      }
+    },
+    {
+      "id": "159-86",
+      "start": {
+        "nodeId": 159
+      },
+      "end": {
+        "nodeId": 86
+      }
+    },
+    {
+      "id": "83-86",
+      "start": {
+        "nodeId": 83
+      },
+      "end": {
+        "nodeId": 86
+      }
+    },
+    {
+      "id": "160-161",
+      "start": {
+        "nodeId": 160
+      },
+      "end": {
+        "nodeId": 161
+      }
+    },
+    {
+      "id": "160-162",
+      "start": {
+        "nodeId": 160
+      },
+      "end": {
+        "nodeId": 162
+      }
+    },
+    {
+      "id": "162-163",
+      "start": {
+        "nodeId": 162
+      },
+      "end": {
+        "nodeId": 163
+      }
+    },
+    {
+      "id": "161-164",
+      "start": {
+        "nodeId": 161
+      },
+      "end": {
+        "nodeId": 164
+      }
+    },
+    {
+      "id": "163-165",
+      "start": {
+        "nodeId": 163
+      },
+      "end": {
+        "nodeId": 165
+      }
+    }
+  ],
+  "nodeIdCounter": 166,
+  "globalTheme": "lime",
+  "nodeThemes": {
+    "0": "blue",
+    "5": "blue",
+    "7": "rose",
+    "10": "orange",
+    "11": "green",
+    "81": "purple",
+    "162": "orange",
+    "163": "purple",
+    "165": "yellow"
+  },
+  "version": "1.0",
+  "exportedAt": "2025-09-25T19:59:58.174Z"
+}

@@ -12,10 +12,12 @@
     <script src="static/deps/marked.min.js"></script>
     
     <!-- Prism.js 1.29.0 for syntax highlighting -->
-    <link href="static/deps/prism-tomorrow.min.css" rel="stylesheet" />
+    <link href="static/deps/prism-laserwave.css" rel="stylesheet" />
     <script src="static/deps/prism.min.js"></script>
     <script src="static/deps/prism-javascript.min.js"></script>
     <script src="static/deps/prism-python.min.js"></script>
+    <script src="static/deps/prism-gdscript.js"></script>
+
     <script src="static/deps/prism-css.min.js"></script>
 
     <!-- JSZip 3.10.1 for compression  -->
@@ -98,6 +100,21 @@
         <div class="instruction-item">
             <span class="key">Drag Canvas</span> to pan around
         </div>
+        <div class="instruction-item">
+            <span class="key">D</span> to duplicate selected nodes
+        </div>
+        <div class="instruction-item">
+            <span class="key">Ctrl+Z / Ctrl+Y</span> to undo/redo
+        </div>
+        <div class="instruction-item">
+            <span class="key">Ctrl+A</span> to select all nodes
+        </div>
+        <div class="instruction-item">
+            <span class="key">Shift+Click</span> to multi-select nodes
+        </div>
+        <div class="instruction-item">
+            <span class="key">Delete / Backspace</span> to delete selected nodes
+        </div>
     </div>
     
     <!-- Context Menu -->
@@ -128,6 +145,8 @@
     
    <script src="static/connection-manager.js"></script>
    <script src="static/export-manager.js"></script>
+   <script src="static/alignment-manager.js"></script>
+   <script src="static/keyboard-shortcuts.js"></script>
    <script src="static/app.js"></script>
 </body>
 </html>
