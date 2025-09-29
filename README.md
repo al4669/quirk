@@ -6,6 +6,8 @@ A fast, intuitive visual knowledge base that lets you create, connect, and organ
 
 **Live Demo**: [Try QUIRK online](https://quirk.uk?board=https://raw.githubusercontent.com/al4669/quirk/refs/heads/main/examples/godot.json)
 
+[Youtube Video](https://www.youtube.com/watch?v=4mqX7RpaYZk)
+
 ## Features
 
 🔒 **Privacy First** - Your data never leaves your device
