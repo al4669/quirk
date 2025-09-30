@@ -21,7 +21,8 @@ class ExportManager {
         createdAt: board.createdAt,
         updatedAt: board.updatedAt,
         globalTheme: board.globalTheme,
-        nodeThemes: board.nodeThemes
+        nodeThemes: board.nodeThemes,
+        connectionThemes: board.connectionThemes || {}
       },
       nodes: board.nodes,
       connections: board.connections,
@@ -59,7 +60,8 @@ class ExportManager {
           createdAt: board.createdAt,
           updatedAt: board.updatedAt,
           globalTheme: board.globalTheme,
-          nodeThemes: board.nodeThemes
+          nodeThemes: board.nodeThemes,
+          connectionThemes: board.connectionThemes || {}
         },
         connections: board.connections,
         nodeIdCounter: board.nodeIdCounter
@@ -233,12 +235,16 @@ connections:`;
   createConnectionMap(nodes, connections, exportData) {
     return {
       metadata: exportData.boardInfo,
-      connections: connections.map(conn => ({
-        from: this.getNodeTitle(nodes, conn.start.nodeId),
-        to: this.getNodeTitle(nodes, conn.end.nodeId),
-        fromId: conn.start.nodeId,
-        toId: conn.end.nodeId
-      })),
+      connections: connections.map(conn => {
+        const connId = `${conn.start.nodeId}-${conn.end.nodeId}`;
+        return {
+          from: this.getNodeTitle(nodes, conn.start.nodeId),
+          to: this.getNodeTitle(nodes, conn.end.nodeId),
+          fromId: conn.start.nodeId,
+          toId: conn.end.nodeId,
+          theme: exportData.boardInfo.connectionThemes?.[connId] || 'default'
+        };
+      }),
       nodePositions: nodes.map(node => ({
         id: node.id,
         title: this.getNodeTitle([node], node.id),
@@ -351,6 +357,7 @@ connections:`;
       updatedAt: new Date().toISOString(),
       globalTheme: boardInfo.globalTheme || 'default',
       nodeThemes: boardInfo.nodeThemes || {},
+      connectionThemes: boardInfo.connectionThemes || {},
       nodes: [],
       connections: [],
       nodeIdCounter: 1
@@ -418,7 +425,7 @@ connections:`;
 
     return {
       id: metadata.id,
-      type: 'markdown', // All imported nodes are markdown type
+      title: 'markdown', // All imported nodes have markdown title by default
       position: {
         x: metadata.position?.x || Math.random() * 800 + 100,
         y: metadata.position?.y || Math.random() * 600 + 100
@@ -493,6 +500,13 @@ connections:`;
           end: { nodeId: endNode.id }
         };
         board.connections.push(connection);
+
+        // Restore connection theme if present
+        if (connData.theme && connData.theme !== 'default') {
+          const connId = `${startNode.id}-${endNode.id}`;
+          board.connectionThemes[connId] = connData.theme;
+        }
+
         console.log('Added connection:', connection);
       } else {
         console.warn(`Skipping connection - missing nodes. FromId: ${connData.fromId}, ToId: ${connData.toId}`);
@@ -545,6 +559,7 @@ connections:`;
       description: `Wallboard exported on ${new Date().toLocaleDateString()}`,
       nodes: board.nodes,
       connections: board.connections,
+      connectionThemes: board.connectionThemes || {},
       nodeIdCounter: board.nodeIdCounter,
       globalTheme: board.globalTheme,
       nodeThemes: board.nodeThemes,

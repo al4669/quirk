@@ -224,6 +224,7 @@ class KeyboardShortcuts {
       beforeState: {
         nodes: JSON.parse(JSON.stringify(this.wallboard.nodes)),
         connections: JSON.parse(JSON.stringify(this.wallboard.connectionManager.connections)),
+        connectionThemes: JSON.parse(JSON.stringify(this.wallboard.connectionManager.connectionThemes)),
         nodeThemes: JSON.parse(JSON.stringify(this.wallboard.nodeThemes)),
         nodeIdCounter: this.wallboard.nodeIdCounter
       }
@@ -239,6 +240,7 @@ class KeyboardShortcuts {
       afterState: {
         nodes: JSON.parse(JSON.stringify(this.wallboard.nodes)),
         connections: JSON.parse(JSON.stringify(this.wallboard.connectionManager.connections)),
+        connectionThemes: JSON.parse(JSON.stringify(this.wallboard.connectionManager.connectionThemes)),
         nodeThemes: JSON.parse(JSON.stringify(this.wallboard.nodeThemes)),
         nodeIdCounter: this.wallboard.nodeIdCounter
       }
@@ -294,8 +296,17 @@ class KeyboardShortcuts {
     // Restore all state
     this.wallboard.nodes = JSON.parse(JSON.stringify(state.nodes));
     this.wallboard.connectionManager.connections = JSON.parse(JSON.stringify(state.connections));
+    this.wallboard.connectionManager.connectionThemes = JSON.parse(JSON.stringify(state.connectionThemes || {}));
     this.wallboard.nodeThemes = JSON.parse(JSON.stringify(state.nodeThemes));
     this.wallboard.nodeIdCounter = state.nodeIdCounter;
+
+    // Migrate old "type" field to new "title" field for backwards compatibility
+    this.wallboard.nodes.forEach(node => {
+      if (node.type && !node.title) {
+        node.title = node.type;
+        delete node.type;
+      }
+    });
 
     // Re-render all nodes
     this.wallboard.nodes.forEach(node => {

@@ -30,8 +30,12 @@ body {
   color: var(--text);
   overflow: hidden;
   height: 100vh;
+  height: 100dvh; /* Use dynamic viewport height for mobile */
   position: relative;
   user-select: none;
+  /* Prevent text selection on mobile */
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 /* Animated background */
@@ -115,6 +119,11 @@ body {
   border: 3px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.3), inset 0 0 0 1px var(--accent-light);
+
+  /* Improve mobile handling */
+  will-change: transform;
+  /* Ensure proper rendering on mobile */
+  transform-origin: 0 0;
 }
 
 /* Subtle canvas background pattern - behind everything */
@@ -164,12 +173,20 @@ body {
   filter: drop-shadow(0 0 10px var(--accent-glow));
   stroke-dasharray: 5, 5;
   animation: dashMove 1s linear infinite;
+  pointer-events: none;
 }
 
 @keyframes dashMove {
   to {
     stroke-dashoffset: -10;
   }
+}
+
+.connection-arrow {
+  pointer-events: auto;
+  cursor: pointer;
+  position: relative;
+  z-index: 10;
 }
 
 .connection-line.active {
@@ -218,6 +235,22 @@ body {
   padding: 6px 15px;
   z-index: 1000;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+/* Hide duplicate board management buttons on desktop (they're in the board-selector on the left) */
+.toolbar > .tool-btn:nth-last-child(1), /* Delete Board */
+.toolbar > .tool-btn:nth-last-child(2), /* New Board */
+.toolbar > .tool-btn:nth-last-child(3) { /* Rename Board */
+  display: none;
+}
+
+/* Show the board-selector on desktop */
+.toolbar .board-selector {
+  display: flex;
+}
+
+.toolbar .board-actions {
+  display: flex;
 }
 
 .tool-btn {
@@ -349,6 +382,7 @@ body {
   align-items: center;
   cursor: move;
   user-select: none;
+  border-radius: 16px 16px 0 0;
 }
 
 .node-type {
@@ -929,25 +963,470 @@ body {
   background: rgba(0, 0, 0, 0.6);
 }
 
+/* Hide mobile menu buttons on desktop */
+.mobile-menu-btn,
+.board-menu-btn {
+  display: none;
+}
+
+.board-menu {
+  display: none;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
+  body {
+    /* Prevent rubber band scrolling on iOS */
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+    /* Prevent zooming */
+    touch-action: pan-x pan-y;
+  }
+
+  /* Fix rendering glitches on mobile */
+  * {
+    /* Disable blue highlight on mobile */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+
+    /* Fix rendering issues */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-perspective: 1000px;
+    perspective: 1000px;
+  }
+
+  /* Re-enable text selection for content areas */
+  .node-content,
+  input,
+  textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* Canvas mobile fixes */
+  .canvas {
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
+    /* Improve rendering performance */
+    contain: layout style paint;
+  }
+
+  /* Node mobile rendering fixes */
+  .node {
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    /* Improve rendering performance */
+    contain: layout style paint;
+    will-change: transform;
+  }
+
+  /* SVG connections mobile fix */
+  .svg-connections {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    pointer-events: none;
+    /* Improve rendering */
+    will-change: contents;
+  }
+
+  /* Reduce node complexity during transforms */
+  .canvas.transforming .node {
+    box-shadow: none !important;
+  }
+
+  .canvas.transforming .node-content {
+    /* Hide content during zoom for better performance */
+    visibility: hidden;
+  }
+
+  /* Hide desktop toolbar at top - only show as bottom popup menu */
   .toolbar {
-    top: 10px;
-    padding: 8px 10px;
-    gap: 5px;
+    top: auto !important;
+    left: auto !important;
+    transform: none !important;
+    position: fixed !important;
+  }
+
+  /* Hide instructions panel on mobile */
+  .instructions {
+    display: none !important;
+  }
+
+  /* Board menu button - Subtle Bottom Left */
+  .board-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    width: 48px;
+    height: 48px;
+    background: rgba(26, 26, 26, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    z-index: 1001;
+    padding: 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    touch-action: manipulation;
+  }
+
+  .board-menu-btn svg {
+    width: 20px;
+    height: 20px;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+  }
+
+  .board-menu-btn:active {
+    transform: scale(0.95);
+    background: rgba(26, 26, 26, 0.95);
+  }
+
+  /* Highlight button when menu is open */
+  .board-menu.mobile-open ~ .board-menu-btn {
+    background: rgba(26, 26, 26, 0.98);
+    border-color: var(--accent);
+  }
+
+  .board-menu.mobile-open ~ .board-menu-btn svg {
+    color: var(--accent);
+  }
+
+  /* Board Menu on mobile - Bottom Left Menu */
+  .board-menu {
+    display: none;
+    position: fixed;
+    bottom: 72px;
+    left: 16px;
+    right: auto !important;
+    transform: none !important;
+    width: 200px !important;
+    max-width: calc(100vw - 32px) !important;
+    z-index: 1002 !important;
+
+    /* Vertical layout */
+    flex-direction: column !important;
+    gap: 0 !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+
+    /* Subtle styling */
+    background: rgba(26, 26, 26, 0.92) !important;
+    backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+
+    /* Fade in animation */
+    opacity: 0;
+    transform-origin: bottom left;
+    animation: fadeSlideInLeft 0.2s ease forwards;
+
+    touch-action: manipulation;
+    overflow: hidden;
+  }
+
+  @keyframes fadeSlideInLeft {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Show board menu when open */
+  .board-menu.mobile-open {
+    display: flex !important;
+  }
+
+  .board-menu-header {
+    padding: 12px 14px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .board-menu-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 6px;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .board-menu-item {
+    padding: 12px 14px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.15s ease;
+    background: transparent;
+    border: none;
+    text-align: left;
+    width: 100%;
+  }
+
+  .board-menu-item:active {
+    background: transparent;
+    transform: scale(0.96);
+    opacity: 0.7;
+  }
+
+  .board-menu-item.active {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* Mobile hamburger menu button - Subtle Bottom Right */
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    width: 48px;
+    height: 48px;
+    background: rgba(26, 26, 26, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    z-index: 1001;
+    padding: 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    touch-action: manipulation;
+  }
+
+  .mobile-menu-btn svg {
+    width: 20px;
+    height: 20px;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+  }
+
+  .mobile-menu-btn:active {
+    transform: scale(0.95);
+    background: rgba(26, 26, 26, 0.95);
+  }
+
+  /* Highlight button when menu is open */
+  .toolbar.mobile-open ~ .mobile-menu-btn {
+    background: rgba(26, 26, 26, 0.98);
+    border-color: var(--accent);
+  }
+
+  .toolbar.mobile-open ~ .mobile-menu-btn svg {
+    color: var(--accent);
+  }
+
+  /* Toolbar on mobile - Bottom Right Menu */
+  .toolbar {
+    /* Hidden by default */
+    display: none;
+    position: fixed;
+    bottom: 72px;
+    right: 16px;
+    left: auto !important;
+    transform: none !important;
+    width: 200px !important;
+    max-width: calc(100vw - 32px) !important;
+    z-index: 1002 !important;
+
+    /* Vertical layout */
+    flex-direction: column !important;
+    gap: 4px !important;
+    padding: 6px !important;
+    border-radius: 12px !important;
+
+    /* Subtle styling */
+    background: rgba(26, 26, 26, 0.92) !important;
+    backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+
+    /* Fade in animation */
+    opacity: 0;
+    transform-origin: bottom right;
+    animation: fadeSlideInRight 0.2s ease forwards;
+
+    touch-action: manipulation;
+  }
+
+  @keyframes fadeSlideInRight {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Show toolbar when open */
+  .toolbar.mobile-open {
+    display: flex !important;
+    min-height: fit-content;
   }
 
   .tool-btn {
-    padding: 8px 12px;
-    font-size: 12px;
+    /* Compact buttons with text */
+    width: 100% !important;
+    max-height: none !important;
+    height: auto !important;
+    padding: 12px 14px !important;
+    justify-content: flex-start !important;
+    gap: 12px !important;
+    border-radius: 8px !important;
+    background: transparent !important;
+    border: none !important;
+    transition: all 0.15s ease !important;
+  }
+
+  .tool-btn:active {
+    background: transparent !important;
+    transform: scale(0.96);
+    opacity: 0.7;
   }
 
   .tool-btn .tool-text {
-    display: none;
+    display: inline !important;
+    font-size: 14px !important;
+    font-weight: 400;
+    color: var(--text-secondary);
+  }
+
+  .tool-btn .tool-icon {
+    width: 18px !important;
+    height: 18px !important;
+    flex-shrink: 0;
+    color: var(--text-secondary);
+  }
+
+  /* Hide Clear button on mobile */
+  .toolbar .tool-btn:nth-child(3) { /* Clear */
+    display: none !important;
+  }
+
+  /* Show board management buttons on mobile (hidden on desktop) */
+  .toolbar .tool-btn:nth-last-child(1), /* Delete Board */
+  .toolbar .tool-btn:nth-last-child(2), /* New Board */
+  .toolbar .tool-btn:nth-last-child(3) { /* Rename Board */
+    display: flex !important;
+  }
+
+  /* Theme Selector Mobile Optimization */
+  .theme-selector {
+    min-width: 90vw !important;
+    max-width: 90vw !important;
+    border-radius: 20px !important;
+  }
+
+  .theme-selector-header {
+    padding: 16px 20px !important;
+  }
+
+  .theme-selector-header h3 {
+    font-size: 16px !important;
+  }
+
+  .theme-grid {
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)) !important;
+    gap: 12px !important;
+    padding: 20px !important;
+  }
+
+  .theme-option {
+    padding: 10px !important;
+  }
+
+  .theme-color {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .theme-name {
+    font-size: 12px !important;
+  }
+
+  /* Board Selector Mobile - Hide it completely */
+  .toolbar .board-selector {
+    display: none !important;
+  }
+
+  .toolbar .board-actions {
+    display: none !important;
   }
 
   .node {
     min-width: 150px;
+    /* Improve touch interaction */
+    touch-action: none;
+  }
+
+  /* Show fullscreen and theme buttons on mobile */
+  .node-actions .node-btn {
+    display: flex !important;
+  }
+
+  .node-content {
+    /* Better touch scrolling */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Fix canvas boundaries on mobile */
+  .canvas {
+    /* Prevent overscroll and improve touch handling */
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+    touch-action: none;
+    /* Ensure nodes aren't clipped at edges */
+    overflow: visible;
+  }
+
+  /* Mobile-specific node improvements */
+  .node {
+    /* Ensure nodes are always fully visible */
+    z-index: 100;
+    /* Prevent clipping */
+    overflow: visible;
+  }
+
+  /* Ensure node content is properly contained but not clipped */
+  .node-content {
+    /* Better handling of content overflow */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  /* Improve instructions positioning on mobile */
+  .instructions {
+    bottom: 10px;
+    right: 10px;
+    font-size: 9px;
+    padding: 6px 8px;
+    /* Make it more transparent on mobile to avoid clutter */
+    opacity: 0.4;
   }
 }
 
@@ -960,6 +1439,17 @@ body {
     transform: translate(-50%, 0);
     opacity: 1;
   }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+@keyframes subtleShake {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(1px); }
 }
 
 @keyframes slideUp {
@@ -1546,4 +2036,13 @@ body {
 .close-btn:hover {
   background: var(--bg-tertiary);
   color: var(--text);
+}
+
+
+.transforming {
+  will-change: transform;
+}
+
+.transforming * {
+  pointer-events: none;
 }

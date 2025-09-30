@@ -7,6 +7,8 @@ class AlignmentManager {
   alignLeft(nodeIds) {
     if (nodeIds.length < 2) return;
 
+    this.hideAlignmentMenu();
+
     const nodeWidth = 300; // Approximate node width
     const nodes = nodeIds.map(id => this.wallboard.nodes.find(n => n.id === id)).filter(Boolean);
 
@@ -18,19 +20,15 @@ class AlignmentManager {
       this.updateNodePosition(node);
     });
 
-    // Force connection update immediately after alignment
     this.wallboard.connectionManager.updateConnections();
-
-    // Also call wallboard's updateConnections if it exists
-    if (this.wallboard.updateConnections) {
-      this.wallboard.updateConnections();
-    }
-
     this.wallboard.autoSave();
   }
 
   alignRight(nodeIds) {
     if (nodeIds.length < 2) return;
+
+    this.hideAlignmentMenu();
+    this.wallboard.connectionManager.hideConnections();
 
     const nodes = nodeIds.map(id => this.wallboard.nodes.find(n => n.id === id)).filter(Boolean);
 
@@ -61,19 +59,20 @@ class AlignmentManager {
       }
     });
 
-    // Force connection update immediately after alignment
-    this.wallboard.connectionManager.updateConnections();
-
-    // Also call wallboard's updateConnections if it exists
-    if (this.wallboard.updateConnections) {
-      this.wallboard.updateConnections();
-    }
+    // Use setTimeout to ensure browser has painted the transforms
+    setTimeout(() => {
+      this.wallboard.connectionManager.updateConnections();
+      this.wallboard.connectionManager.showConnections();
+    }, 100);
 
     this.wallboard.autoSave();
   }
 
   alignTop(nodeIds) {
     if (nodeIds.length < 2) return;
+
+    this.hideAlignmentMenu();
+    this.wallboard.connectionManager.hideConnections();
 
     const nodeHeight = 200; // Approximate node height
     const nodes = nodeIds.map(id => this.wallboard.nodes.find(n => n.id === id)).filter(Boolean);
@@ -86,19 +85,20 @@ class AlignmentManager {
       this.updateNodePosition(node);
     });
 
-    // Force connection update immediately after alignment
-    this.wallboard.connectionManager.updateConnections();
-
-    // Also call wallboard's updateConnections if it exists
-    if (this.wallboard.updateConnections) {
-      this.wallboard.updateConnections();
-    }
+    // Use setTimeout to ensure browser has painted the transforms
+    setTimeout(() => {
+      this.wallboard.connectionManager.updateConnections();
+      this.wallboard.connectionManager.showConnections();
+    }, 100);
 
     this.wallboard.autoSave();
   }
 
   alignBottom(nodeIds) {
     if (nodeIds.length < 2) return;
+
+    this.hideAlignmentMenu();
+    this.wallboard.connectionManager.hideConnections();
 
     const nodes = nodeIds.map(id => this.wallboard.nodes.find(n => n.id === id)).filter(Boolean);
 
@@ -129,19 +129,20 @@ class AlignmentManager {
       }
     });
 
-    // Force connection update immediately after alignment
-    this.wallboard.connectionManager.updateConnections();
-
-    // Also call wallboard's updateConnections if it exists
-    if (this.wallboard.updateConnections) {
-      this.wallboard.updateConnections();
-    }
+    // Use setTimeout to ensure browser has painted the transforms
+    setTimeout(() => {
+      this.wallboard.connectionManager.updateConnections();
+      this.wallboard.connectionManager.showConnections();
+    }, 100);
 
     this.wallboard.autoSave();
   }
 
   alignCenterHorizontal(nodeIds) {
     if (nodeIds.length < 2) return;
+
+    this.hideAlignmentMenu();
+    this.wallboard.connectionManager.hideConnections();
 
     const nodes = nodeIds.map(id => this.wallboard.nodes.find(n => n.id === id)).filter(Boolean);
 
@@ -167,19 +168,20 @@ class AlignmentManager {
       }
     });
 
-    // Force connection update immediately after alignment
-    this.wallboard.connectionManager.updateConnections();
-
-    // Also call wallboard's updateConnections if it exists
-    if (this.wallboard.updateConnections) {
-      this.wallboard.updateConnections();
-    }
+    // Use setTimeout to ensure browser has painted the transforms
+    setTimeout(() => {
+      this.wallboard.connectionManager.updateConnections();
+      this.wallboard.connectionManager.showConnections();
+    }, 100);
 
     this.wallboard.autoSave();
   }
 
   alignCenterVertical(nodeIds) {
     if (nodeIds.length < 2) return;
+
+    this.hideAlignmentMenu();
+    this.wallboard.connectionManager.hideConnections();
 
     const nodes = nodeIds.map(id => this.wallboard.nodes.find(n => n.id === id)).filter(Boolean);
 
@@ -205,13 +207,11 @@ class AlignmentManager {
       }
     });
 
-    // Force connection update immediately after alignment
-    this.wallboard.connectionManager.updateConnections();
-
-    // Also call wallboard's updateConnections if it exists
-    if (this.wallboard.updateConnections) {
-      this.wallboard.updateConnections();
-    }
+    // Use setTimeout to ensure browser has painted the transforms
+    setTimeout(() => {
+      this.wallboard.connectionManager.updateConnections();
+      this.wallboard.connectionManager.showConnections();
+    }, 100);
 
     this.wallboard.autoSave();
   }
@@ -219,6 +219,9 @@ class AlignmentManager {
   // Distribution operations
   distributeHorizontally(nodeIds) {
     if (nodeIds.length < 3) return;
+
+    this.hideAlignmentMenu();
+    this.wallboard.connectionManager.hideConnections();
 
     const nodes = nodeIds.map(id => this.wallboard.nodes.find(n => n.id === id)).filter(Boolean);
     nodes.sort((a, b) => a.position.x - b.position.x);
@@ -232,19 +235,20 @@ class AlignmentManager {
       this.updateNodePosition(node);
     });
 
-    // Force connection update immediately after alignment
-    this.wallboard.connectionManager.updateConnections();
-
-    // Also call wallboard's updateConnections if it exists
-    if (this.wallboard.updateConnections) {
-      this.wallboard.updateConnections();
-    }
+    // Use setTimeout to ensure browser has painted the transforms
+    setTimeout(() => {
+      this.wallboard.connectionManager.updateConnections();
+      this.wallboard.connectionManager.showConnections();
+    }, 100);
 
     this.wallboard.autoSave();
   }
 
   distributeVertically(nodeIds) {
     if (nodeIds.length < 3) return;
+
+    this.hideAlignmentMenu();
+    this.wallboard.connectionManager.hideConnections();
 
     const nodes = nodeIds.map(id => this.wallboard.nodes.find(n => n.id === id)).filter(Boolean);
     nodes.sort((a, b) => a.position.y - b.position.y);
@@ -258,13 +262,11 @@ class AlignmentManager {
       this.updateNodePosition(node);
     });
 
-    // Force connection update immediately after alignment
-    this.wallboard.connectionManager.updateConnections();
-
-    // Also call wallboard's updateConnections if it exists
-    if (this.wallboard.updateConnections) {
-      this.wallboard.updateConnections();
-    }
+    // Use setTimeout to ensure browser has painted the transforms
+    setTimeout(() => {
+      this.wallboard.connectionManager.updateConnections();
+      this.wallboard.connectionManager.showConnections();
+    }, 100);
 
     this.wallboard.autoSave();
   }
@@ -272,6 +274,9 @@ class AlignmentManager {
   // Spacing operations
   spaceEvenlyHorizontal(nodeIds) {
     if (nodeIds.length < 3) return;
+
+    this.hideAlignmentMenu();
+    this.wallboard.connectionManager.hideConnections();
 
     const nodes = nodeIds.map(id => this.wallboard.nodes.find(n => n.id === id)).filter(Boolean);
     nodes.sort((a, b) => a.position.x - b.position.x);
@@ -289,19 +294,20 @@ class AlignmentManager {
       this.updateNodePosition(nodes[i]);
     }
 
-    // Force connection update immediately after alignment
-    this.wallboard.connectionManager.updateConnections();
-
-    // Also call wallboard's updateConnections if it exists
-    if (this.wallboard.updateConnections) {
-      this.wallboard.updateConnections();
-    }
+    // Use setTimeout to ensure browser has painted the transforms
+    setTimeout(() => {
+      this.wallboard.connectionManager.updateConnections();
+      this.wallboard.connectionManager.showConnections();
+    }, 100);
 
     this.wallboard.autoSave();
   }
 
   spaceEvenlyVertical(nodeIds) {
     if (nodeIds.length < 3) return;
+
+    this.hideAlignmentMenu();
+    this.wallboard.connectionManager.hideConnections();
 
     const nodes = nodeIds.map(id => this.wallboard.nodes.find(n => n.id === id)).filter(Boolean);
     nodes.sort((a, b) => a.position.y - b.position.y);
@@ -319,13 +325,11 @@ class AlignmentManager {
       this.updateNodePosition(nodes[i]);
     }
 
-    // Force connection update immediately after alignment
-    this.wallboard.connectionManager.updateConnections();
-
-    // Also call wallboard's updateConnections if it exists
-    if (this.wallboard.updateConnections) {
-      this.wallboard.updateConnections();
-    }
+    // Use setTimeout to ensure browser has painted the transforms
+    setTimeout(() => {
+      this.wallboard.connectionManager.updateConnections();
+      this.wallboard.connectionManager.showConnections();
+    }, 100);
 
     this.wallboard.autoSave();
   }

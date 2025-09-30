@@ -1,6 +1,7 @@
 class ConnectionManager {
   constructor(wallboardInstance = null, onChangeCallback = null) {
     this.connections = [];
+    this.connectionThemes = {}; // Store theme for each connection
     this.dragLine = null;
     this.cutLine = null;
     this.cutPath = [];
@@ -21,6 +22,21 @@ class ConnectionManager {
   }
 
   createConnection(start, end) {
+    // Check if connection already exists in the same direction
+    const existingConnection = this.connections.find(conn =>
+      conn.start.nodeId === start.nodeId && conn.end.nodeId === end.nodeId
+    );
+    if (existingConnection) {
+      console.log('Connection already exists in this direction');
+      return null;
+    }
+
+    // Check if reverse connection already exists (max 2 connections between same nodes)
+    const reverseConnection = this.connections.find(conn =>
+      conn.start.nodeId === end.nodeId && conn.end.nodeId === start.nodeId
+    );
+    // Allow creating if reverse exists (this gives us 2 connections max: A->B and B->A)
+
     // Record change for undo/redo BEFORE making changes
     if (this.wallboard && this.wallboard.keyboardShortcuts) {
       this.wallboard.keyboardShortcuts.recordChange('create_connection', {
@@ -44,6 +60,8 @@ class ConnectionManager {
     this.connections = this.connections.filter(conn =>
       `${conn.start.nodeId}-${conn.end.nodeId}` !== connectionId
     );
+    // Clean up theme for removed connection
+    delete this.connectionThemes[connectionId];
     this.updateConnections();
     if (this.onChangeCallback) this.onChangeCallback();
   }
@@ -51,8 +69,9 @@ class ConnectionManager {
   updateConnections() {
     if (!this.svg) return;
 
-    // Store the currently selected node for re-highlighting after update
-    const selectedNodeId = this.wallboard && this.wallboard.selectedNode ? this.wallboard.selectedNode.id : null;
+    // Store the current selection state for re-applying after update
+    const hasSelection = this.wallboard && (this.wallboard.selectedNode || this.wallboard.selectedNodes.size > 0);
+    const selectedNodeIds = hasSelection ? Array.from(this.wallboard.selectedNodes) : [];
 
     // Clear existing connections but preserve drag line and cut line
     const dragLine = this.svg.querySelector(".drag-line");
@@ -60,6 +79,9 @@ class ConnectionManager {
     this.svg.innerHTML = "";
     if (dragLine) this.svg.appendChild(dragLine);
     if (cutLine) this.svg.appendChild(cutLine);
+
+    // Store arrows to append them after all lines (ensures arrows are always on top)
+    const arrows = [];
 
     this.connections.forEach((conn) => {
       const startNode = this.wallboard.getNodeById(conn.start.nodeId);
@@ -73,13 +95,21 @@ class ConnectionManager {
 
       if (!startEl || !endEl) return;
 
-      // Get real dimensions from DOM
-      const startRect = startEl.getBoundingClientRect();
-      const endRect = endEl.getBoundingClientRect();
+      // FIX: Use offsetWidth/offsetHeight for dimensions, as they are unaffected by parent transforms (zoom).
+      // This avoids the timing issue with getBoundingClientRect() during zoom events.
+      const startCanvasRect = {
+        left: startNode.position.x,
+        top: startNode.position.y,
+        width: startEl.offsetWidth,
+        height: startEl.offsetHeight
+      };
 
-      // Convert screen coords to canvas coords accounting for zoom/pan
-      const startCanvasRect = this.screenRectToCanvasRect(startRect);
-      const endCanvasRect = this.screenRectToCanvasRect(endRect);
+      const endCanvasRect = {
+        left: endNode.position.x,
+        top: endNode.position.y,
+        width: endEl.offsetWidth,
+        height: endEl.offsetHeight
+      };
 
       // Calculate connection points
       const connectionPoints = this.calculateConnectionPoints(startCanvasRect, endCanvasRect);
@@ -91,40 +121,45 @@ class ConnectionManager {
       path.setAttribute("data-connection-id", conn.id);
       path.setAttribute("data-start-node", conn.start.nodeId);
       path.setAttribute("data-end-node", conn.end.nodeId);
-      // Remove the marker-end since we're using custom polygon arrows
-      // path.setAttribute("marker-end", "url(#arrow)");
+
+      // Apply connection-specific theme
+      const connectionTheme = this.getConnectionTheme(conn.id);
+      const connectionColor = this.getThemeColor(connectionTheme);
+      path.style.stroke = connectionColor;
 
       this.svg.appendChild(path);
 
       // Create arrow triangle at the arrow point (node edge)
-      const arrow = this.createArrowTriangle(connectionPoints.arrow || connectionPoints.end, connectionPoints.start, connectionPoints.direction);
+      const arrow = this.createArrowTriangle(connectionPoints.arrow || connectionPoints.end, connectionPoints.start, connectionPoints.direction, conn.id);
       arrow.setAttribute("class", "connection-arrow");
       arrow.setAttribute("data-connection-id", conn.id);
       arrow.setAttribute("data-start-node", conn.start.nodeId);
       arrow.setAttribute("data-end-node", conn.end.nodeId);
-      this.svg.appendChild(arrow);
+
+      // Add click handler to arrow as well
+      arrow.style.cursor = 'pointer';
+      arrow.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.showConnectionThemeSelector(conn.id, e);
+      });
+
+      // Store arrow to append later
+      arrows.push(arrow);
     });
 
-    // Re-apply highlighting for the selected node if any
-    if (selectedNodeId !== null) {
-      this.highlightConnectionsForNode(selectedNodeId);
+    // Append all arrows after all lines (ensures arrows are always on top)
+    arrows.forEach(arrow => this.svg.appendChild(arrow));
+
+    // Re-apply highlighting based on selection state
+    if (selectedNodeIds.length > 1) {
+      this.highlightConnectionsForMultipleNodes(selectedNodeIds);
+    } else if (selectedNodeIds.length === 1) {
+      this.highlightConnectionsForNode(selectedNodeIds[0]);
+    } else {
+      // No selection - make sure all connections are visible
+      this.clearConnectionHighlighting();
     }
   }
-
-  screenRectToCanvasRect(screenRect) {
-    // Get canvas transform values
-    const canvas = document.getElementById('canvas');
-    const transform = new DOMMatrix(getComputedStyle(canvas).transform);
-
-    // Convert screen coordinates to canvas coordinates
-    return {
-      left: (screenRect.left - transform.e) / transform.a,
-      top: (screenRect.top - transform.f) / transform.d,
-      width: screenRect.width / transform.a,
-      height: screenRect.height / transform.d
-    };
-  }
-
   calculateConnectionPoints(startRect, endRect) {
     // Get centers
     const startCenter = {
@@ -252,12 +287,128 @@ class ConnectionManager {
     }
   }
 
-  createArrowTriangle(endPoint, startPoint, direction) {
-    // Arrow size
-    const arrowSize = 16;
+  getConnectionTheme(connectionId) {
+    // Return the stored theme for this connection, or use global theme
+    return this.connectionThemes[connectionId] || this.wallboard?.globalTheme || 'default';
+  }
 
-    // Get global theme color
-    const themeColor = this.wallboard ? this.wallboard.themes[this.wallboard.globalTheme].accent : '#f42365';
+  getThemeColor(themeKey) {
+    // Get the color for a theme key
+    if (!this.wallboard || !this.wallboard.themes[themeKey]) {
+      return '#f42365'; // Default fallback
+    }
+    return this.wallboard.themes[themeKey].accent;
+  }
+
+  setConnectionTheme(connectionId, themeKey) {
+    // Record change for undo/redo
+    if (this.wallboard && this.wallboard.keyboardShortcuts) {
+      this.wallboard.keyboardShortcuts.recordChange('set_connection_theme', {
+        connectionId: connectionId,
+        oldTheme: this.connectionThemes[connectionId] || 'default',
+        newTheme: themeKey
+      });
+    }
+
+    if (themeKey === 'default') {
+      // Remove custom theme - connection will use global theme
+      delete this.connectionThemes[connectionId];
+    } else {
+      // Set specific theme for this connection
+      this.connectionThemes[connectionId] = themeKey;
+    }
+
+    // Update the visual representation
+    this.updateConnections();
+
+    // Trigger save
+    if (this.onChangeCallback) this.onChangeCallback();
+  }
+
+  showConnectionThemeSelector(connectionId, event) {
+    if (!this.wallboard) return;
+
+    // Hide any existing selector
+    this.hideConnectionThemeSelector();
+    // Also hide node theme selector
+    if (this.wallboard.hideThemeSelector) {
+      this.wallboard.hideThemeSelector();
+    }
+
+    const selector = document.createElement('div');
+    selector.className = 'theme-selector connection-theme-selector';
+    selector.id = 'connectionThemeSelector';
+
+    const currentTheme = this.getConnectionTheme(connectionId);
+
+    selector.innerHTML = `
+      <div class="theme-selector-header">
+        <h3>Connection Theme</h3>
+        <button class="close-btn" onclick="wallboard.connectionManager.hideConnectionThemeSelector()">×</button>
+      </div>
+      <div class="theme-grid">
+        ${Object.entries(this.wallboard.themes).filter(([key, theme]) => key !== 'pink').map(([key, theme]) => {
+          const isActive = currentTheme === key;
+          const displayName = key === 'default' ? 'Global' : theme.name;
+          const previewColor = key === 'default' ? this.wallboard.themes[this.wallboard.globalTheme].accent : theme.accent;
+
+          return `
+            <div class="theme-option ${isActive ? 'active' : ''}"
+                 onclick="wallboard.connectionManager.selectConnectionTheme('${connectionId}', '${key}')"
+                 data-theme="${key}">
+              <div class="theme-preview" style="background: ${previewColor}"></div>
+              <span class="theme-name">${displayName}</span>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+    // Position near the click
+    selector.style.position = 'fixed';
+    selector.style.left = Math.min(event.clientX, window.innerWidth - 300) + 'px';
+    selector.style.top = Math.min(event.clientY, window.innerHeight - 400) + 'px';
+
+    document.body.appendChild(selector);
+
+    // Add click outside to close
+    setTimeout(() => {
+      document.addEventListener('click', this.handleConnectionSelectorOutsideClick.bind(this));
+    }, 10);
+  }
+
+  hideConnectionThemeSelector() {
+    const selector = document.getElementById('connectionThemeSelector');
+    if (selector) {
+      selector.remove();
+      document.removeEventListener('click', this.handleConnectionSelectorOutsideClick.bind(this));
+    }
+  }
+
+  handleConnectionSelectorOutsideClick(e) {
+    if (!e.target.closest('.connection-theme-selector')) {
+      this.hideConnectionThemeSelector();
+    }
+  }
+
+  selectConnectionTheme(connectionId, themeKey) {
+    this.setConnectionTheme(connectionId, themeKey);
+    this.hideConnectionThemeSelector();
+  }
+
+  createArrowTriangle(endPoint, startPoint, direction, connectionId = null) {
+    // Arrow size
+    const arrowSize = 24;
+
+    // Get connection-specific theme color
+    let themeColor;
+    if (connectionId) {
+      const connectionTheme = this.getConnectionTheme(connectionId);
+      themeColor = this.getThemeColor(connectionTheme);
+    } else {
+      // Fallback to global theme
+      themeColor = this.wallboard ? this.wallboard.themes[this.wallboard.globalTheme].accent : '#f42365';
+    }
 
     // Calculate arrow direction based on which edge we're connecting to
     let angle;
@@ -398,8 +549,24 @@ class ConnectionManager {
 
       if (!startEl || !endEl) return;
 
-      const startRect = this.screenRectToCanvasRect(startEl.getBoundingClientRect());
-      const endRect = this.screenRectToCanvasRect(endEl.getBoundingClientRect());
+      // Use getBoundingClientRect ONLY for dimensions, not position.
+      const startDimensions = startEl.getBoundingClientRect();
+      const endDimensions = endEl.getBoundingClientRect();
+
+      // Use the reliable data model for position and scale dimensions by current zoom.
+      const startRect = {
+        left: startNode.position.x,
+        top: startNode.position.y,
+        width: startDimensions.width / this.wallboard.zoom,
+        height: startDimensions.height / this.wallboard.zoom
+      };
+
+      const endRect = {
+        left: endNode.position.x,
+        top: endNode.position.y,
+        width: endDimensions.width / this.wallboard.zoom,
+        height: endDimensions.height / this.wallboard.zoom
+      };
 
       const connectionPoints = this.calculateConnectionPoints(startRect, endRect);
 
@@ -415,8 +582,11 @@ class ConnectionManager {
       }
     });
 
-    // Remove cut connections
+    // Remove cut connections and clean up their themes
     connectionsToRemove.reverse().forEach(index => {
+      const conn = this.connections[index];
+      const connectionId = `${conn.start.nodeId}-${conn.end.nodeId}`;
+      delete this.connectionThemes[connectionId];
       this.connections.splice(index, 1);
     });
 
@@ -454,6 +624,11 @@ class ConnectionManager {
         element.classList.add('active');
         element.classList.remove('inactive');
         element.setAttribute('marker-end', 'url(#arrow-active)');
+        // Apply connection-specific theme
+        const connectionId = element.getAttribute('data-connection-id');
+        const connectionTheme = this.getConnectionTheme(connectionId);
+        const connectionColor = this.getThemeColor(connectionTheme);
+        element.style.stroke = connectionColor;
       } else {
         // This connection is not related to the selected node - hide it completely
         element.style.display = 'none';
@@ -467,8 +642,10 @@ class ConnectionManager {
       const endNodeId = parseInt(element.getAttribute('data-end-node'));
 
       if (startNodeId === nodeId || endNodeId === nodeId) {
-        // Active arrow - bright with glow using theme color
-        const themeColor = this.wallboard ? this.wallboard.themes[this.wallboard.globalTheme].accent : '#f42365';
+        // Active arrow - bright with glow using connection-specific theme color
+        const connectionId = element.getAttribute('data-connection-id');
+        const connectionTheme = this.getConnectionTheme(connectionId);
+        const themeColor = this.getThemeColor(connectionTheme);
         element.setAttribute('fill', themeColor);
         const r = parseInt(themeColor.substr(1, 2), 16);
         const g = parseInt(themeColor.substr(3, 2), 16);
@@ -498,6 +675,11 @@ class ConnectionManager {
         element.classList.add('active');
         element.classList.remove('inactive');
         element.setAttribute('marker-end', 'url(#arrow-active)');
+        // Apply connection-specific theme
+        const connectionId = element.getAttribute('data-connection-id');
+        const connectionTheme = this.getConnectionTheme(connectionId);
+        const connectionColor = this.getThemeColor(connectionTheme);
+        element.style.stroke = connectionColor;
       } else {
         // This connection is not related to any selected nodes - hide it completely
         element.style.display = 'none';
@@ -511,8 +693,10 @@ class ConnectionManager {
       const endNodeId = parseInt(element.getAttribute('data-end-node'));
 
       if (nodeIds.includes(startNodeId) || nodeIds.includes(endNodeId)) {
-        // Active arrow - bright with glow using theme color
-        const themeColor = this.wallboard ? this.wallboard.themes[this.wallboard.globalTheme].accent : '#f42365';
+        // Active arrow - bright with glow using connection-specific theme color
+        const connectionId = element.getAttribute('data-connection-id');
+        const connectionTheme = this.getConnectionTheme(connectionId);
+        const themeColor = this.getThemeColor(connectionTheme);
         element.setAttribute('fill', themeColor);
         const r = parseInt(themeColor.substr(1, 2), 16);
         const g = parseInt(themeColor.substr(3, 2), 16);
@@ -533,12 +717,19 @@ class ConnectionManager {
       element.classList.remove('active', 'inactive');
       element.setAttribute('marker-end', 'url(#arrow)');
       element.style.display = ''; // Show all connections
+      // Apply connection-specific theme
+      const connectionId = element.getAttribute('data-connection-id');
+      const connectionTheme = this.getConnectionTheme(connectionId);
+      const connectionColor = this.getThemeColor(connectionTheme);
+      element.style.stroke = connectionColor;
     });
 
-    // Reset arrow triangles to default state using theme color
+    // Reset arrow triangles to default state using connection-specific theme color
     const arrowElements = this.svg.querySelectorAll('.connection-arrow');
     arrowElements.forEach(element => {
-      const themeColor = this.wallboard ? this.wallboard.themes[this.wallboard.globalTheme].accent : '#f42365';
+      const connectionId = element.getAttribute('data-connection-id');
+      const connectionTheme = this.getConnectionTheme(connectionId);
+      const themeColor = this.getThemeColor(connectionTheme);
       element.setAttribute('fill', themeColor);
       const r = parseInt(themeColor.substr(1, 2), 16);
       const g = parseInt(themeColor.substr(3, 2), 16);
@@ -546,5 +737,15 @@ class ConnectionManager {
       element.style.filter = `drop-shadow(0 0 4px rgba(${r}, ${g}, ${b}, 0.4))`;
       element.style.display = ''; // Show all arrows
     });
+  }
+
+  hideConnections() {
+    if (!this.svg) return;
+    this.svg.style.visibility = 'hidden';
+  }
+
+  showConnections() {
+    if (!this.svg) return;
+    this.svg.style.visibility = 'visible';
   }
 }

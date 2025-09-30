@@ -85,6 +85,8 @@ class Wallboard {
     this.boards = {};
     this.autoSaveTimeout = null;
 
+    this.alignmentManager = new AlignmentManager(this);
+
     this.init();
   }
 
@@ -102,12 +104,28 @@ class Wallboard {
     this.updateTransform();
 
     // Canvas click handler
-    document.getElementById("canvas").addEventListener("click", (e) => {
+    const handleCanvasClick = (e) => {
+      // Don't exit edit mode if clicking on text editor or inside node
+      if (e.target.classList.contains('text-editor') ||
+          e.target.closest('.text-editor') ||
+          e.target.closest('.node-content')) {
+        return;
+      }
+
       if (e.target.id === "canvas" && !this.isPanning) {
         this.deselectAll();
         this.exitAllEditModes();
       }
-    });
+
+      // Close mobile menus when clicking canvas
+      if (window.innerWidth <= 768) {
+        document.querySelector('.toolbar')?.classList.remove('mobile-open');
+        document.querySelector('.board-menu')?.classList.remove('mobile-open');
+      }
+    };
+
+    document.getElementById("canvas").addEventListener("click", handleCanvasClick);
+    document.getElementById("canvas").addEventListener("touchend", handleCanvasClick);
 
     // Prevent context menu on canvas
     document.addEventListener("contextmenu", (e) => {
@@ -126,6 +144,46 @@ class Wallboard {
           this.exitAllEditModes();
         }
       }
+
+      // Close mobile menus on click outside (deferred to run after button handlers)
+      if (window.innerWidth <= 768) {
+        setTimeout(() => {
+          const toolbar = document.querySelector('.toolbar');
+          const boardMenu = document.querySelector('.board-menu');
+
+          const clickedToolbar = e.target.closest(".toolbar");
+          const clickedToolbarBtn = e.target.closest(".mobile-menu-btn");
+          const clickedBoardMenu = e.target.closest(".board-menu");
+          const clickedBoardBtn = e.target.closest(".board-menu-btn");
+
+          // Close toolbar if clicking outside
+          if (!clickedToolbar && !clickedToolbarBtn && toolbar?.classList.contains('mobile-open')) {
+            toolbar.classList.remove('mobile-open');
+          }
+
+          // Close board menu if clicking outside
+          if (!clickedBoardMenu && !clickedBoardBtn && boardMenu?.classList.contains('mobile-open')) {
+            boardMenu.classList.remove('mobile-open');
+          }
+        }, 0);
+      }
+    });
+
+    // Handle menu button clicks
+    document.querySelector('.mobile-menu-btn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const toolbar = document.querySelector('.toolbar');
+      toolbar?.classList.toggle('mobile-open');
+      // Close board menu if open
+      document.querySelector('.board-menu')?.classList.remove('mobile-open');
+    });
+
+    document.querySelector('.board-menu-btn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const boardMenu = document.querySelector('.board-menu');
+      boardMenu?.classList.toggle('mobile-open');
+      // Close toolbar if open
+      document.querySelector('.toolbar')?.classList.remove('mobile-open');
     });
 
     // Initialize keyboard shortcuts manager
@@ -138,6 +196,11 @@ class Wallboard {
     document.addEventListener("mouseup", this.handleMouseUp.bind(this));
     document.addEventListener("mousedown", this.handleMouseDown.bind(this));
 
+    // Touch event listeners for mobile node interactions
+    document.addEventListener("touchmove", this.handleTouchMove.bind(this), { passive: false });
+    document.addEventListener("touchend", this.handleTouchEnd.bind(this));
+    document.addEventListener("touchstart", this.handleTouchStart.bind(this));
+
     // Zoom and pan event listeners
     document.addEventListener("wheel", this.handleWheel.bind(this), { passive: false });
 
@@ -146,6 +209,11 @@ class Wallboard {
     canvas.addEventListener("mousedown", this.handleCanvasPanStart.bind(this));
     canvas.addEventListener("mousemove", this.handleCanvasPan.bind(this));
     canvas.addEventListener("mouseup", this.handleCanvasPanEnd.bind(this));
+
+    // Canvas touch pan listeners
+    canvas.addEventListener("touchstart", this.handleCanvasTouchStart.bind(this), { passive: false });
+    canvas.addEventListener("touchmove", this.handleCanvasTouchMove.bind(this), { passive: false });
+    canvas.addEventListener("touchend", this.handleCanvasTouchEnd.bind(this));
   }
 
   // Board Management System
@@ -190,6 +258,7 @@ class Wallboard {
       name: name,
       nodes: [],
       connections: [],
+      connectionThemes: {},
       nodeIdCounter: 0,
       globalTheme: this.globalTheme || 'default',
       nodeThemes: {},
@@ -203,6 +272,7 @@ class Wallboard {
     // Clear current state
     this.nodes = [];
     this.connectionManager.connections = [];
+    this.connectionManager.connectionThemes = {};
     this.nodeIdCounter = 0;
 
     // Clear canvas
@@ -227,9 +297,18 @@ class Wallboard {
     // Load board state
     this.nodes = board.nodes || [];
     this.connectionManager.connections = board.connections || [];
+    this.connectionManager.connectionThemes = board.connectionThemes || {};
     this.nodeIdCounter = board.nodeIdCounter || 0;
     this.globalTheme = board.globalTheme || 'default';
     this.nodeThemes = board.nodeThemes || {};
+
+    // Migrate old "type" field to new "title" field for backwards compatibility
+    this.nodes.forEach(node => {
+      if (node.type && !node.title) {
+        node.title = node.type;
+        delete node.type;
+      }
+    });
 
     // Apply loaded theme
     this.applyGlobalTheme(this.globalTheme);
@@ -255,6 +334,7 @@ class Wallboard {
     // Update board state
     board.nodes = this.nodes;
     board.connections = this.connectionManager.connections;
+    board.connectionThemes = this.connectionManager.connectionThemes;
     board.nodeIdCounter = this.nodeIdCounter;
     board.globalTheme = this.globalTheme;
     board.nodeThemes = this.nodeThemes;
@@ -311,6 +391,7 @@ class Wallboard {
         name: uniqueName,
         nodes: boardData.nodes || [],
         connections: boardData.connections || [],
+        connectionThemes: boardData.connectionThemes || {},
         nodeIdCounter: boardData.nodeIdCounter || 0,
         globalTheme: boardData.globalTheme || 'default',
         nodeThemes: boardData.nodeThemes || {},
@@ -413,19 +494,19 @@ class Wallboard {
           <select class="board-dropdown" id="board-dropdown">
           </select>
           <div class="board-actions">
-            <button class="tool-btn small-btn" onclick="wallboard.renameBoardDialog()" title="Rename Board">
+            <button class="tool-btn small-btn" id="rename-board-btn" title="Rename Board">
               <svg class="tool-icon small-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
               </svg>
             </button>
-            <button class="tool-btn small-btn" onclick="wallboard.deleteBoardDialog()" title="Delete Board">
+            <button class="tool-btn small-btn" id="delete-board-btn" title="Delete Board">
               <svg class="tool-icon small-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="3 6 5 6 21 6"></polyline>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
               </svg>
             </button>
-            <button class="tool-btn new-board-btn" onclick="wallboard.showNewBoardDialog()">
+            <button class="tool-btn new-board-btn" id="new-board-btn">
               <svg class="tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -441,6 +522,11 @@ class Wallboard {
       document.getElementById('board-dropdown').addEventListener('change', (e) => {
         this.loadBoard(e.target.value);
       });
+
+      // Add event listeners for board actions
+      document.getElementById('rename-board-btn').addEventListener('click', () => this.renameBoardDialog());
+      document.getElementById('delete-board-btn').addEventListener('click', () => this.deleteBoardDialog());
+      document.getElementById('new-board-btn').addEventListener('click', () => this.showNewBoardDialog());
     }
 
     this.updateBoardSelector();
@@ -448,16 +534,35 @@ class Wallboard {
 
   updateBoardSelector() {
     const dropdown = document.getElementById('board-dropdown');
-    if (!dropdown) return;
+    if (dropdown) {
+      dropdown.innerHTML = '';
+      Object.values(this.boards).forEach(board => {
+        const option = document.createElement('option');
+        option.value = board.id;
+        option.textContent = board.name;
+        option.selected = board.id === this.currentBoardId;
+        dropdown.appendChild(option);
+      });
+    }
 
-    dropdown.innerHTML = '';
-    Object.values(this.boards).forEach(board => {
-      const option = document.createElement('option');
-      option.value = board.id;
-      option.textContent = board.name;
-      option.selected = board.id === this.currentBoardId;
-      dropdown.appendChild(option);
-    });
+    // Update mobile board menu
+    const boardMenuList = document.getElementById('boardMenuList');
+    if (boardMenuList) {
+      boardMenuList.innerHTML = '';
+      Object.values(this.boards).forEach(board => {
+        const button = document.createElement('button');
+        button.className = 'board-menu-item';
+        if (board.id === this.currentBoardId) {
+          button.classList.add('active');
+        }
+        button.textContent = board.name;
+        button.onclick = () => {
+          this.loadBoard(board.id);
+          document.querySelector('.board-menu').classList.remove('mobile-open');
+        };
+        boardMenuList.appendChild(button);
+      });
+    }
   }
 
   showNewBoardDialog() {
@@ -781,7 +886,7 @@ addMarkdownNode() {
 
     const node = {
       id: this.nodeIdCounter++,
-      type: type,
+      title: type,
       data: data,
       position: {
         x: (this.canvasWidth / 2) + (Math.random() - 0.5) * 800,
@@ -791,6 +896,12 @@ addMarkdownNode() {
     this.nodes.push(node);
     this.autoSave();
     return node;
+  }
+
+  // Helper function for backwards compatibility
+  getNodeTitle(node) {
+    // New format uses "title", old format used "type"
+    return node.title || node.type || 'markdown';
   }
 
   renderNode(node) {
@@ -803,7 +914,7 @@ addMarkdownNode() {
     const header = document.createElement("div");
     header.className = "node-header";
     header.innerHTML = `
-                    <div class="node-type" id="type-${node.id}">${node.type.toUpperCase()}</div>
+                    <div class="node-type" id="type-${node.id}">${this.getNodeTitle(node).toUpperCase()}</div>
                     <div class="node-actions">
                         <button class="node-btn" onclick="wallboard.maximizeNode(${
                           node.id
@@ -873,7 +984,7 @@ addMarkdownNode() {
           Prism.highlightElement(block);
         });
       }, 0);
-    } else if (node.type === "image") {
+    } else if (this.getNodeTitle(node) === "image") {
       if (node.data.url) {
         content.innerHTML = `<div class="image-node"><img src="${node.data.url}" alt="Node image"></div>`;
       } else {
@@ -897,6 +1008,20 @@ addMarkdownNode() {
     header.addEventListener("mousedown", (e) => {
       this.handleNodeDragStart(e, node, nodeEl);
     });
+
+    // Touch support for header dragging
+    header.addEventListener("touchstart", (e) => {
+      if (e.touches.length === 1) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        this.handleNodeDragStart({
+          clientX: touch.clientX,
+          clientY: touch.clientY,
+          preventDefault: () => {},
+          target: e.target
+        }, node, nodeEl);
+      }
+    }, { passive: false });
 
     // Add double-click to edit content
     content.addEventListener("dblclick", (e) => {
@@ -937,11 +1062,74 @@ addMarkdownNode() {
       isDragStarted = false;
     });
 
-    // Selection
-    nodeEl.addEventListener("click", (e) => {
-      e.stopPropagation();
-      this.selectNode(node, e.shiftKey);
+    // Touch support for connection dragging
+    content.addEventListener("touchstart", (e) => {
+      if (e.target.closest('.node-btn') || e.target.closest('textarea') || e.target.closest('button')) return;
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        dragStartPos = { x: touch.clientX, y: touch.clientY };
+        isDragStarted = false;
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    content.addEventListener("touchmove", (e) => {
+      if (!dragStartPos || e.touches.length !== 1) return;
+
+      const touch = e.touches[0];
+      const distance = Math.sqrt(
+        Math.pow(touch.clientX - dragStartPos.x, 2) +
+        Math.pow(touch.clientY - dragStartPos.y, 2)
+      );
+
+      if (distance > 10 && !isDragStarted) {
+        isDragStarted = true;
+        this.handleConnectionDragStart(dragStartPos, node);
+      }
+    }, { passive: false });
+
+    content.addEventListener("touchend", () => {
+      dragStartPos = null;
+      isDragStarted = false;
     });
+
+    // Selection and double-tap to edit
+    let lastTapTime = 0;
+    let tapTimer = null;
+
+    const handleNodeClick = (e) => {
+      e.stopPropagation();
+
+      const now = Date.now();
+      const timeSinceLastTap = now - lastTapTime;
+
+      // Double tap to edit on mobile (within 400ms)
+      if (window.innerWidth <= 768 && timeSinceLastTap < 400 && timeSinceLastTap > 0) {
+        clearTimeout(tapTimer);
+        this.toggleEdit(node.id);
+        lastTapTime = 0; // Reset
+      } else {
+        // Single tap - wait a bit to see if there's a second tap
+        lastTapTime = now;
+        if (tapTimer) clearTimeout(tapTimer);
+
+        // On mobile, delay to detect double tap; on desktop, select immediately
+        const delay = window.innerWidth <= 768 ? 250 : 0;
+
+        tapTimer = setTimeout(() => {
+          this.selectNode(node, e.shiftKey);
+
+          // Close mobile menus when clicking nodes
+          if (window.innerWidth <= 768) {
+            document.querySelector('.toolbar')?.classList.remove('mobile-open');
+            document.querySelector('.board-menu')?.classList.remove('mobile-open');
+          }
+        }, delay);
+      }
+    };
+
+    nodeEl.addEventListener("click", handleNodeClick);
+    nodeEl.addEventListener("touchend", handleNodeClick);
 
     // Context menu
     nodeEl.addEventListener("contextmenu", (e) => {
@@ -954,6 +1142,40 @@ addMarkdownNode() {
 
     // Apply theme to the newly created node
     this.applyNodeTheme(node.id);
+  }
+
+  showContextMenu(e, node) {
+    this.hideContextMenu(); // Hide any existing menu
+    this.contextNode = node;
+
+    const menu = document.createElement("div");
+    menu.className = "context-menu";
+    menu.id = "contextMenu";
+
+    // Basic node actions
+    let menuItems = `
+      <button onclick="wallboard.toggleEdit(${node.id})">Edit Content</button>
+      <button onclick="wallboard.showThemeSelector(${node.id})">Change Theme</button>
+      <button onclick="wallboard.removeNode(${node.id})">Delete Node</button>
+      <hr>
+    `;
+
+    // Alignment options (only if multiple nodes are selected)
+    if (this.selectedNodes.size > 1 && this.selectedNodes.has(node.id)) {
+      const nodeIds = Array.from(this.selectedNodes);
+      menuItems += `
+        <button onclick="wallboard.alignmentManager.showAlignmentMenu(event, [${nodeIds.join(',')}])">
+          Align Selection (${this.selectedNodes.size})
+        </button>
+      `;
+    }
+
+    menu.innerHTML = menuItems;
+
+    // Position and show the menu
+    menu.style.left = e.clientX + "px";
+    menu.style.top = e.clientY + "px";
+    document.body.appendChild(menu);
   }
 
   // --- Zoom and Pan Handlers ---
@@ -969,6 +1191,16 @@ addMarkdownNode() {
     }
 
     e.preventDefault();
+
+    // Add transforming class for performance on mobile
+    const canvas = document.getElementById("canvas");
+    if (window.innerWidth <= 768) {
+      canvas.classList.add('transforming');
+      clearTimeout(this.transformTimeout);
+      this.transformTimeout = setTimeout(() => {
+        canvas.classList.remove('transforming');
+      }, 150);
+    }
 
     const zoomFactor = 0.1;
 
@@ -993,6 +1225,12 @@ addMarkdownNode() {
   }
 
   handleCanvasPanStart(e) {
+    // Don't pan if clicking on connections
+    if (e.target.classList.contains('connection-line') ||
+        e.target.classList.contains('connection-arrow')) {
+      return;
+    }
+
     // Only allow panning if clicking directly on canvas (not on nodes or when editing)
     if (e.target.id === 'canvas' && !this.isDragging && !this.isConnectionDrag && !this.isCutting && !e.altKey && !this.isAnyNodeEditing && !e.target.closest('.node')) {
       this.isPanning = true;
@@ -1007,15 +1245,22 @@ addMarkdownNode() {
       let newPanX = e.clientX - this.panStart.x;
       let newPanY = e.clientY - this.panStart.y;
 
-      // Apply pan limits with some buffer (allow going slightly outside)
-      const buffer = 200;
+      // Apply pan limits with more generous buffer on mobile
+      const isMobile = window.innerWidth <= 768;
+      const buffer = isMobile ? 100 : 200; // Smaller buffer on mobile for better boundaries
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
       const scaledCanvasWidth = this.canvasWidth * this.zoom;
       const scaledCanvasHeight = this.canvasHeight * this.zoom;
 
-      newPanX = Math.max(-(scaledCanvasWidth - viewportWidth + buffer), Math.min(buffer, newPanX));
-      newPanY = Math.max(-(scaledCanvasHeight - viewportHeight + buffer), Math.min(buffer, newPanY));
+      // More restrictive boundaries on mobile to prevent getting lost
+      if (isMobile) {
+        newPanX = Math.max(-(scaledCanvasWidth - viewportWidth + buffer), Math.min(buffer, newPanX));
+        newPanY = Math.max(-(scaledCanvasHeight - viewportHeight + buffer), Math.min(buffer, newPanY));
+      } else {
+        newPanX = Math.max(-(scaledCanvasWidth - viewportWidth + buffer), Math.min(buffer, newPanX));
+        newPanY = Math.max(-(scaledCanvasHeight - viewportHeight + buffer), Math.min(buffer, newPanY));
+      }
 
       this.panX = newPanX;
       this.panY = newPanY;
@@ -1053,12 +1298,135 @@ addMarkdownNode() {
     }
   }
 
-  updateTransform() {
-    const canvas = document.getElementById('canvas');
-    canvas.style.transform = `translate(${this.panX}px, ${this.panY}px) scale(${this.zoom})`;
-    canvas.style.transformOrigin = '0 0';
+  // Touch pan handlers for mobile
+  handleCanvasTouchStart(e) {
+    if (e.touches.length === 1) {
+      // Single touch pan
+      const touch = e.touches[0];
+      if (e.target.id === 'canvas' && !this.isDragging && !this.isConnectionDrag && !this.isCutting && !this.isAnyNodeEditing && !e.target.closest('.node')) {
+        this.isPanning = true;
+        this.panStart = { x: touch.clientX - this.panX, y: touch.clientY - this.panY };
+        e.preventDefault();
+      }
+    } else if (e.touches.length === 2) {
+      // Two finger pinch-to-zoom setup
+      this.lastPinchDistance = this.getPinchDistance(e.touches);
+      this.lastZoom = this.zoom;
+      e.preventDefault();
+    }
+  }
+
+  handleCanvasTouchMove(e) {
+    if (e.touches.length === 1 && this.isPanning) {
+      // Single touch pan
+      const touch = e.touches[0];
+      let newPanX = touch.clientX - this.panStart.x;
+      let newPanY = touch.clientY - this.panStart.y;
+
+      // Apply pan limits with mobile-optimized buffer
+      const isMobile = window.innerWidth <= 768;
+      const buffer = isMobile ? 100 : 200;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const scaledCanvasWidth = this.canvasWidth * this.zoom;
+      const scaledCanvasHeight = this.canvasHeight * this.zoom;
+
+      newPanX = Math.max(-(scaledCanvasWidth - viewportWidth + buffer), Math.min(buffer, newPanX));
+      newPanY = Math.max(-(scaledCanvasHeight - viewportHeight + buffer), Math.min(buffer, newPanY));
+
+      this.panX = newPanX;
+      this.panY = newPanY;
+      this.updateTransform();
+
+      // Throttle connection updates during pan
+      if (this.panUpdateTimeout) {
+        clearTimeout(this.panUpdateTimeout);
+      }
+      this.panUpdateTimeout = setTimeout(() => {
+        this.connectionManager.updateConnections();
+      }, 16);
+
+      e.preventDefault();
+    } else if (e.touches.length === 2) {
+      // Two finger pinch-to-zoom
+      const currentDistance = this.getPinchDistance(e.touches);
+      const deltaDistance = currentDistance - this.lastPinchDistance;
+      const zoomFactor = 1 + (deltaDistance * 0.01);
+
+      const newZoom = Math.max(0.1, Math.min(3, this.lastZoom * zoomFactor));
+
+      if (newZoom !== this.zoom) {
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        const centerX = (touch1.clientX + touch2.clientX) / 2;
+        const centerY = (touch1.clientY + touch2.clientY) / 2;
+
+        this.zoomAtPoint(centerX, centerY, newZoom / this.zoom);
+      }
+
+      e.preventDefault();
+    }
+  }
+
+  handleCanvasTouchEnd(e) {
+    if (this.isPanning && e.touches.length === 0) {
+      this.isPanning = false;
+
+      // Clear any pending connection update and update immediately
+      if (this.panUpdateTimeout) {
+        clearTimeout(this.panUpdateTimeout);
+        this.panUpdateTimeout = null;
+      }
+      this.connectionManager.updateConnections();
+    }
+  }
+
+  getPinchDistance(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  zoomAtPoint(clientX, clientY, factor) {
+    const oldZoom = this.zoom;
+    const newZoom = Math.max(0.1, Math.min(3, oldZoom * factor));
+
+    if (newZoom !== oldZoom) {
+      // Calculate the point in canvas coordinates before zoom
+      const canvasX = (clientX - this.panX) / oldZoom;
+      const canvasY = (clientY - this.panY) / oldZoom;
+
+      // Update zoom
+      this.zoom = newZoom;
+
+      // Adjust pan to keep the point under the cursor
+      this.panX = clientX - canvasX * newZoom;
+      this.panY = clientY - canvasY * newZoom;
+
+      this.updateTransform();
+      this.connectionManager.updateConnections();
+    }
+  }
+
+updateTransform() {
+  const canvas = document.getElementById('canvas');
+  
+  // Use transform matrix directly - more performant
+  canvas.style.transform = `matrix(${this.zoom}, 0, 0, ${this.zoom}, ${this.panX}, ${this.panY})`;
+  canvas.style.transformOrigin = '0 0';
+  
+  // Debounce connection updates on mobile
+  if (window.innerWidth <= 768) {
+    if (this.updateConnectionsTimeout) {
+      cancelAnimationFrame(this.updateConnectionsTimeout);
+    }
+    this.updateConnectionsTimeout = requestAnimationFrame(() => {
+      this.connectionManager.updateConnections();
+    });
+  } else {
     this.connectionManager.updateConnections();
   }
+}
 
   getNodeById(id) {
     return this.nodes.find(node => node.id === id);
@@ -1123,6 +1491,162 @@ addMarkdownNode() {
       this.endCutting();
     }
   }
+
+  // Touch event handlers for node interactions
+  handleTouchStart(e) {
+    // Don't handle if already being handled by canvas touch (panning/zooming)
+    if (this.isPanning || e.touches.length > 1) return;
+
+    const touch = e.touches[0];
+    const target = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (target && target.closest('.node')) {
+      // Convert touch to mouse event for node interactions
+      const mouseEvent = new MouseEvent('mousedown', {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        bubbles: true,
+        cancelable: true
+      });
+      target.dispatchEvent(mouseEvent);
+    }
+  }
+
+  handleTouchMove(e) {
+    if (this.isDragging || this.isConnectionDrag || this.isCutting) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      this.currentMousePos = { x: touch.clientX, y: touch.clientY };
+
+      if (this.isDragging && this.draggedNode) {
+        this.handleNodeDrag({ clientX: touch.clientX, clientY: touch.clientY });
+      } else if (this.isConnectionDrag) {
+        this.handleConnectionDrag({ clientX: touch.clientX, clientY: touch.clientY });
+      } else if (this.isCutting) {
+        this.handleCutDrag({ clientX: touch.clientX, clientY: touch.clientY });
+      }
+    }
+  }
+
+  handleTouchEnd(e) {
+    if (this.isDragging || this.isConnectionDrag || this.isCutting) {
+      const changedTouch = e.changedTouches[0];
+      this.handleMouseUp({ clientX: changedTouch.clientX, clientY: changedTouch.clientY });
+    }
+  }
+
+  // Touch event handlers for mobile support
+  handleCanvasTouchStart(e) {
+  if (e.touches.length === 1) {
+    // Single touch pan
+    const touch = e.touches[0];
+    // Don't pan if touching connections
+    if (e.target.classList.contains('connection-line') ||
+        e.target.classList.contains('connection-arrow')) {
+      return;
+    }
+    if (e.target.id === 'canvas' && !this.isDragging && !this.isConnectionDrag && !this.isCutting && !this.isAnyNodeEditing && !e.target.closest('.node')) {
+      this.isPanning = true;
+      this.panStart = { x: touch.clientX - this.panX, y: touch.clientY - this.panY };
+
+      // Add transforming class for CSS optimization
+      const canvas = document.getElementById("canvas");
+      canvas.classList.add('transforming');
+
+      e.preventDefault();
+    }
+  } else if (e.touches.length === 2) {
+    // Two finger pinch-to-zoom setup
+    this.lastPinchDistance = this.getPinchDistance(e.touches);
+    this.lastZoom = this.zoom;
+    e.preventDefault();
+  }
+}
+  handleCanvasTouchMove(e) {
+  if (e.touches.length === 1 && this.isPanning) {
+    e.preventDefault();
+    
+    // Throttle updates - skip every other frame on mobile
+    if (!this.touchMoveThrottle) {
+      this.touchMoveThrottle = true;
+      requestAnimationFrame(() => {
+        this.touchMoveThrottle = false;
+      });
+      return;
+    }
+    
+    // Single touch pan
+    const touch = e.touches[0];
+    let newPanX = touch.clientX - this.panStart.x;
+    let newPanY = touch.clientY - this.panStart.y;
+
+    // Apply pan limits with mobile-optimized buffer
+    const buffer = 100;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const scaledCanvasWidth = this.canvasWidth * this.zoom;
+    const scaledCanvasHeight = this.canvasHeight * this.zoom;
+
+    newPanX = Math.max(-(scaledCanvasWidth - viewportWidth + buffer), Math.min(buffer, newPanX));
+    newPanY = Math.max(-(scaledCanvasHeight - viewportHeight + buffer), Math.min(buffer, newPanY));
+
+    this.panX = newPanX;
+    this.panY = newPanY;
+    
+    // Update transform using optimized method
+    this.updateTransform();
+    
+  } else if (e.touches.length === 2) {
+    e.preventDefault();
+    
+    // Throttle pinch-zoom updates too
+    if (!this.pinchThrottle) {
+      this.pinchThrottle = true;
+      requestAnimationFrame(() => {
+        this.pinchThrottle = false;
+      });
+      return;
+    }
+    
+    // Two finger pinch-to-zoom
+    const currentDistance = this.getPinchDistance(e.touches);
+    const deltaDistance = currentDistance - this.lastPinchDistance;
+    const zoomFactor = 1 + (deltaDistance * 0.01);
+
+    const newZoom = Math.max(0.1, Math.min(3, this.lastZoom * zoomFactor));
+
+    if (newZoom !== this.zoom) {
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const centerX = (touch1.clientX + touch2.clientX) / 2;
+      const centerY = (touch1.clientY + touch2.clientY) / 2;
+
+      this.zoomAtPoint(centerX, centerY, newZoom / this.zoom);
+    }
+  }
+}
+
+ handleCanvasTouchEnd(e) {
+  if (this.isPanning && e.touches.length === 0) {
+    this.isPanning = false;
+    
+    // Remove transforming class
+    const canvas = document.getElementById("canvas");
+    canvas.classList.remove('transforming');
+
+    // Final connection update after pan ends
+    if (this.updateConnectionsTimeout) {
+      cancelAnimationFrame(this.updateConnectionsTimeout);
+      this.updateConnectionsTimeout = null;
+    }
+    this.connectionManager.updateConnections();
+  }
+  
+  // Reset pinch state
+  if (e.touches.length < 2) {
+    this.lastPinchDistance = null;
+    this.lastZoom = null;
+  }
+}
 
   // --- Node Dragging ---
 
@@ -1337,7 +1861,7 @@ addMarkdownNode() {
     if (!node) return;
 
     const typeElement = document.getElementById(`type-${nodeId}`);
-    const currentType = node.type;
+    const currentType = this.getNodeTitle(node);
 
     // Create input field
     const input = document.createElement("input");
@@ -1355,7 +1879,9 @@ addMarkdownNode() {
     const saveEdit = () => {
       if (input.parentNode) {
         const newType = input.value.trim() || currentType;
-        node.type = newType;
+        // Use new field name "title", remove old "type" if it exists
+        node.title = newType;
+        delete node.type;
         typeElement.textContent = newType.toUpperCase();
         typeElement.style.display = "";
         input.remove();
@@ -1464,6 +1990,7 @@ addMarkdownNode() {
     document.documentElement.style.setProperty('--bg-accent-glow', `rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.1)`);
     document.documentElement.style.setProperty('--bg-accent-light', `rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.05)`);
   }
+  
 
   applyNodeTheme(nodeId) {
     const nodeElement = document.getElementById(`node-${nodeId}`);
@@ -1526,6 +2053,7 @@ addMarkdownNode() {
 
   showThemeSelector(nodeId = null) {
     this.hideThemeSelector(); // Close any existing selector
+    this.connectionManager.hideConnectionThemeSelector(); // Close connection theme selector too
 
     const selector = document.createElement('div');
     selector.className = 'theme-selector';
@@ -1773,167 +2301,11 @@ addMarkdownNode() {
   }
 
   updateConnections() {
-    const svg = document.getElementById("connections");
-    if (!svg) return;
-
-    // Clear existing connections but preserve drag line and cut line
-    const dragLine = svg.querySelector(".drag-line");
-    const cutLine = svg.querySelector(".cut-line");
-    svg.innerHTML = "";
-    if (dragLine) svg.appendChild(dragLine);
-    if (cutLine) svg.appendChild(cutLine);
-
-    this.connections.forEach((conn) => {
-      const startNode = this.nodes.find(n => n.id === conn.start.nodeId);
-      const endNode = this.nodes.find(n => n.id === conn.end.nodeId);
-
-      if (!startNode || !endNode) return;
-
-      // Use canvas coordinates directly from node positions
-      const startRect = {
-        left: startNode.position.x,
-        top: startNode.position.y,
-        width: 300, // Standard node width
-        height: 200 // Approximate node height
-      };
-
-      const endRect = {
-        left: endNode.position.x,
-        top: endNode.position.y,
-        width: 300,
-        height: 200
-      };
-
-      // Calculate edge-based connection points
-      const connectionPoints = this.calculateEdgeConnectionPoints(startRect, endRect);
-
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      const d = this.createSmoothPath(connectionPoints.start, connectionPoints.end, connectionPoints.direction);
-      path.setAttribute("d", d);
-      path.setAttribute("class", "connection-line");
-      path.setAttribute("marker-end", "url(#arrow)");
-
-      svg.appendChild(path);
-    });
-  }
-
-
-    calculateEdgeConnectionPoints(startRect, endRect) {
-    // Get centers
-    const startCenter = {
-      x: startRect.left + startRect.width / 2,
-      y: startRect.top + startRect.height / 2
-    };
-    const endCenter = {
-      x: endRect.left + endRect.width / 2,
-      y: endRect.top + endRect.height / 2
-    };
-
-    // Calculate edges properly from rect properties
-    const startRight = startRect.left + startRect.width;
-    const startBottom = startRect.top + startRect.height;
-    const endRight = endRect.left + endRect.width;
-    const endBottom = endRect.top + endRect.height;
-
-    // Calculate which edges to connect based on relative positions
-    const dx = endCenter.x - startCenter.x;
-    const dy = endCenter.y - startCenter.y;
-
-    // Minimal offset from node edge - just enough so arrow tip touches the edge
-    const offset = 2;
-
-    let startPoint, endPoint, direction;
-
-    // Determine best connection points based on angle between nodes
-    if (Math.abs(dx) > Math.abs(dy)) {
-      // Horizontal connection preferred
-      direction = 'horizontal';
-      if (dx > 0) {
-        // Start from right edge center of start node (with offset)
-        startPoint = {
-          x: startRight + offset,
-          y: startCenter.y
-        };
-        // End at left edge center of end node
-        endPoint = {
-          x: endRect.left,
-          y: endCenter.y
-        };
-      } else {
-        // Start from left edge center of start node (with offset)
-        startPoint = {
-          x: startRect.left - offset,
-          y: startCenter.y
-        };
-        // End at right edge center of end node
-        endPoint = {
-          x: endRight,
-          y: endCenter.y
-        };
-      }
-    } else {
-      // Vertical connection preferred
-      direction = 'vertical';
-      if (dy > 0) {
-        // Start from bottom edge center of start node (with offset)
-        startPoint = {
-          x: startCenter.x,
-          y: startBottom + offset
-        };
-        // End at top edge center of end node
-        endPoint = {
-          x: endCenter.x,
-          y: endRect.top
-        };
-      } else {
-        // Start from top edge center of start node (with offset)
-        startPoint = {
-          x: startCenter.x,
-          y: startRect.top - offset
-        };
-        // End at bottom edge center of end node
-        endPoint = {
-          x: endCenter.x,
-          y: endBottom
-        };
-      }
+    // Delegate to ConnectionManager which uses proper DOM-based positioning
+    if (this.connectionManager) {
+      this.connectionManager.updateConnections();
     }
-
-    return { start: startPoint, end: endPoint, direction };
   }
-
-  createSmoothPath(start, end, direction) {
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-
-  // If nodes are very close, use simple direct connection
-  if (Math.abs(dx) < 60 && Math.abs(dy) < 60) {
-    return `M ${start.x},${start.y} L ${end.x},${end.y}`;
-  }
-
-  // For horizontal connections (connecting left/right edges)
-  // we want to go horizontally from start, then approach the end point horizontally
-  if (direction === 'horizontal') {
-    // If already horizontally aligned, just go straight
-    if (Math.abs(dy) < 20) {
-      return `M ${start.x},${start.y} L ${end.x},${end.y}`;
-    }
-    // Go horizontally from start, then vertically, then horizontally to end
-    const midX = (start.x + end.x) / 2;
-    return `M ${start.x},${start.y} L ${midX},${start.y} L ${midX},${end.y} L ${end.x},${end.y}`;
-  }
-  // For vertical connections (connecting top/bottom edges)
-  // we want to go vertically from start, then approach the end point vertically
-  else {
-    // If already vertically aligned, just go straight
-    if (Math.abs(dx) < 20) {
-      return `M ${start.x},${start.y} L ${end.x},${end.y}`;
-    }
-    // Go vertically from start, then horizontally, then vertically to end
-    const midY = (start.y + end.y) / 2;
-    return `M ${start.x},${start.y} L ${start.x},${midY} L ${end.x},${midY} L ${end.x},${end.y}`;
-  }
-}
 
 
   selectNode(node, isShiftClick = false) {
@@ -2113,7 +2485,7 @@ addMarkdownNode() {
     const header = document.createElement('div');
     header.className = 'maximized-header';
     header.innerHTML = `
-      <div class="maximized-title">${node.type.toUpperCase()}</div>
+      <div class="maximized-title">${this.getNodeTitle(node).toUpperCase()}</div>
       <div class="maximized-actions">
         <button class="maximize-btn" onclick="wallboard.toggleMaximizedEdit(${nodeId})" title="Edit">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
