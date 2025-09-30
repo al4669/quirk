@@ -1,6 +1,6 @@
 {
   "name": "Crafting a Compelling Main Character",
-  "description": "A blueprint for designing an unforgettable video game protagonist, exported on 10/1/2025",
+  "description": "Wallboard exported on 10/1/2025",
   "nodes": [
     {
       "id": 1,
@@ -8,7 +8,7 @@
         "content": "# ⭐ Core Concept & Archetype\n\nThis is the foundation of your character. Before any details, you need a strong, central idea. This concept will guide every other decision you make.\n\n*\"A character is defined by the choices they make when the chips are down.\"*\n\n-----\n\n### 1\\. The High-Concept Pitch\n\nDescribe your character in a single, compelling sentence. This is your north star.\n\n  - *Examples:*\n  - \"A grizzled old warrior forced to become a father to a mystical child.\" (Kratos, God of War)\n  - \"A charming but reckless treasure hunter convinced he's the descendant of a legendary explorer.\" (Nathan Drake, Uncharted)\n  - \"An artificial being designed for war who develops a conscience and seeks a new purpose.\"\n\n### 2\\. Choose a Core Archetype\n\nArchetypes are universal patterns that give players a familiar starting point. You can blend or subvert them later, but start with a solid base.\n\n  - **The Hero:** Driven by a quest to overcome adversity.\n  - **The Rebel/Anti-Hero:** Fights against the status quo, often with morally gray methods.\n  - **The Sage/Mentor:** A wise guide, often burdened by past knowledge or failures.\n  - **The Trickster:** A chaotic agent of change who challenges norms through wit and mischief.\n  - **The Explorer:** Driven by a need to discover the unknown and push boundaries.\n\n### 3\\. Define the Central Theme\n\nWhat is the central question or conflict your character represents?\n\n- Redemption vs. Vengeance\n- Fate vs. Free Will\n- Humanity vs. Technology\n- Order vs. Chaos"
       },
       "position": {
-        "x": 5000,
+        "x": 5001.428571428571,
         "y": 4000
       },
       "title": "The Foundation"
@@ -85,7 +85,7 @@
         "content": "# 🎙️ Voice & Dialogue\n\nA character's voice—both their literal sound and their style of speaking—is a powerful tool for expressing personality.\n\n*Dialogue is the music of character.*\n\n----\n\n### 1\\. Manner of Speaking\n\nHow do they talk? This should be consistent with their background and personality.\n\n  - **Vocabulary:** Do they use complex words or simple, direct language?\n  - **Pacing:** Do they speak quickly and excitedly, or slowly and deliberately?\n  - **Tone:** Are they sarcastic, sincere, aggressive, or passive?\n\n### 2\\. Signature Phrases\n\nDoes the character have a recurring catchphrase or a unique way of saying something? This can make their dialogue instantly recognizable and memorable.\n\n### 3\\. The Sound\n\nIf the character will be voice-acted, what is the quality of their voice?\n\n  - High or low pitch?\n  - Raspy or smooth?\n  - What accent do they have?\n\nGood voice acting can elevate a character from words on a page to a living, breathing person."
       },
       "position": {
-        "x": 6300,
+        "x": 6302.5,
         "y": 4000
       },
       "title": "The \"Sound\""
@@ -108,15 +108,6 @@
       },
       "end": {
         "nodeId": 2
-      }
-    },
-    {
-      "id": "1-3",
-      "start": {
-        "nodeId": 1
-      },
-      "end": {
-        "nodeId": 3
       }
     },
     {
@@ -184,17 +175,27 @@
     }
   ],
   "connectionThemes": {
-    "1-6": "lime",
-    "1-2": "lime",
-    "1-3": "lime",
-    "1-4": "lime",
-    "1-5": "lime"
+    "6-3": "rose",
+    "1-4": "orange",
+    "3-8": "purple",
+    "3-4": "orange",
+    "2-5": "red",
+    "1-5": "red",
+    "2-7": "yellow",
+    "1-6": "emerald"
   },
   "nodeIdCounter": 9,
   "globalTheme": "blue",
   "nodeThemes": {
-    "1": "pink"
+    "1": "lime",
+    "2": "blue",
+    "3": "pink",
+    "4": "orange",
+    "5": "red",
+    "6": "emerald",
+    "7": "amber",
+    "8": "purple"
   },
   "version": "1.0",
-  "exportedAt": "2025-09-30T19:04:20.113Z"
+  "exportedAt": "2025-09-30T19:13:08.515Z"
 }
