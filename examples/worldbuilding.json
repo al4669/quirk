@@ -1,0 +1,264 @@
+{
+  "name": "Crafting a Living, Breathing World",
+  "description": "A comprehensive guide to worldbuilding",
+  "nodes": [
+    {
+      "id": 1,
+      "data": {
+        "content": "# 🌍 Core Premise & Foundation\n\nEvery great world starts with a simple, powerful question or \"what if\" statement. This is your world's DNA—everything else grows from here.\n\n*\"A world is only as interesting as the conflicts it creates.\"*\n\n-----\n\n### 1\\. The Central Premise\n\nWhat makes your world unique? Distill it into one compelling sentence.\n\n  - *Examples:*\n  - \"What if magic slowly corrupted those who used it?\" (The Witcher)\n  - \"What if humanity's last survivors lived inside giant walls to hide from titans?\" (Attack on Titan)\n  - \"What if technology advanced but society regressed into feudalism?\" (Dune)\n\n**Common Pitfall:** Don't make your premise too generic (\"a world with magic and dragons\"). Find the twist that makes it yours.\n\n### 2\\. Choose Your World Type\n\nWhat kind of world are you building?\n\n  - **High Fantasy:** Magic-rich, often medieval-inspired, entirely fictional world\n  - **Low Fantasy:** Magic exists but is rare, mysterious, or dangerous\n  - **Sci-Fi:** Technology-driven, often exploring \"what if\" scenarios\n  - **Urban Fantasy:** Modern world with hidden supernatural elements\n  - **Post-Apocalyptic:** Aftermath of civilization's collapse\n  - **Historical Fantasy:** Real history with fantastical elements added\n  - **Hybrid:** Blend multiple genres (steampunk, sci-fantasy, etc.)\n\n### 3\\. Define the Core Conflict\n\nWhat is the fundamental tension that drives stories in this world?\n\n- Nature vs. Civilization\n- Magic vs. Technology\n- Order vs. Freedom\n- Survival vs. Morality\n- Progress vs. Tradition\n- Unity vs. Diversity\n\n**Pro Tip:** Your core conflict should be reflected in your world's geography, culture, and history."
+      },
+      "position": {
+        "x": 5000,
+        "y": 4000
+      },
+      "title": "The Foundation"
+    },
+    {
+      "id": 2,
+      "data": {
+        "content": "# 🗺️ Geography & Environment\n\nYour world's physical reality shapes everything—culture, conflict, economy, and story possibilities.\n\n*The land remembers longer than people do.*\n\n----\n\n### 1\\. Key Locations (The Landmarks)\n\nIdentify 3-7 essential locations that define your world. Each should serve a narrative purpose.\n\n  - *Example:* A floating city (wonder/mystery), a cursed wasteland (danger/history), a neutral trade hub (connection/intrigue)\n\n**Pro Tip:** Don't create 50 locations. Focus on a few memorable ones that players/readers will actually visit.\n\n### 2\\. Climate & Terrain\n\nHow does the environment affect daily life and conflict?\n\n  - **Harsh environments** create resilient, practical cultures (deserts breed water politics, tundras breed isolation)\n  - **Resource-rich areas** attract conflict and diversity\n  - **Natural barriers** (mountains, oceans) create distinct cultures and tensions\n\n**Key Question:** What resource is scarce, and what do people fight over?\n\n### 3\\. The Unusual Element\n\nWhat's the one thing about your world's geography that breaks reality as we know it?\n\n  - Floating islands? A permanent storm? A forest that shifts location? Mountains that grow?\n\n**Why This Matters:** This element should create unique challenges and opportunities that wouldn't exist in our world.\n\n### 4\\. Travel & Distance\n\nHow long does it take to get places? This affects politics, culture, and plot.\n\n  - Instant travel = unified culture, weak borders\n  - Slow travel = isolated cultures, strong regional identity\n\n**Common Pitfall:** Don't let travel time be whatever's convenient for your plot. Set rules and stick to them."
+      },
+      "position": {
+        "x": 4200,
+        "y": 3500
+      },
+      "title": "The Physical World"
+    },
+    {
+      "id": 3,
+      "data": {
+        "content": "# ⚡ Magic/Technology System\n\nYour world's power system is its most defining feature. Whether it's magic, tech, or psychic powers—it needs rules.\n\n*Power without cost is meaningless.*\n\n----\n\n### 1\\. The Rules (Laws of Power)\n\nDefine how your system works. Be specific.\n\n  - **Source:** Where does power come from? (Innate ability? Study? Technology? Gods? Nature?)\n  - **Access:** Who can use it? (Everyone? Bloodlines? Trained individuals? The wealthy?)\n  - **Limitations:** What can't it do? (Can't revive the dead? Can't create matter? Can't read minds?)\n\n**Brandon Sanderson's Law:** Your ability to solve problems with magic is proportional to how well the reader understands it.\n\n### 2\\. The Cost (What You Pay)\n\nPower must have consequences. What does it cost to use?\n\n  - **Physical:** Exhaustion, aging, pain, injury, death\n  - **Mental:** Sanity, memories, emotional numbness\n  - **Social:** Fear, persecution, isolation\n  - **Moral:** Corruption, loss of humanity\n  - **Material:** Rare resources, expensive components\n\n**Why Costs Matter:** They create tension and force meaningful choices. \"I could save them, but at what price?\"\n\n### 3\\. Power Levels & Progression\n\nHow powerful can someone become? Is there a ceiling?\n\n  - Can anyone become god-tier, or is there a natural limit?\n  - Does power corrupt or change people over time?\n  - Are there forbidden techniques or lost arts?\n\n### 4\\. Impact on Society\n\nHow has this power shaped civilization?\n\n  - Do magic users rule? Are they feared? Enslaved? Worshipped?\n  - Has it made warfare different? Changed architecture? Created new classes?\n  - What jobs exist because of it? What industries?\n\n**Common Pitfall:** Don't make your power system inconsistent. If magic can do X in chapter 1, it can do X in chapter 20."
+      },
+      "position": {
+        "x": 5800,
+        "y": 3500
+      },
+      "title": "The Power System"
+    },
+    {
+      "id": 4,
+      "data": {
+        "content": "# 🏛️ Culture & Society\n\nCultures are shaped by environment, history, and power systems. They should feel lived-in and three-dimensional.\n\n*Culture is what people do when they think no one's watching.*\n\n----\n\n### 1\\. Core Values & Beliefs\n\nWhat does this society value above all else?\n\n  - Honor? Knowledge? Freedom? Strength? Harmony? Progress? Tradition?\n\n**Technique:** Give each culture 2-3 core values and show how those values create conflicts.\n  - *Example:* A society values both Honor and Survival—what happens when they conflict?\n\n### 2\\. Social Structure\n\nHow is power distributed?\n\n  - **Hierarchy:** Clear ranks (monarchy, caste system, military)\n  - **Meritocracy:** Earned through skill or achievement\n  - **Oligarchy:** Ruled by elite few (wealthy, powerful families)\n  - **Theocracy:** Religious authority governs\n  - **Anarchy:** No central authority, tribal or communal\n\n**Pro Tip:** Show the cracks. Every system has people who fall through them or rebel against them.\n\n### 3\\. Daily Life & Customs\n\nWhat do normal people do?\n\n  - How do they greet each other? Conduct business? Celebrate? Mourn?\n  - What's taboo? What's sacred?\n  - What do children learn? What do elders teach?\n  - How do people dress? Eat? Spend leisure time?\n\n**Why This Matters:** These details make your world feel real, not like a video game waiting for the player to arrive.\n\n### 4\\. Class & Inequality\n\nWho has, and who has not? Conflict lives here.\n\n  - What divides people? (Wealth? Magic? Bloodline? Species? Religion?)\n  - Can you move between classes?\n  - What do the oppressed want? What do the privileged fear?\n\n**Common Pitfall:** Don't make \"evil\" cultures. Every society believes it's doing the right thing for good reasons."
+      },
+      "position": {
+        "x": 4200,
+        "y": 4500
+      },
+      "title": "The People"
+    },
+    {
+      "id": 5,
+      "data": {
+        "content": "# 📜 History & Mythology\n\nThe past shapes the present. Your world needs a history that echoes into today.\n\n*Legends are truth wrapped in time.*\n\n----\n\n### 1\\. The Creation Myth\n\nHow do people believe the world began?\n\n  - Divine creation? Scientific accident? Natural evolution? Unknown?\n\n**Pro Tip:** It doesn't matter if it's \"true\"—what matters is that people believe it and it shapes their worldview.\n\n### 2\\. The Defining Historical Event\n\nWhat is the \"before and after\" moment in your world's history?\n\n  - A great war? A cataclysm? Discovery of magic/technology? Fall of an empire?\n\n**Why This Works:** Game of Thrones has Robert's Rebellion. Star Wars has the Clone Wars. This event should:\n  - Still have consequences today\n  - Be referenced by characters\n  - Create lingering conflicts\n\n### 3\\. Lost Knowledge & Fallen Civilizations\n\nWhat came before? What was forgotten?\n\n  - Ancient ruins? Lost technology? Dead languages? Forbidden knowledge?\n\n**Storytelling Gold:** The past contains mysteries, dangers, and solutions to present problems.\n\n### 4\\. Living Legends\n\nWhat myths do people tell? What heroes, monsters, or events are legendary?\n\n  - Are the legends true? Exaggerated? Completely false?\n  - How do they influence current behavior?\n\n**Common Pitfall:** Don't dump history in exposition. Reveal it through ruins, artifacts, old books, and character dialogue."
+      },
+      "position": {
+        "x": 5800,
+        "y": 4500
+      },
+      "title": "The Past"
+    },
+    {
+      "id": 6,
+      "data": {
+        "content": "# ⚔️ Conflict & Politics\n\nTension drives stories. Your world needs active conflicts—not just historical ones.\n\n*Peace is just the moment between wars.*\n\n----\n\n### 1\\. Current Major Conflicts\n\nWhat wars, rivalries, or tensions exist right now?\n\n  - War between nations?\n  - Civil unrest or rebellion?\n  - Religious schism?\n  - Resource scarcity causing competition?\n  - Class warfare?\n\n**Key Question:** Who wants what, and who's stopping them?\n\n### 2\\. Factions & Power Players\n\nIdentify 3-7 groups with competing interests.\n\n  - Governments, guilds, secret societies, corporations, religious orders, criminal syndicates\n\n**For Each Faction:**\n  - What do they want?\n  - What are they willing to do to get it?\n  - Who are their allies and enemies?\n\n**Pro Tip:** No faction should be purely good or evil. Give them understandable motivations and legitimate grievances.\n\n### 3\\. The Powder Keg\n\nWhat's the thing that could explode and change everything?\n\n  - An assassination? A discovery? A broken treaty? A prophecy coming true?\n\n**This is your story hook.** The world is balanced on a knife's edge—what tips it over?\n\n### 4\\. Moral Grayness\n\nWhere are the hard choices?\n\n  - Is the rebellion justified if innocent people die?\n  - Is the oppressive regime keeping worse chaos at bay?\n  - Is destroying magic worth saving the world?\n\n**Why This Matters:** Complex moral situations make for compelling stories and force characters to reveal who they are.\n\n**Common Pitfall:** Don't make conflicts simple. \"Good guys vs. bad guys\" is boring. Make both sides have valid points."
+      },
+      "position": {
+        "x": 5000,
+        "y": 3000
+      },
+      "title": "The Tension"
+    },
+    {
+      "id": 7,
+      "data": {
+        "content": "# 💰 Economy & Resources\n\nMoney, trade, and resources drive civilization. What people need shapes what they do.\n\n*Follow the money, find the conflict.*\n\n----\n\n### 1\\. The Vital Resource\n\nWhat does everyone need but can't easily get?\n\n  - Water? Food? Magic crystals? Fuel? Medicine? Information?\n\n**Pro Tip:** Scarcity creates conflict. The more vital and rare the resource, the more people will fight over it.\n\n### 2\\. Currency & Trade\n\nHow do people exchange value?\n\n  - Traditional money? Barter? Magic-based currency? Social credit? Time?\n  - What's considered valuable? (Gold? Knowledge? Magical artifacts? Rare materials?)\n\n**Think About:**\n  - What do the rich have that the poor don't?\n  - What can't be bought?\n  - How does trade work between cultures?\n\n### 3\\. Production & Labor\n\nWho makes things? How?\n\n  - Manual labor? Magical automation? Advanced technology? Slave labor?\n  - What jobs exist? What industries?\n  - Who controls production?\n\n### 4\\. Economic Inequality\n\nWho thrives? Who suffers?\n\n  - Is there a middle class or just rich and poor?\n  - What creates wealth? (Birth? Magic? Innovation? Conquest?)\n  - Can anyone rise, or is it rigged?\n\n**Storytelling Angle:** Economic desperation drives people to do things they wouldn't otherwise do—crime, rebellion, sacrifice.\n\n**Common Pitfall:** Don't forget logistics. Armies need food. Cities need supply lines. Magic users need reagents. How do people get what they need?"
+      },
+      "position": {
+        "x": 3400,
+        "y": 4000
+      },
+      "title": "The Economy"
+    },
+    {
+      "id": 8,
+      "data": {
+        "content": "# 🎨 Aesthetic & Atmosphere\n\nHow does your world *feel*? Visuals, sounds, and mood create immersion.\n\n*Atmosphere is what lingers after the story ends.*\n\n----\n\n### 1\\. Visual Identity\n\nWhat defines your world's look?\n\n  - **Architecture:** Towering spires? Underground cities? Organic structures? Brutalist concrete?\n  - **Color Palette:** Vibrant and saturated? Muted and gritty? Dark and moody? Bright and hopeful?\n  - **Signature Visuals:** What image defines your world? (Neon rain? Endless desert? Floating rocks? Clockwork gears?)\n\n**Test:** If someone saw a screenshot, could they identify your world?\n\n### 2\\. Sound & Music\n\nWhat do people hear?\n\n  - What's the ambient soundscape? (Bustling markets? Eerie silence? Industrial clanging? Natural wilderness?)\n  - What music exists? What instruments?\n  - How do different locations sound different?\n\n### 3\\. Mood & Tone\n\nHow should your world make people feel?\n\n  - **Hopeful:** Despite darkness, there's light ahead\n  - **Oppressive:** Weight of systems or forces bearing down\n  - **Mysterious:** Secrets waiting to be uncovered\n  - **Melancholic:** Beauty in decay, nostalgia for what's lost\n  - **Chaotic:** Unpredictable, dangerous, exciting\n\n**Pro Tip:** Mood should shift between locations and situations, but maintain a consistent throughline.\n\n### 4\\. The Signature Detail\n\nWhat's the one weird, memorable thing about your world?\n\n  - It always rains? Magic manifests as visible threads? Technology is bio-organic? Everyone wears masks?\n\n**Why This Works:** One strong, consistent detail is more memorable than a dozen generic ones.\n\n**Common Pitfall:** Don't sacrifice clarity for atmosphere. Cool aesthetics shouldn't confuse players about what's happening."
+      },
+      "position": {
+        "x": 6600,
+        "y": 4000
+      },
+      "title": "The Feel"
+    },
+    {
+      "id": 9,
+      "data": {
+        "content": "# 🔗 Interconnection & Consistency\n\nEverything should connect. A living world has no isolated elements.\n\n*Pull one thread and the whole tapestry shifts.*\n\n----\n\n### 1\\. The Ripple Effect\n\nHow do your systems affect each other?\n\n  - **Example:** If magic corrupts users → magic users are feared → they form secret societies → governments hunt them → underground resistance forms\n\n**Exercise:** For every major element, ask: \"What happens because of this?\"\n\n### 2\\. Internal Logic\n\nDo your rules make sense together?\n\n  - If teleportation exists, why do trade routes matter?\n  - If healing magic is common, how does war look different?\n  - If everyone can do X, why is Y still a problem?\n\n**Common Pitfall:** Don't add cool features without considering their logical consequences.\n\n### 3\\. The Test Questions\n\nAsk these to check your world's integrity:\n\n  - Why hasn't this problem been solved already?\n  - What stops everyone from doing the obvious thing?\n  - How do ordinary people live day-to-day?\n  - What would break if I removed this element?\n  - What's preventing total chaos or total peace?\n\n### 4\\. Evolution Over Time\n\nWorlds change. Show it.\n\n  - New technology emerges\n  - Political alliances shift\n  - Cultural attitudes evolve\n  - Old powers fade, new ones rise\n\n**Pro Tip:** A static world feels artificial. Show how player actions or story events change things.\n\n**The Golden Rule:** If you establish a rule, follow it. If you break it, make it meaningful and acknowledge the breaking."
+      },
+      "position": {
+        "x": 5000,
+        "y": 5000
+      },
+      "title": "The Connections"
+    }
+  ],
+  "connections": [
+    {
+      "id": "1-6",
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 6
+      }
+    },
+    {
+      "id": "1-2",
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 2
+      }
+    },
+    {
+      "id": "1-3",
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 3
+      }
+    },
+    {
+      "id": "1-4",
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 4
+      }
+    },
+    {
+      "id": "1-5",
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 5
+      }
+    },
+    {
+      "id": "1-7",
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 7
+      }
+    },
+    {
+      "id": "1-8",
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 8
+      }
+    },
+    {
+      "id": "2-9",
+      "start": {
+        "nodeId": 2
+      },
+      "end": {
+        "nodeId": 9
+      }
+    },
+    {
+      "id": "3-9",
+      "start": {
+        "nodeId": 3
+      },
+      "end": {
+        "nodeId": 9
+      }
+    },
+    {
+      "id": "4-9",
+      "start": {
+        "nodeId": 4
+      },
+      "end": {
+        "nodeId": 9
+      }
+    },
+    {
+      "id": "5-9",
+      "start": {
+        "nodeId": 5
+      },
+      "end": {
+        "nodeId": 9
+      }
+    },
+    {
+      "id": "6-9",
+      "start": {
+        "nodeId": 6
+      },
+      "end": {
+        "nodeId": 9
+      }
+    },
+    {
+      "id": "7-9",
+      "start": {
+        "nodeId": 7
+      },
+      "end": {
+        "nodeId": 9
+      }
+    },
+    {
+      "id": "8-9",
+      "start": {
+        "nodeId": 8
+      },
+      "end": {
+        "nodeId": 9
+      }
+    }
+  ],
+  "connectionThemes": {
+    "1-6": "emerald",
+    "1-2": "blue",
+    "1-3": "pink",
+    "1-4": "orange",
+    "1-5": "red",
+    "1-7": "amber",
+    "1-8": "purple",
+    "2-9": "blue",
+    "3-9": "pink",
+    "4-9": "orange",
+    "5-9": "red",
+    "6-9": "emerald",
+    "7-9": "amber",
+    "8-9": "purple"
+  },
+  "nodeIdCounter": 10,
+  "globalTheme": "blue",
+  "nodeThemes": {
+    "1": "lime",
+    "2": "blue",
+    "3": "pink",
+    "4": "orange",
+    "5": "red",
+    "6": "emerald",
+    "7": "amber",
+    "8": "purple",
+    "9": "blue"
+  },
+  "version": "1.0",
+  "exportedAt": "2025-10-03T00:00:00.000Z"
+}
