@@ -1,0 +1,214 @@
+{
+  "name": "Bias for Action: Ship It Guide",
+  "description": "A practical guide to launching your project",
+  "nodes": [
+    {
+      "id": 1,
+      "data": {
+        "content": "# ⚡ Bias for Action: Core Principle\n\nThe difference between dreamers and builders is simple: builders ship. This guide is built on one fundamental truth: **action beats perfection**.\n\n*\"Done is better than perfect. Perfect never ships.\"*\n\n-----\n\n### What is Bias for Action?\n\nBias for action means defaulting to doing rather than planning. It means:\n- Shipping imperfect things and improving them\n- Learning through feedback, not speculation\n- Making reversible decisions quickly\n- Treating launches as experiments, not final judgments\n\n**The Core Philosophy:**\n- Speed > Polish (for v1)\n- Feedback > Assumptions\n- Iteration > Perfection\n- Momentum > Planning\n\n### Why Most Projects Die\n\nProjects fail because creators:\n- Wait for the \"right time\" (it never comes)\n- Add \"just one more feature\" endlessly\n- Fear judgment more than obscurity\n- Confuse planning with progress\n- Optimize v1 instead of shipping it\n\n**The Truth:** A launched imperfect project beats an unlaunched perfect one 100% of the time.\n\n### The Shipping Mindset\n\nAdopt these beliefs:\n- **V1 is not your legacy** - It's your first data point\n- **Feedback is fuel** - You can't improve in a vacuum\n- **Obscurity is worse than criticism** - No one seeing it is the real failure\n- **Done today > perfect someday** - Someday never arrives\n\n**Your Mission:** Ship fast. Learn fast. Iterate fast. Repeat.\n\n**Common Pitfall:** Don't confuse \"bias for action\" with \"ship garbage.\" Ship the simplest version that provides value—not a broken mess."
+      },
+      "position": {
+        "x": 5000,
+        "y": 4000
+      },
+      "title": "The Principle"
+    },
+    {
+      "id": 2,
+      "data": {
+        "content": "# 🎯 Define Your MVP (Minimum Viable Product)\n\nYour MVP is the smallest version that delivers the core value. Not the smallest sellable product—the smallest *learnable* product.\n\n*\"If you're not embarrassed by your first version, you launched too late.\"* - Reid Hoffman\n\n----\n\n### 1\\. The Core Value Proposition\n\nWhat is the ONE thing your project must do?\n\n  - Not five things. Not three things. ONE thing.\n  - *Examples:*\n    - \"Let players create characters visually\" (not: full game + character creator + story mode)\n    - \"Help writers build consistent worlds\" (not: worldbuilding + AI generation + collaboration tools)\n\n**Exercise:** Complete this sentence: \"If my project doesn't [X], it has failed.\"\n\nEverything else is v2, v3, v4.\n\n### 2\\. The Brutal Cut\n\nList everything you want in your project. Now cut 80% of it.\n\n**What Stays (Must-Haves):**\n- Features that deliver the core value\n- Absolute minimum to prove the concept\n- Things that literally can't be added later\n\n**What Goes (Not-Now):**\n- Polish and juice (animations, particles, fancy UI)\n- Nice-to-have features\n- Content you can add post-launch\n- Anything you can't build in 2-4 weeks\n\n**Hard Truth:** If you can add it after launch, it doesn't belong in v1.\n\n### 3\\. The Time Box\n\nSet a hard deadline. No exceptions.\n\n- Solo dev? **2-4 weeks max**\n- Small team? **4-6 weeks max**\n- If it takes longer, your scope is too big\n\n**Why This Works:** Deadlines force prioritization. Infinite time creates infinite scope creep.\n\n**Common Pitfall:** Don't say \"just one more week\" repeatedly. That's how projects die. Ship on the deadline with whatever you have."
+      },
+      "position": {
+        "x": 4200,
+        "y": 3400
+      },
+      "title": "Minimum Viable Product"
+    },
+    {
+      "id": 3,
+      "data": {
+        "content": "# 🚀 Launch Channels: Where to Actually Post\n\nBuilding it is half the battle. The other half is getting eyes on it. Here's where to launch, prioritized by effort/impact.\n\n*\"If you build it, they won't come. You have to tell them.\"*\n\n----\n\n### Tier 1: Immediate Impact (Do These First)\n\n**Reddit** - High traffic, free, immediate feedback\n- Find niche subreddits relevant to your project\n- Follow each subreddit's rules religiously\n- Post with context: what it is, why you made it, what feedback you want\n- Best time: Tuesday-Thursday, 8-11am EST\n- *Example subreddits:* r/gamedev, r/IndieGaming, r/worldbuilding, r/writing\n\n**Twitter/X** - Quick shares, viral potential\n- Post a short video/gif showing the thing working\n- Use relevant hashtags (#gamedev #indiedev #solo dev)\n- Tag relevant accounts if appropriate\n- Thread with more context in replies\n\n**Discord Communities** - Engaged audiences, direct feedback\n- Join communities related to your niche\n- Participate first, promote later\n- Share in appropriate channels (usually #showcase or #projects)\n\n### Tier 2: Medium Effort, Good Reach\n\n**Product Hunt** - Tech-savvy audience, visibility boost\n- Launch on a Tuesday-Thursday\n- Prepare images, description, and be ready to engage in comments\n- Rally your existing network for upvotes in the first hour\n\n**Hacker News** - Developer audience, high-quality feedback\n- Post as \"Show HN: [Your Project]\"\n- Be prepared for technical questions and criticism\n- Engage thoughtfully in comments\n\n**IndieDB / Itch.io** - For games specifically\n- Create a page with screenshots, description, and downloadable demo\n- Good for ongoing visibility\n\n### Tier 3: Long-term Visibility\n\n**YouTube DevLog** - Document your journey\n- Show your process, challenges, wins\n- Builds audience before launch\n\n**Blog / Dev Journal** - SEO value over time\n- Write about decisions, failures, learnings\n\n**Newsletter** - Direct line to engaged users\n- Start collecting emails from day one\n\n### The Launch Day Plan\n\n**Hour 1-2:** Post to Reddit, Twitter, Discord simultaneously\n**Hour 3-6:** Respond to every comment and question\n**Day 2:** Post to Product Hunt and Hacker News\n**Week 1:** Continue engaging, gather feedback, plan v1.1\n\n**Pro Tip:** Don't post and ghost. Engagement in the first 6 hours determines visibility.\n\n**Common Pitfall:** Don't spam every channel with identical posts. Tailor your message to each community."
+      },
+      "position": {
+        "x": 5800,
+        "y": 3400
+      },
+      "title": "Where to Launch"
+    },
+    {
+      "id": 4,
+      "data": {
+        "content": "# 📊 Feedback Loops: Gather & Act Fast\n\nShipping is just the beginning. Now you need to learn what works and what doesn't—quickly.\n\n*\"Build, measure, learn. Then repeat.\"*\n\n----\n\n### 1\\. Set Up Feedback Channels\n\nMake it stupidly easy for people to tell you things.\n\n**Essential Channels:**\n- **Discord server** - Real-time chat, community building\n- **Google Form** - Quick feedback collection with specific questions\n- **Email** - Simple contact address (use hey@, feedback@, or hello@)\n- **In-app feedback button** - If possible, collect feedback where people use it\n\n**What to Ask:**\n- What did you try to do?\n- What stopped you?\n- What would make this more useful?\n- What's missing?\n- Would you use this again?\n\n### 2\\. The First 24 Hours\n\nThis is critical. You'll get your most honest feedback now.\n\n**Your Job:**\n- Respond to every comment, message, and email\n- Ask clarifying questions\n- Thank people for their time\n- Note patterns in feedback\n\n**What to Track:**\n- What confuses people? (UI/UX issues)\n- What do they ask for? (Missing features)\n- What excites them? (Double down on this)\n- What makes them bounce? (Critical bugs)\n\n### 3\\. Categorize & Prioritize\n\nOrganize feedback into action buckets:\n\n**Fix Now (Critical):**\n- Broken core functionality\n- Major confusion preventing use\n- Game-breaking bugs\n\n**Fix Soon (Important):**\n- Quality-of-life improvements\n- Frequently requested features\n- Polish that enhances core value\n\n**Maybe Later (Nice-to-Have):**\n- Edge cases\n- Features that change scope\n- Things only one person asked for\n\n**Ignore (Out of Scope):**\n- Requests that fundamentally change your vision\n- Feature bloat\n- Contradictory feedback\n\n### 4\\. Act on Feedback Fast\n\nSpeed matters. Ship fixes and updates quickly.\n\n**The 48-Hour Patch:**\n- Fix critical issues within 48 hours\n- Post update notes publicly\n- Thank the people who reported issues\n\n**Why This Works:** Fast iteration builds trust and momentum. People stick around when they see you're listening.\n\n**Common Pitfall:** Don't try to please everyone. Look for patterns, not individual opinions. Five people saying the same thing? That's data. One person with a wild idea? That's an outlier."
+      },
+      "position": {
+        "x": 4200,
+        "y": 4600
+      },
+      "title": "Feedback Loops"
+    },
+    {
+      "id": 5,
+      "data": {
+        "content": "# 🔄 Iteration Cycles: Keep Shipping\n\nShipping v1 was the hardest part. Now you have momentum—don't lose it. Keep the cycle going.\n\n*\"Version 10 is always better than version 1. But only if version 1 ships.\"*\n\n----\n\n### 1\\. Weekly Sprint Planning\n\nWork in one-week cycles. This keeps you focused and prevents feature creep.\n\n**Monday Morning Planning (30 mins):**\n- Review last week's feedback\n- Pick 2-3 improvements for this week\n- Define \"done\" clearly for each\n\n**Friday Evening Review (30 mins):**\n- What shipped? What didn't?\n- What did you learn?\n- Plan next week\n\n**The Rule:** If you can't finish it in a week, break it into smaller pieces.\n\n### 2\\. The Update Rhythm\n\nEstablish a predictable cadence.\n\n**Suggested Patterns:**\n- **Early Days:** Ship fixes daily or every other day\n- **Stable Product:** Weekly updates with new features\n- **Mature Product:** Bi-weekly or monthly major updates\n\n**Why Rhythm Matters:** Users know when to check back. Predictability builds anticipation.\n\n### 3\\. Communicate Progress\n\nTell people what you're working on. Transparency builds trust.\n\n**Weekly Update Format:**\n- What shipped this week\n- What's coming next week\n- One interesting challenge you faced\n- Thank contributors/bug reporters\n\n**Where to Post:**\n- Discord announcements\n- Twitter thread\n- Dev blog\n- Email to interested users\n\n### 4\\. Know When to Stop\n\nNot every project deserves infinite iteration. Sometimes you should move on.\n\n**Signs to Keep Going:**\n- People are actively using it\n- Feedback is constructive and engaged\n- You're excited about improvements\n- Growth (even slow) is happening\n\n**Signs to Wrap Up:**\n- Nobody's using it after 3-4 iterations\n- Feedback dried up completely\n- You've lost passion for it\n- The market spoke and said \"no thanks\"\n\n**It's Okay to Stop:** Shipping and learning is success, even if the project doesn't take off. Take the lessons to your next thing.\n\n**Common Pitfall:** Don't confuse activity with progress. Shipping features nobody asked for doesn't count as iteration."
+      },
+      "position": {
+        "x": 5800,
+        "y": 4600
+      },
+      "title": "Keep Shipping"
+    },
+    {
+      "id": 6,
+      "data": {
+        "content": "# 🧠 Killing Perfectionism\n\nPerfectionism is the enemy of shipping. It's procrastination dressed up as quality control.\n\n*\"Perfect is the enemy of done.\"* - Voltaire\n\n----\n\n### 1\\. Recognize Perfectionism\n\nYou're being a perfectionist if you:\n- Keep rewriting the same feature\n- Add \"just one more thing\" repeatedly\n- Refuse to show anyone until it's \"ready\"\n- Compare your v1 to others' v10\n- Fixate on details no user will notice\n\n**The Truth:** Your perfectionism is protecting your ego, not your users.\n\n### 2\\. The \"Good Enough\" Test\n\nAsk yourself these questions:\n\n- Does it do the core thing it promises? **Yes** = Ship it\n- Will it actively harm users? **No** = Ship it\n- Can you fix issues post-launch? **Yes** = Ship it\n- Are you just afraid of criticism? **Yes** = Ship it anyway\n\n**Reframe:** \"This isn't good enough\" → \"This is good enough to learn from\"\n\n### 3\\. Set Anti-Perfectionism Rules\n\n**Rule 1: The 80% Rule**\n- If it's 80% done, ship it\n- The last 20% takes 80% of the time anyway\n- Users would rather have 80% now than 100% never\n\n**Rule 2: The Reversibility Test**\n- Can you fix this after launch? → Then it doesn't need to be perfect now\n- Is this decision permanent? → Only these deserve extra care\n\n**Rule 3: Time-Box Everything**\n- Redesigning the logo? 2 hours max\n- Writing copy? 1 hour max\n- Debating feature implementation? 30 mins max\n- Time's up? Go with what you have\n\n### 4\\. Embrace \"Embarrassingly Simple\"\n\nYour v1 should be almost embarrassingly simple. That's the point.\n\n**Examples:**\n- Twitter launched with just text posts (no images, videos, threads)\n- Airbnb launched with founders photographing apartments themselves\n- Dropbox launched with just a demo video\n\n**Your Advantage:** Simple products are easier to explain, easier to use, and easier to improve.\n\n### 5\\. The Comparison Trap\n\nStop comparing your beginning to someone else's middle.\n\n- Their polished product took years\n- They had resources you don't (yet)\n- They also shipped a messy v1 once\n- You're seeing their highlight reel\n\n**Focus on:** Are you better than you were last week? That's the only comparison that matters.\n\n**Common Pitfall:** Don't use \"quality\" as an excuse for fear. Be honest: are you making it better, or are you avoiding shipping?"
+      },
+      "position": {
+        "x": 5000,
+        "y": 3000
+      },
+      "title": "Beat Perfectionism"
+    },
+    {
+      "id": 7,
+      "data": {
+        "content": "# 👥 The First 100 Users\n\nGetting your first users is hard because you have no proof, no reputation, and no momentum. But you only need a few to start.\n\n*\"Do things that don't scale.\"* - Paul Graham\n\n----\n\n### 1\\. Start With Your Network\n\nYes, really. Friends, family, colleagues, online mutuals.\n\n**Why This Works:**\n- They'll actually try it\n- They'll give honest (usually) feedback\n- They might share it\n- You need to start somewhere\n\n**How to Ask:**\n- Direct message: \"Hey, I built this thing. Would you try it and tell me what's broken?\"\n- Be specific about what feedback you need\n- Make it a 5-minute ask, not a 30-minute commitment\n\n### 2\\. Go Where Your Users Already Are\n\nDon't build an audience from scratch. Find existing communities.\n\n**For Game Devs:**\n- r/gamedev, r/IndieGaming\n- Discord servers for your game's genre\n- GameDev.tv forums\n- TIGSource\n\n**For Writers/Worldbuilders:**\n- r/worldbuilding, r/writing\n- NaNoWriMo forums\n- Writing Discord communities\n\n**For Tool Builders:**\n- r/SideProject\n- Indie Hackers\n- Communities using similar tools\n\n**The Approach:**\n- Participate genuinely first (don't just promote)\n- Share your project in appropriate threads/channels\n- Focus on the problem you're solving, not just features\n\n### 3\\. The Personal Touch (For Your First 10)\n\nManually onboard your first users. Yes, manually.\n\n- Send them a personal thank you\n- Ask them to hop on a quick call (if they're willing)\n- Walk them through the product\n- Ask what they'd change\n\n**Why Bother?** These people are gold. They're using an unproven thing. Learn everything you can from them.\n\n### 4\\. Leverage Early Adopters\n\nYour first users can bring the next wave.\n\n**Ask them to:**\n- Share with one friend who might find it useful\n- Post about it if they genuinely like it\n- Leave feedback publicly (testimonials are proof)\n\n**Make it Easy:**\n- Give them a pre-written tweet/post they can customize\n- Provide shareable images or videos\n- Create a simple referral mechanism\n\n### 5\\. Content as User Acquisition\n\nCreate content that demonstrates value.\n\n**Types that Work:**\n- Tutorial: \"How I built X in Y days\"\n- Problem/Solution: \"I got tired of Z, so I built this\"\n- Demo video: Show the thing working in 30-60 seconds\n- Progress thread: \"Day 1 vs. Day 30 of building\"\n\n**Where to Post:** Twitter/X, TikTok, YouTube Shorts, Reddit, Hacker News\n\n**The Hook:** Lead with the problem, not the solution. \"Are you also frustrated by [X]?\" gets attention. \"Check out my tool\" doesn't.\n\n### 6\\. Expect Crickets (At First)\n\nMost launches flop. That's normal.\n\n- You might get 10 views, not 1000\n- 5 people might try it, not 50\n- 1 person might become a real user\n\n**What to Do:** Keep shipping. Launch v1.1. Find one more channel. Try again. Momentum builds slowly, then suddenly.\n\n**Common Pitfall:** Don't give up after the first launch fails. Most successful projects launched multiple times before they caught on."
+      },
+      "position": {
+        "x": 3400,
+        "y": 4000
+      },
+      "title": "First 100 Users"
+    },
+    {
+      "id": 8,
+      "data": {
+        "content": "# 🎯 Post-Launch Momentum\n\nYou shipped. Now what? The weeks after launch determine whether your project lives or dies.\n\n*\"The launch is not the finish line. It's the starting line.\"*\n\n----\n\n### 1\\. The Critical First Week\n\nThis week sets the tone. You need to show you're serious.\n\n**Your Daily Checklist:**\n- [ ] Respond to all comments/messages (within 6 hours)\n- [ ] Fix any critical bugs immediately\n- [ ] Track what's working and what's not\n- [ ] Share one update or behind-the-scenes moment\n- [ ] Talk to at least one user directly\n\n**Goal:** Make early users feel heard and valued. They'll become your advocates.\n\n### 2\\. The Week 2-4 Push\n\nMost creators disappear after launch. Don't be most creators.\n\n**Week 2:**\n- Ship your first post-launch update\n- Write about what you learned from launch\n- Find 2-3 new communities to share in\n\n**Week 3:**\n- Ship v1.1 with most-requested features\n- Ask satisfied users for testimonials\n- Start building in public more consistently\n\n**Week 4:**\n- Review metrics: What's working? What's not?\n- Plan your next major update\n- Consider a \"relaunch\" with improvements\n\n### 3\\. Build in Public\n\nShare your journey. People love watching things get built.\n\n**What to Share:**\n- Progress updates (\"Shipped X today\")\n- Challenges you're facing (\"Can't figure out Y\")\n- Metrics and milestones (\"Hit 100 users!\")\n- Failures and lessons (\"This didn't work because...\")\n- User wins (\"Someone said Z, made my day\")\n\n**Where:**\n- Twitter/X threads\n- Dev logs on YouTube\n- Discord community updates\n- Blog posts\n\n**Why This Works:** Building in public creates accountability, attracts early adopters, and documents your journey for others.\n\n### 4\\. The Relaunch Strategy\n\nYour first launch probably didn't go viral. That's fine. Relaunch.\n\n**When to Relaunch:**\n- After significant improvements\n- When you add a major feature\n- On a different platform (tried Reddit? Try HackerNews)\n- With a new angle or story\n\n**How Often:** Every 2-4 weeks for the first few months, then monthly\n\n**The Key:** Each relaunch should have something new to say. \"I launched again\" isn't a story. \"I rebuilt X based on your feedback\" is.\n\n### 5\\. Celebrate Small Wins\n\nMomentum is psychological. Recognize progress.\n\n**Wins to Celebrate:**\n- First user\n- First piece of positive feedback\n- First bug report (means someone cares enough)\n- First week without a crash\n- 10 users, 50 users, 100 users\n- First person paying (if applicable)\n- First unsolicited share\n\n**Share these wins.** People love rooting for the underdog.\n\n### 6\\. Know When to Pivot or Persist\n\nData will tell you what's working.\n\n**Signs You're On Track:**\n- Slow but steady user growth\n- Engaged users returning\n- Positive feedback outweighs negative\n- You're excited to work on it\n\n**Signs to Pivot:**\n- Zero growth after 3-4 relaunch attempts\n- Users try once and never return\n- The feedback is \"cool but I don't need this\"\n- You've lost passion for the problem\n\n**Signs to Quit and Move On:**\n- You've tried everything for 3+ months with no traction\n- The market clearly doesn't care\n- You're forcing yourself to work on it\n\n**Remember:** Failing fast is a feature, not a bug. Better to learn quickly and move to the next idea than drag out a dying project.\n\n**Common Pitfall:** Don't confuse slow growth with no growth. Patience is a virtue, but delusion isn't."
+      },
+      "position": {
+        "x": 6600,
+        "y": 4000
+      },
+      "title": "Maintain Momentum"
+    },
+    {
+      "id": 9,
+      "data": {
+        "content": "# 🛠️ Tools & Tactics for Fast Shipping\n\nThe right tools accelerate shipping. Don't reinvent wheels.\n\n*\"Good artists borrow. Great artists steal. Smart artists use AI and libraries.\"*\n\n----\n\n### 1\\. Embrace AI for Speed\n\nAI isn't cheating—it's leverage. Use it strategically.\n\n**What AI Does Well:**\n- Boilerplate code generation\n- First drafts of copy and content\n- Image generation for placeholders\n- Brainstorming and ideation\n- Code review and debugging\n- Documentation writing\n\n**What Humans Do Better:**\n- Creative direction and vision\n- Understanding user needs\n- Making strategic decisions\n- Adding polish and personality\n- Emotional intelligence\n\n**The Workflow:** AI generates the first 80%, you refine the last 20%.\n\n**Pro Tip:** Be transparent about AI use. Most people don't care as long as the end result is valuable.\n\n### 2\\. No-Code & Low-Code Tools\n\nYou don't need to build everything from scratch.\n\n**For Quick MVPs:**\n- **Notion** - Databases, wikis, simple apps\n- **Airtable** - Structured data with forms\n- **Carrd/Webflow** - Landing pages\n- **Gumroad/Itch.io** - Selling digital products\n- **Tally/Typeform** - Forms and surveys\n\n**For Game Dev:**\n- **Godot** - Free, lightweight engine\n- **Unity** - Industry standard with assets\n- **Construct 3** - No-code 2D games\n\n**For Websites/Apps:**\n- **Next.js** - Fast web apps\n- **Supabase** - Backend as a service\n- **Vercel** - Instant deployment\n\n### 3\\. Asset Libraries\n\nDon't create everything. Use what exists.\n\n**Free Resources:**\n- **Itch.io** - Game assets, tools\n- **OpenGameArt** - Sprites, music, sounds\n- **Unsplash/Pexels** - Stock photos\n- **Google Fonts** - Typography\n- **Freesound** - Sound effects\n\n**Paid Resources (Worth It):**\n- **Asset Store** (Unity) - Pre-built components\n- **Humble Bundle** - Game asset bundles\n- **Creative Market** - Design resources\n\n**The Rule:** Use free/cheap assets for v1. Create custom assets for v2+ if the project takes off.\n\n### 4\\. Automation for Repetitive Tasks\n\n**Time Savers:**\n- **GitHub Actions** - Automated testing/deployment\n- **Zapier/Make** - Connect apps without code\n- **IFTTT** - Simple automation\n- **Keyboard shortcuts** - Learn them, use them\n\n### 5\\. Communication Tools\n\n**Essential Stack:**\n- **Discord** - Community hub (free)\n- **Twitter/X** - Marketing and updates\n- **Google Forms** - Feedback collection\n- **Mailchimp/Buttondown** - Email list (start day one)\n\n### 6\\. The \"Don't Build It\" List\n\nThings you should NEVER build for v1:\n- Custom authentication (use OAuth)\n- Payment processing (use Stripe/Gumroad)\n- Analytics (use Google Analytics or Simple Analytics)\n- Email infrastructure (use Mailchimp)\n- User forums (use Discord/Reddit)\n\n**Focus your time on:** The unique value only you can create.\n\n**Common Pitfall:** Don't spend a week choosing the perfect tool. Pick one, use it, move on. You can always switch later."
+      },
+      "position": {
+        "x": 5000,
+        "y": 4800
+      },
+      "title": "Tools & Tactics"
+    }
+  ],
+  "connections": [
+    {
+      "id": "1-2",
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 2
+      }
+    },
+    {
+      "id": "1-3",
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 3
+      }
+    },
+    {
+      "id": "1-6",
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 6
+      }
+    },
+    {
+      "id": "2-4",
+      "start": {
+        "nodeId": 2
+      },
+      "end": {
+        "nodeId": 4
+      }
+    },
+    {
+      "id": "3-7",
+      "start": {
+        "nodeId": 3
+      },
+      "end": {
+        "nodeId": 7
+      }
+    },
+    {
+      "id": "4-5",
+      "start": {
+        "nodeId": 4
+      },
+      "end": {
+        "nodeId": 5
+      }
+    },
+    {
+      "id": "5-8",
+      "start": {
+        "nodeId": 5
+      },
+      "end": {
+        "nodeId": 8
+      }
+    },
+    {
+      "id": "1-9",
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 9
+      }
+    },
+    {
+      "id": "7-8",
+      "start": {
+        "nodeId": 7
+      },
+      "end": {
+        "nodeId": 8
+      }
+    }
+  ],
+  "connectionThemes": {
+    "1-2": "blue",
+    "1-3": "pink",
+    "1-6": "emerald",
+    "2-4": "orange",
+    "3-7": "amber",
+    "4-5": "red",
+    "5-8": "purple",
+    "1-9": "lime",
+    "7-8": "purple"
+  },
+  "nodeIdCounter": 10,
+  "globalTheme": "blue",
+  "nodeThemes": {
+    "1": "lime",
+    "2": "blue",
+    "3": "pink",
+    "4": "orange",
+    "5": "red",
+    "6": "emerald",
+    "7": "amber",
+    "8": "purple",
+    "9": "lime"
+  },
+  "version": "1.0",
+  "exportedAt": "2025-10-03T00:00:00.000Z"
+}
