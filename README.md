@@ -1,7 +1,7 @@
 # QUIRK - Visual Knowledge Management
 
 A fast, intuitive visual knowledge base that lets you create, connect, and organize markdown notes with smooth drag-and-drop interactions.
-<img width="1469" height="849" alt="image" src="https://github.com/user-attachments/assets/14869423-f34f-4c84-8394-2503bd084ae2" />
+<img width="1825" height="901" alt="image" src="https://github.com/user-attachments/assets/ffa94794-1161-4755-9d8b-49790d40427f" />
 
 
 **Live Demo**: [Try QUIRK online](https://quirk.uk?board=https://raw.githubusercontent.com/al4669/quirk/refs/heads/main/examples/godot.json)
