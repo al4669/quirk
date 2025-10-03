@@ -1,16 +1,25 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="metal">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>QUIRK</title>
     
     <!-- Alpine.js 3.13.3 -->
-    <script defer src="static/deps/alpine.min.js"></script> 
-    
+    <script defer src="static/deps/alpine.min.js"></script>
+
     <!-- Marked.js v11.1.1 for Markdown -->
     <script src="static/deps/marked.min.js"></script>
-    
+
+    <!-- CodeMirror 5.65.16 (standalone for inline editing) -->
+    <link rel="stylesheet" href="static/deps/codemirror.min.css">
+    <script src="static/deps/codemirror.min.js"></script>
+    <script src="static/deps/codemirror-markdown.min.js"></script>
+
+    <!-- EasyMDE for Markdown editing -->
+    <link rel="stylesheet" href="static/deps/easymde.min.css">
+    <script src="static/deps/easymde.min.js"></script>
+
     <!-- Prism.js 1.29.0 for syntax highlighting -->
     <link href="static/deps/prism-laserwave.css" rel="stylesheet" />
     <script src="static/deps/prism.min.js"></script>
@@ -22,7 +31,7 @@
 
     <!-- JSZip 3.10.1 for compression  -->
     <script src="static/deps/jszip.min.js"></script>
-    <link rel="stylesheet" href="static/app.css">
+    <link rel="stylesheet" href="static/app.css?v=1.1">
 
 </head>
 <body>
@@ -193,6 +202,8 @@
    <script src="static/export-manager.js"></script>
    <script src="static/alignment-manager.js"></script>
    <script src="static/keyboard-shortcuts.js"></script>
+   <script src="static/mobile.js"></script>
+   <script src="static/editor.js"></script>
    <script src="static/app.js"></script>
 </body>
 </html>

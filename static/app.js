@@ -23,6 +23,7 @@ class Wallboard {
     this.dragLine = null;
     this.nodeIdCounter = 0;
     this.connectionManager = new ConnectionManager(this, () => this.autoSave());
+    this.editorManager = new EditorManager(this);
 
     // Properties for new drag-and-drop logic
     this.draggedNode = null;
@@ -938,9 +939,9 @@ addMarkdownNode() {
                                 <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
                             </svg>
                         </button>
-                        <button class="node-btn" onclick="wallboard.toggleEdit(${
+                        <button class="node-btn" onclick="wallboard.openInEditor(${
                           node.id
-                        })">
+                        })" title="Edit">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -964,6 +965,23 @@ addMarkdownNode() {
       e.stopPropagation();
       this.editNodeType(node.id);
     });
+
+    // Add double-click to header to exit edit mode
+    header.addEventListener('dblclick', (e) => {
+      // Don't trigger if clicking on node type (it has its own handler)
+      if (e.target.closest('.node-type') || e.target.closest('.node-actions')) {
+        return;
+      }
+
+      const content = document.getElementById(`content-${node.id}`);
+      const isEditing = content.querySelector('.text-editor');
+      if (isEditing) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.toggleEdit(node.id);
+      }
+    });
+
     nodeEl.appendChild(header);
 
     // Node content
@@ -972,10 +990,8 @@ addMarkdownNode() {
     content.id = `content-${node.id}`;
 
     if (node.data && node.data.content !== undefined) {
-      // Render any content node as markdown
-      content.innerHTML = `<div class="markdown-content">${marked.parse(
-        node.data.content
-      )}</div>`;
+      // Render node content (uses stored HTML or plain text)
+      content.innerHTML = this.renderNodeContent(node);
 
       // Apply syntax highlighting to initial render
       setTimeout(() => {
@@ -1025,7 +1041,7 @@ addMarkdownNode() {
 
     // Add double-click to edit content
     content.addEventListener("dblclick", (e) => {
-      if (e.target.closest('.node-btn') || e.target.closest('textarea') || e.target.closest('button')) return;
+      if (e.target.closest('.node-btn') || e.target.closest('textarea') || e.target.closest('button') || e.target.closest('.CodeMirror')) return;
       e.preventDefault();
       e.stopPropagation();
       this.toggleEdit(node.id);
@@ -1181,8 +1197,8 @@ addMarkdownNode() {
   // --- Zoom and Pan Handlers ---
 
   handleWheel(e) {
-    if (e.target.closest('.theme-selector') || e.target.closest('.context-menu')) {
-      return; // Don't zoom when scrolling in menus
+    if (e.target.closest('.theme-selector') || e.target.closest('.context-menu') || e.target.closest('.editor-overlay')) {
+      return; // Don't zoom when scrolling in menus or editor
     }
 
     // Don't zoom/pan when any node is being edited or when interacting with a node
@@ -2213,18 +2229,26 @@ updateTransform() {
       const isEditing = content.querySelector(".text-editor");
 
       if (isEditing) {
-        // Save and render
-        node.data.content = isEditing.value;
+        // Save and destroy CodeMirror
+        const cmInstance = isEditing._cmInstance;
+        if (cmInstance) {
+          node.data.content = cmInstance.getValue();
+          node.data.html = marked.parse(node.data.content);
+        }
 
-        // Clear any width constraints that were set for editing
+        // Clear any width/height constraints and zoom that were set for editing
         content.style.width = "";
         content.style.minWidth = "";
-        content.style.overflow = ""; // Restore original overflow behavior
+        content.style.maxWidth = "";
+        content.style.height = "";
+        content.style.maxHeight = "";
+        content.style.overflow = "";
+        content.style.overflowY = "";
+        content.style.overflowX = "";
+        content.style.zoom = "";
 
-        // Always render as markdown since that's what we support
-        content.innerHTML = `<div class="markdown-content">${marked.parse(
-          node.data.content
-        )}</div>`;
+        // Render node content
+        content.innerHTML = this.renderNodeContent(node);
 
         // Re-highlight syntax after DOM update
         setTimeout(() => {
@@ -2245,39 +2269,114 @@ updateTransform() {
           this.updateConnections();
         }, 100);
       } else {
-        // Edit mode - capture current content width before switching
+        // Edit mode - create CodeMirror inline editor
         const currentWidth = content.offsetWidth;
+        const currentHeight = content.offsetHeight;
 
-        const editor = document.createElement("textarea");
-        editor.className = "text-editor";
-        editor.value = node.data.content;
-
-        // Preserve the content area width by setting it on the container
-        content.style.width = currentWidth + "px";
-        content.style.minWidth = currentWidth + "px";
-        content.style.overflow = "visible"; // Remove scrollbar from container
-
-        editor.style.width = "100%";
-        editor.style.height = Math.max(150, content.offsetHeight) + "px";
+        // Create textarea placeholder for CodeMirror
+        const textarea = document.createElement("textarea");
+        textarea.className = "text-editor";
+        textarea.value = node.data.content;
 
         content.innerHTML = "";
-        content.appendChild(editor);
-        editor.focus();
+        content.appendChild(textarea);
 
-        // Update editing state
-        this.updateEditingState();
+        // Initialize CodeMirror
+        const cmInstance = CodeMirror.fromTextArea(textarea, {
+          mode: 'markdown',
+          lineWrapping: true,
+          autofocus: true,
+          theme: 'easymde',
+          lineNumbers: false,
+          viewportMargin: Infinity,
+          extraKeys: {
+            'Enter': 'newlineAndIndentContinueMarkdownList',
+            'Tab': false,
+            'Shift-Tab': false,
+          }
+        });
 
-        // Auto-resize height only, keep width fixed
-        editor.addEventListener("input", () => {
-          editor.style.height = "auto";
-          editor.style.height = Math.max(150, editor.scrollHeight) + "px";
+        // Get the CodeMirror wrapper element
+        const cmWrapper = content.querySelector('.CodeMirror');
+        cmWrapper.classList.add('text-editor');
+        cmWrapper._cmInstance = cmInstance;
 
-          // Update connections when content size changes
+        // Style the CodeMirror editor to match view width
+        cmWrapper.style.height = 'auto';
+        cmWrapper.style.minHeight = '150px';
+        cmWrapper.style.width = '100%';
+
+        // Use CSS zoom inverse to fix cursor positioning
+        // zoom affects coordinate calculations unlike transform: scale()
+        const inverseZoom = 1 / this.zoom;
+        content.style.zoom = inverseZoom;
+
+        // Scale font size to compensate and match visual size with view mode
+        // Canvas at this.zoom × content at 1/this.zoom × font at this.zoom = this.zoom (matches rendered)
+        cmWrapper.style.fontSize = (this.zoom * 100) + '%';
+
+        // Apply node's custom accent color if it has one
+        if (node.theme) {
+          const nodeEl = document.getElementById(`node-${node.id}`);
+          const accentColor = getComputedStyle(nodeEl).getPropertyValue('--node-accent');
+          const accentGlow = getComputedStyle(nodeEl).getPropertyValue('--node-accent-glow');
+          // Set on content so children inherit
+          content.style.setProperty('--accent', accentColor);
+          content.style.setProperty('--accent-glow', accentGlow);
+        }
+
+        // Multiply by zoom to compensate for the inverse zoom applied above
+        // Visual size: this.zoom (canvas) × (1/this.zoom) (content zoom) × (currentWidth * this.zoom) = currentWidth
+        content.style.width = (currentWidth * this.zoom) + "px";
+        content.style.maxWidth = (currentWidth * this.zoom) + "px";
+        content.style.height = (currentHeight * this.zoom) + "px";
+        content.style.maxHeight = (currentHeight * this.zoom) + "px";
+
+        // Ensure content can scroll to see all lines
+        content.style.overflowY = 'auto';
+        content.style.overflowX = 'hidden';
+
+        // Refresh CodeMirror to ensure proper rendering
+        setTimeout(() => {
+          cmInstance.refresh();
+        }, 10);
+
+        // Auto-save on change
+        cmInstance.on('change', () => {
+          clearTimeout(this.inlineEditTimeout);
+          this.inlineEditTimeout = setTimeout(() => {
+            node.data.content = cmInstance.getValue();
+            node.data.html = marked.parse(node.data.content);
+            this.autoSave();
+          }, 1000);
+        });
+
+        // Save immediately on blur (when clicking outside)
+        cmInstance.on('blur', () => {
+          // Clear any pending timeout
+          clearTimeout(this.inlineEditTimeout);
+          // Save immediately
+          node.data.content = cmInstance.getValue();
+          node.data.html = marked.parse(node.data.content);
+          this.autoSave();
+        });
+
+        // Auto-resize on change
+        cmInstance.on('change', () => {
           clearTimeout(this.resizeTimeout);
           this.resizeTimeout = setTimeout(() => {
             this.updateConnections();
           }, 300);
         });
+
+        // Update editing state
+        this.updateEditingState();
+
+        // Focus the editor
+        setTimeout(() => {
+          cmInstance.refresh();
+          cmInstance.focus();
+        }, 10);
       }
     }
   }
@@ -2403,6 +2502,23 @@ updateTransform() {
     }
   }
 
+  openInEditor(nodeId) {
+    const node = this.nodes.find((n) => n.id === nodeId);
+    if (node) {
+      this.editorManager.openNode(node);
+    }
+  }
+
+  // Helper to render node content (uses cached HTML or marked.js)
+  renderNodeContent(node) {
+    if (node.data && node.data.content !== undefined) {
+      // Use stored HTML if available, otherwise render with marked.js
+      const htmlContent = node.data.html || marked.parse(node.data.content);
+      return `<div class="markdown-content">${htmlContent}</div>`;
+    }
+    return '';
+  }
+
   duplicateNode() {
     if (this.contextNode) {
       const newNode = {
@@ -2487,7 +2603,7 @@ updateTransform() {
     header.innerHTML = `
       <div class="maximized-title">${this.getNodeTitle(node).toUpperCase()}</div>
       <div class="maximized-actions">
-        <button class="maximize-btn" onclick="wallboard.toggleMaximizedEdit(${nodeId})" title="Edit">
+        <button class="maximize-btn" onclick="wallboard.minimizeNode(${nodeId}); wallboard.openInEditor(${nodeId});" title="Edit">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -2572,7 +2688,7 @@ updateTransform() {
           // Update the original node content as well
           const originalContent = document.getElementById(`content-${nodeId}`);
           if (originalContent) {
-            originalContent.innerHTML = `<div class="markdown-content">${marked.parse(node.data.content)}</div>`;
+            originalContent.innerHTML = this.renderNodeContent(node);
 
             // Re-highlight syntax for original node
             setTimeout(() => {
@@ -2624,7 +2740,7 @@ updateTransform() {
         content.style.width = "";
         content.style.minWidth = "";
         content.classList.remove('editing');
-        content.innerHTML = `<div class="markdown-content">${marked.parse(node.data.content)}</div>`;
+        content.innerHTML = this.renderNodeContent(node);
 
         // Re-highlight syntax after DOM update for maximized view
         setTimeout(() => {
@@ -2637,7 +2753,7 @@ updateTransform() {
         // Update the original node content as well
         const originalContent = document.getElementById(`content-${nodeId}`);
         if (originalContent) {
-          originalContent.innerHTML = `<div class="markdown-content">${marked.parse(node.data.content)}</div>`;
+          originalContent.innerHTML = this.renderNodeContent(node);
 
           // Re-highlight syntax for original node too
           setTimeout(() => {
@@ -2761,3 +2877,25 @@ wallboard.alignmentManager = alignmentManager;
 
 // Initialize theme system
 wallboard.applyGlobalTheme();
+
+// Initialize mobile or desktop interface based on device
+let mobileInterface = null;
+const isMobileDevice = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+console.log('Mobile detection:', {
+  isMobile: isMobileDevice,
+  width: window.innerWidth,
+  userAgent: navigator.userAgent
+});
+
+if (isMobileDevice) {
+  console.log('Initializing mobile interface...');
+  // Initialize mobile interface after boards are loaded
+  if (typeof MobileInterface !== 'undefined') {
+    mobileInterface = new MobileInterface(wallboard);
+  } else {
+    console.error('MobileInterface class not found!');
+  }
+} else {
+  console.log('Desktop mode - canvas interface active');
+}
