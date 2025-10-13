@@ -1,0 +1,256 @@
+{
+  "name": "Boarding Tool: Feature Showcase",
+  "description": "A comprehensive demo of all boarding tool capabilities - exported 10/14/2025",
+  "nodes": [
+    {
+      "id": 1,
+      "data": {
+        "content": "# 🎯 Welcome to Boarding Tool\n\nA visual thinking canvas for organizing ideas, projects, and knowledge.\n\n---\n\n## Core Capabilities\n\n**Visual Organization**\n- Infinite canvas workspace\n- Drag and drop nodes anywhere\n- Pan and zoom for big-picture thinking\n- Spatial memory for better recall\n\n**Rich Content**\n- Full Markdown support\n- Task lists with persistence\n- Headers, lists, emphasis\n- Code blocks and quotes\n\n**Connections**\n- Link related ideas visually\n- Color-coded relationships\n- See how concepts flow\n- Build knowledge graphs\n\n**Customization**\n- 12 beautiful color themes\n- Per-node and per-connection colors\n- Global theme options\n- Export/Import your boards\n\n---\n\n*Explore the connected nodes to see each feature in detail!*"
+      },
+      "position": {
+        "x": 5000,
+        "y": 4000
+      },
+      "title": "Welcome"
+    },
+    {
+      "id": 2,
+      "data": {
+        "content": "# 📝 Markdown Mastery\n\nBoarding Tool supports **full Markdown** syntax for rich formatting.\n\n---\n\n## Text Formatting\n\n**Bold text** for emphasis\n*Italic text* for style\n***Bold and italic*** for maximum impact\n~~Strikethrough~~ for corrections\n\n## Headers\n\n# H1 - Main Title\n## H2 - Section\n### H3 - Subsection\n#### H4 - Detail\n##### H5 - Fine Print\n###### H6 - Smallest\n\n## Lists\n\n**Unordered:**\n- First item\n- Second item\n  - Nested item\n  - Another nested item\n- Third item\n\n**Ordered:**\n1. First step\n2. Second step\n3. Third step\n\n## Quotes\n\n> \"The best way to predict the future is to invent it.\"\n> — Alan Kay\n\n## Code\n\nInline `code` and blocks:\n\n```javascript\nfunction hello() {\n  console.log('Hello, Boarding Tool!');\n}\n```\n\n## Horizontal Rules\n\n---\n\nSeparate sections with style!"
+      },
+      "position": {
+        "x": 4200,
+        "y": 3500
+      },
+      "title": "Markdown Support"
+    },
+    {
+      "id": 3,
+      "data": {
+        "content": "# ✅ Task Lists: The Killer Feature\n\nTask lists in Boarding Tool are **persistent** - check them off and they stay checked!\n\n---\n\n## Project Planning\n\n- [x] Define project scope\n- [x] Create initial wireframes\n- [x] Set up development environment\n- [ ] Implement core features\n- [ ] Write documentation\n- [ ] Launch beta version\n\n## Daily Routine\n\n- [x] Morning coffee ☕\n- [x] Review emails\n- [x] Stand-up meeting\n- [ ] Deep work session\n- [ ] Lunch break\n- [ ] Code review\n- [ ] Plan tomorrow\n\n## Learning Goals\n\n- [x] Learn React basics\n- [x] Understand state management\n- [ ] Master TypeScript\n- [ ] Build a full-stack app\n- [ ] Contribute to open source\n\n## Grocery List\n\n- [x] Milk\n- [x] Eggs\n- [x] Bread\n- [ ] Coffee beans\n- [ ] Fresh vegetables\n- [ ] Pasta\n- [ ] Cheese\n\n---\n\n**Try it yourself!** Click any checkbox and refresh - it persists! 🎉"
+      },
+      "position": {
+        "x": 4200,
+        "y": 4500
+      },
+      "title": "Task Lists"
+    },
+    {
+      "id": 4,
+      "data": {
+        "content": "# 🔗 Connection System\n\nConnect nodes to show relationships between ideas.\n\n---\n\n## Why Connect?\n\n**Visual Thinking**\n- See how ideas relate\n- Build knowledge maps\n- Understand dependencies\n- Track information flow\n\n**Mental Models**\n- Cause and effect\n- Prerequisites\n- Related concepts\n- Workflow sequences\n\n## Connection Types\n\nUse **color themes** to indicate different relationships:\n\n- 🔵 **Blue** - Main flow\n- 🟢 **Green** - Supporting ideas\n- 🟡 **Yellow** - Warnings/notes\n- 🔴 **Red** - Critical paths\n- 🟣 **Purple** - Creative links\n- 🟠 **Orange** - Action items\n\n## Best Practices\n\n1. **Start Simple** - Don't over-connect\n2. **Use Color** - Make relationships clear\n3. **Think Spatial** - Related nodes go near each other\n4. **Review Often** - Update as understanding grows\n\n---\n\n*This node connects to many others - explore the web!*"
+      },
+      "position": {
+        "x": 5800,
+        "y": 3500
+      },
+      "title": "Connections"
+    },
+    {
+      "id": 5,
+      "data": {
+        "content": "# 🎨 Theming System\n\n12 beautiful color themes to organize your thoughts visually.\n\n---\n\n## Available Themes\n\n**Neutrals:**\n- 🔘 Slate - Professional gray\n\n**Warm:**\n- 🔴 Red - Urgent, important\n- 🟠 Orange - Action, energy  \n- 🟡 Amber - Warning, attention\n- 🟢 Yellow - Highlight, note\n\n**Cool:**\n- 🟢 Lime - Fresh, growth\n- 💚 Emerald - Success, complete\n- 🔵 Cyan - Info, support\n- 🔷 Blue - Primary, main\n- 🟣 Purple - Creative, special\n\n**Accent:**\n- 🌸 Pink - Favorite, fun\n- 🌹 Rose - Love, passion\n\n## Theme Levels\n\n**Global Theme**\n- Sets default for all new nodes\n- Quick visual consistency\n\n**Node Themes**\n- Override for specific nodes\n- Create visual hierarchy\n- Group related concepts\n\n**Connection Themes**\n- Color-code relationships\n- Show different link types\n- Build visual grammar\n\n---\n\n*Use color strategically to enhance understanding!*"
+      },
+      "position": {
+        "x": 5800,
+        "y": 4500
+      },
+      "title": "Themes"
+    },
+    {
+      "id": 6,
+      "data": {
+        "content": "# 💾 Export & Import\n\nSave your boards and share them with others.\n\n---\n\n## Export Format\n\n**Clean JSON** structure:\n- All nodes with content\n- Connection data\n- Theme information\n- Metadata (name, description, date)\n\n```json\n{\n  \"name\": \"My Board\",\n  \"nodes\": [...],\n  \"connections\": [...],\n  \"nodeThemes\": {...},\n  \"connectionThemes\": {...}\n}\n```\n\n## Use Cases\n\n**Backup**\n- Save versions of your work\n- Prevent data loss\n- Track evolution over time\n\n**Sharing**\n- Send boards to teammates\n- Publish templates\n- Collaborate asynchronously\n\n**Templates**\n- Create reusable structures\n- Build starting points\n- Share best practices\n\n**Archiving**\n- Save completed projects\n- Document decisions\n- Build knowledge library\n\n---\n\n## Quick Export\n\n1. Click Export button\n2. JSON downloads automatically\n3. File named with board title + date\n\n## Easy Import\n\n1. Click Import button\n2. Select your JSON file\n3. Board loads instantly\n\n*All your work is portable and shareable!*"
+      },
+      "position": {
+        "x": 6400,
+        "y": 4000
+      },
+      "title": "Export/Import"
+    },
+    {
+      "id": 7,
+      "data": {
+        "content": "# 🚀 Use Cases\n\nWhat can you build with Boarding Tool?\n\n---\n\n## Project Planning\n\n- [ ] Break down large projects\n- [ ] Track milestones\n- [ ] Assign tasks\n- [ ] See dependencies\n- [ ] Monitor progress\n\n## Knowledge Management\n\n- **Learn new topics**\n- **Connect concepts**\n- **Build mental models**\n- **Review and reinforce**\n\n## Writing & Content\n\n1. Brainstorm ideas\n2. Outline structure  \n3. Draft sections\n4. Link references\n5. Track research\n\n## Decision Making\n\n> Map out options → List pros/cons → Connect impacts → Choose path\n\n## Meeting Notes\n\n**Main Discussion:**\n- Action items\n- Decisions made\n- Follow-ups needed\n\n**Connected Context:**\n- Previous meetings\n- Related documents\n- Stakeholder notes\n\n---\n\n## The Possibilities\n\n- 📚 Study notes and exam prep\n- 🎯 Goal tracking and OKRs\n- 🧠 Brainstorming sessions\n- 📖 Story plotting and worldbuilding\n- 🔬 Research organization\n- 💼 Business strategy mapping\n- 🎨 Creative project planning\n- 🏗️ System architecture design\n\n*Your ideas, your structure, your way.*"
+      },
+      "position": {
+        "x": 5000,
+        "y": 3200
+      },
+      "title": "Use Cases"
+    },
+    {
+      "id": 8,
+      "data": {
+        "content": "# 🎓 Tips & Tricks\n\nGet the most out of Boarding Tool.\n\n---\n\n## Organization Patterns\n\n**Hub & Spoke**\n- Central concept in middle\n- Related ideas radiate outward\n- Good for topic exploration\n\n**Linear Flow**\n- Left-to-right progression\n- Shows process or timeline\n- Perfect for workflows\n\n**Hierarchical**\n- Top-down structure\n- Parent-child relationships\n- Great for taxonomies\n\n**Web/Network**\n- Many interconnections\n- Complex relationships\n- Ideal for knowledge graphs\n\n## Workflow Tips\n\n- [x] Start with brain dump - add everything\n- [x] Group related nodes spatially\n- [x] Add connections to show flow\n- [ ] Apply themes for visual grouping\n- [ ] Export regularly for backup\n- [ ] Refine and reorganize as needed\n\n## Performance\n\n**Keep It Smooth:**\n- Break huge boards into multiple files\n- Use clear, concise titles\n- Archive completed sections\n- Regular exports = lighter load\n\n## Keyboard Shortcuts\n\n*Coming soon!*\n- `Ctrl/Cmd + N` - New node\n- `Delete` - Remove selected\n- `Space + Drag` - Pan canvas\n\n---\n\n**Pro Tip:** Use task lists for progress tracking and regular checkboxes for status indicators!"
+      },
+      "position": {
+        "x": 5000,
+        "y": 4800
+      },
+      "title": "Tips & Tricks"
+    },
+    {
+      "id": 9,
+      "data": {
+        "content": "# 🛠️ Technical Details\n\nFor the curious minds who want to know how it works.\n\n---\n\n## Built With\n\n**Frontend:**\n- React for UI components\n- State management for nodes\n- Canvas API for connections\n- LocalStorage for persistence\n\n**Features:**\n- Real-time markdown rendering\n- Drag-and-drop interface\n- Zoom and pan controls\n- JSON export/import\n\n## Persistence Model\n\n**Auto-Save:**\n- Changes save immediately\n- No \"save\" button needed\n- Works offline-first\n\n**Task States:**\n```javascript\n// Checkboxes maintain state\n- [ ] unchecked → persists\n- [x] checked → persists\n// Refresh? Still there!\n```\n\n## Data Structure\n\n**Node:**\n- Unique ID\n- Title string\n- Markdown content\n- Position (x, y)\n- Theme color\n\n**Connection:**\n- Start node ID\n- End node ID  \n- Theme color\n- Unique identifier\n\n## Future Roadmap\n\n- [ ] Collaborative editing\n- [ ] Real-time sync\n- [ ] Mobile app\n- [ ] Keyboard shortcuts\n- [ ] Search functionality\n- [ ] Version history\n- [ ] Image attachments\n- [ ] PDF export\n\n---\n\n*Built with care for visual thinkers everywhere.*"
+      },
+      "position": {
+        "x": 3600,
+        "y": 4000
+      },
+      "title": "Technical"
+    },
+    {
+      "id": 10,
+      "data": {
+        "content": "# 📚 Example: Study Plan\n\nA practical example showing task lists in action.\n\n---\n\n## Week 1: Foundations\n\n- [x] Read chapters 1-3\n- [x] Watch intro lecture\n- [x] Complete problem set 1\n- [x] Join study group\n\n## Week 2: Deep Dive\n\n- [x] Read chapters 4-6\n- [x] Watch advanced lectures\n- [ ] Complete problem set 2\n- [ ] Review with study group\n\n## Week 3: Practice\n\n- [ ] Mock exam 1\n- [ ] Review weak areas\n- [ ] Complete problem set 3\n- [ ] Office hours visit\n\n## Week 4: Final Prep\n\n- [ ] Mock exam 2\n- [ ] Create summary notes\n- [ ] Final review session\n- [ ] Get good sleep!\n\n---\n\n## Topics to Master\n\n- [x] Basic concepts\n- [x] Core algorithms\n- [ ] Advanced techniques\n- [ ] Edge cases\n- [ ] Time complexity\n- [ ] Space optimization\n\n## Resources\n\n- [x] Textbook readings\n- [x] Video lectures\n- [ ] Practice problems\n- [ ] Past exams\n- [ ] Cheat sheet\n\n*Click to check off completed items!*"
+      },
+      "position": {
+        "x": 4200,
+        "y": 5300
+      },
+      "title": "Example Board"
+    }
+  ],
+  "connections": [
+    {
+      "id": "1-2",
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 2
+      }
+    },
+    {
+      "id": "1-3",
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 3
+      }
+    },
+    {
+      "id": "1-4",
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 4
+      }
+    },
+    {
+      "id": "1-5",
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 5
+      }
+    },
+    {
+      "id": "1-6",
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 6
+      }
+    },
+    {
+      "id": "1-7",
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 7
+      }
+    },
+    {
+      "id": "1-8",
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 8
+      }
+    },
+    {
+      "id": "1-9",
+      "start": {
+        "nodeId": 1
+      },
+      "end": {
+        "nodeId": 9
+      }
+    },
+    {
+      "id": "3-10",
+      "start": {
+        "nodeId": 3
+      },
+      "end": {
+        "nodeId": 10
+      }
+    },
+    {
+      "id": "7-8",
+      "start": {
+        "nodeId": 7
+      },
+      "end": {
+        "nodeId": 8
+      }
+    },
+    {
+      "id": "2-3",
+      "start": {
+        "nodeId": 2
+      },
+      "end": {
+        "nodeId": 3
+      }
+    },
+    {
+      "id": "4-5",
+      "start": {
+        "nodeId": 4
+      },
+      "end": {
+        "nodeId": 5
+      }
+    }
+  ],
+  "connectionThemes": {
+    "1-2": "blue",
+    "1-3": "emerald",
+    "1-4": "purple",
+    "1-5": "pink",
+    "1-6": "cyan",
+    "1-7": "amber",
+    "1-8": "orange",
+    "1-9": "slate",
+    "3-10": "lime",
+    "7-8": "yellow",
+    "2-3": "emerald",
+    "4-5": "rose"
+  },
+  "nodeIdCounter": 11,
+  "globalTheme": "blue",
+  "nodeThemes": {
+    "1": "purple",
+    "2": "blue",
+    "3": "emerald",
+    "4": "purple",
+    "5": "pink",
+    "6": "cyan",
+    "7": "amber",
+    "8": "orange",
+    "9": "slate",
+    "10": "lime"
+  },
+  "version": "1.0",
+  "exportedAt": "2025-10-14T12:00:00.000Z"
+}
