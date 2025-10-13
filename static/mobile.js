@@ -79,8 +79,8 @@ class MobileInterface {
     const nodeTitle = this.wallboard.getNodeTitle(node);
     const connections = this.getNodeConnections(node.id);
     const theme = this.wallboard.nodeThemes[node.id]
-      ? this.wallboard.themes[this.wallboard.nodeThemes[node.id]]
-      : this.wallboard.themes[this.wallboard.globalTheme];
+      ? Themes.definitions[this.wallboard.nodeThemes[node.id]]
+      : Themes.definitions[this.wallboard.globalTheme];
 
     return `
       <div class="mobile-node" data-node-id="${node.id}">
@@ -113,7 +113,7 @@ class MobileInterface {
           ` : ''}
         </div>
         <div class="mobile-node-content">
-          ${node.data && node.data.content ? marked.parse(node.data.content) : '<p class="mobile-empty-content">Empty node</p>'}
+          ${node.data && node.data.content ? Sanitization.sanitize(marked.parse(node.data.content)) : '<p class="mobile-empty-content">Empty node</p>'}
         </div>
       </div>
     `;

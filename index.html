@@ -10,6 +10,11 @@
 
     <!-- Marked.js v11.1.1 for Markdown -->
     <script src="static/deps/marked.min.js"></script>
+    <script src="static/markdown-config.js"></script>
+
+    <!-- DOMPurify 3.0.6 for XSS protection -->
+    <script src="static/deps/purify.min.js"></script>
+    <script src="static/sanitization.js"></script>
 
     <!-- CodeMirror 5.65.16 (standalone for inline editing) -->
     <link rel="stylesheet" href="static/deps/codemirror.min.css">
@@ -31,6 +36,10 @@
 
     <!-- JSZip 3.10.1 for compression  -->
     <script src="static/deps/jszip.min.js"></script>
+
+    <!-- Howler.js 2.2.4 for audio -->
+    <script src="static/deps/howler.min.js"></script>
+
     <link rel="stylesheet" href="static/app.css?v=1.1">
 
 </head>
@@ -66,14 +75,6 @@
             </svg>
             <span class="tool-text">Markdown</span>
         </button>
-        <button class="tool-btn" onclick="wallboard.addImageNode(); document.querySelector('.toolbar').classList.remove('mobile-open');">
-            <svg class="tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                <polyline points="21 15 16 10 5 21"></polyline>
-            </svg>
-            <span class="tool-text">Image</span>
-        </button>
         <button class="tool-btn" onclick="wallboard.clearBoard(); document.querySelector('.toolbar').classList.remove('mobile-open');">
             <svg class="tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="3 6 5 6 21 6"></polyline>
@@ -94,6 +95,17 @@
                 <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
             </svg>
             <span class="tool-text">Theme</span>
+        </button>
+        <button class="tool-btn" onclick="wallboard.autoArrangeNodes(); document.querySelector('.toolbar').classList.remove('mobile-open');">
+            <svg class="tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="5" r="2"></circle>
+                <circle cx="19" cy="12" r="2"></circle>
+                <circle cx="5" cy="12" r="2"></circle>
+                <circle cx="12" cy="19" r="2"></circle>
+                <line x1="12" y1="7" x2="12" y2="17"></line>
+                <line x1="7" y1="12" x2="17" y2="12"></line>
+            </svg>
+            <span class="tool-text">Arrange</span>
         </button>
         <button class="tool-btn" onclick="exportManager.showExportDialog(); document.querySelector('.toolbar').classList.remove('mobile-open');">
             <svg class="tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -144,31 +156,7 @@
     <!-- Instructions -->
     <div class="instructions">
         <div class="instruction-item">
-            <span class="key">Drag</span> from card content to connect nodes
-        </div>
-        <div class="instruction-item">
-            <span class="key">Alt + Drag</span> to cut connections
-        </div>
-        <div class="instruction-item">
-            <span class="key">Mouse Wheel</span> to zoom in/out
-        </div>
-        <div class="instruction-item">
-            <span class="key">Drag Canvas</span> to pan around
-        </div>
-        <div class="instruction-item">
-            <span class="key">D</span> to duplicate selected nodes
-        </div>
-        <div class="instruction-item">
-            <span class="key">Ctrl+Z / Ctrl+Y</span> to undo/redo
-        </div>
-        <div class="instruction-item">
-            <span class="key">Ctrl+A</span> to select all nodes
-        </div>
-        <div class="instruction-item">
-            <span class="key">Shift+Click</span> to multi-select nodes
-        </div>
-        <div class="instruction-item">
-            <span class="key">Delete / Backspace</span> to delete selected nodes
+            Press <span class="key">H</span> to open help menu
         </div>
     </div>
     
@@ -198,12 +186,42 @@
         </div>
     </div>
     
+   <script src="static/color-utils.js"></script>
+   <script src="static/themes.js"></script>
+   <script src="static/sound-manager.js"></script>
+   <script src="static/device-utils.js"></script>
+   <script src="static/canvas-config.js"></script>
+   <script src="static/coordinate-utils.js"></script>
+   <script src="static/zoom-utils.js"></script>
+   <script src="static/board-utils.js"></script>
+   <script src="static/node-utils.js"></script>
+   <script src="static/dom-utils.js"></script>
+   <script src="static/dialog-utils.js"></script>
+   <script src="static/theme-selector.js"></script>
+   <script src="static/theme-manager.js"></script>
+   <script src="static/zoom-pan-manager.js"></script>
+   <script src="static/url-utils.js"></script>
+   <script src="static/idb-storage.js"></script>
    <script src="static/connection-manager.js"></script>
    <script src="static/export-manager.js"></script>
    <script src="static/alignment-manager.js"></script>
    <script src="static/keyboard-shortcuts.js"></script>
    <script src="static/mobile.js"></script>
    <script src="static/editor.js"></script>
+   <script src="static/particles.js"></script>
+   <script src="static/notifications.js"></script>
+   <script src="static/sample-content.js"></script>
+   <script src="static/node-renderer.js"></script>
+   <script src="static/maximize-utils.js"></script>
+   <script src="static/board-manager.js"></script>
+   <script src="static/edit-mode-manager.js"></script>
+   <script src="static/node-drag-manager.js"></script>
+   <script src="static/node-selection-manager.js"></script>
+   <script src="static/node-operations-manager.js"></script>
+   <script src="static/context-menu-manager.js"></script>
+   <script src="static/node-content-manager.js"></script>
+   <script src="static/link-manager.js"></script>
+   <script src="static/graph-layout-manager.js"></script>
    <script src="static/app.js"></script>
 </body>
 </html>

@@ -51,17 +51,39 @@ class ConnectionManager {
       end: end
     };
     this.connections.push(connection);
+
+    // Play snap sound with variation
+    if (typeof soundManager !== 'undefined') {
+      soundManager.playSnap();
+    }
+
     this.updateConnections();
     if (this.onChangeCallback) this.onChangeCallback();
     return connection;
   }
 
   removeConnection(connectionId) {
+    // Find the connection before removing it
+    const connection = this.connections.find(conn =>
+      `${conn.start.nodeId}-${conn.end.nodeId}` === connectionId
+    );
+
+    // Remove the connection
     this.connections = this.connections.filter(conn =>
       `${conn.start.nodeId}-${conn.end.nodeId}` !== connectionId
     );
+
     // Clean up theme for removed connection
     delete this.connectionThemes[connectionId];
+
+    // If link manager exists, remove the [[link]] from the source node's markdown
+    if (connection && this.wallboard.linkManager) {
+      this.wallboard.linkManager.removeLinkFromContent(
+        connection.start.nodeId,
+        connection.end.nodeId
+      );
+    }
+
     this.updateConnections();
     if (this.onChangeCallback) this.onChangeCallback();
   }
@@ -82,6 +104,9 @@ class ConnectionManager {
 
     // Store arrows to append them after all lines (ensures arrows are always on top)
     const arrows = [];
+
+    // Track existing connection paths to prevent crossings
+    this.existingPaths = [];
 
     this.connections.forEach((conn) => {
       const startNode = this.wallboard.getNodeById(conn.start.nodeId);
@@ -115,7 +140,7 @@ class ConnectionManager {
       const connectionPoints = this.calculateConnectionPoints(startCanvasRect, endCanvasRect);
 
       const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      const d = this.createSmoothPath(connectionPoints.start, connectionPoints.end, connectionPoints.direction);
+      const d = this.createSmoothPath(connectionPoints.start, connectionPoints.end, connectionPoints.direction, startCanvasRect, endCanvasRect);
       path.setAttribute("d", d);
       path.setAttribute("class", "connection-line");
       path.setAttribute("data-connection-id", conn.id);
@@ -128,6 +153,14 @@ class ConnectionManager {
       path.style.stroke = connectionColor;
 
       this.svg.appendChild(path);
+
+      // Track this path for future crossing detection
+      this.existingPaths.push({
+        start: connectionPoints.start,
+        end: connectionPoints.end,
+        direction: connectionPoints.direction,
+        pathData: d
+      });
 
       // Create arrow triangle at the arrow point (node edge)
       const arrow = this.createArrowTriangle(connectionPoints.arrow || connectionPoints.end, connectionPoints.start, connectionPoints.direction, conn.id);
@@ -177,114 +210,385 @@ class ConnectionManager {
     const endRight = endRect.left + endRect.width;
     const endBottom = endRect.top + endRect.height;
 
-    // Calculate direction
-    const dx = endCenter.x - startCenter.x;
-    const dy = endCenter.y - startCenter.y;
-
     // Consistent offset for all connection points
     const offset = 16;
 
-    // Determine which edges to connect
-    let startPoint, endPoint, direction;
-
-    if (Math.abs(dx) > Math.abs(dy)) {
-      // Horizontal connection
-      direction = 'horizontal';
-      if (dx > 0) {
-        // Start from right edge center of start node (with offset)
-        startPoint = {
-          x: startRight + offset,
-          y: startCenter.y
-        };
-        // End before left edge center of end node (line stops short of arrow)
-        endPoint = {
-          x: endRect.left - offset,
-          y: endCenter.y
-        };
-      } else {
-        // Start from left edge center of start node (with offset)
-        startPoint = {
-          x: startRect.left - offset,
-          y: startCenter.y
-        };
-        // End before right edge center of end node (line stops short of arrow)
-        endPoint = {
-          x: endRight + offset,
-          y: endCenter.y
-        };
+    // Try all possible connection combinations and pick the one with least node overlaps
+    const connectionOptions = [
+      // Horizontal options
+      {
+        start: { x: startRight + offset, y: startCenter.y },
+        end: { x: endRect.left - offset, y: endCenter.y },
+        arrow: { x: endRect.left, y: endCenter.y },
+        direction: 'horizontal'
+      },
+      {
+        start: { x: startRect.left - offset, y: startCenter.y },
+        end: { x: endRight + offset, y: endCenter.y },
+        arrow: { x: endRight, y: endCenter.y },
+        direction: 'horizontal'
+      },
+      // Vertical options
+      {
+        start: { x: startCenter.x, y: startBottom + offset },
+        end: { x: endCenter.x, y: endRect.top - offset },
+        arrow: { x: endCenter.x, y: endRect.top },
+        direction: 'vertical'
+      },
+      {
+        start: { x: startCenter.x, y: startRect.top - offset },
+        end: { x: endCenter.x, y: endBottom + offset },
+        arrow: { x: endCenter.x, y: endBottom },
+        direction: 'vertical'
       }
-    } else {
-      // Vertical connection
-      direction = 'vertical';
-      if (dy > 0) {
-        // Start from bottom edge center of start node (with offset)
-        startPoint = {
-          x: startCenter.x,
-          y: startBottom + offset
-        };
-        // End before top edge center of end node (line stops short of arrow)
-        endPoint = {
-          x: endCenter.x,
-          y: endRect.top - offset
-        };
-      } else {
-        // Start from top edge center of start node (with offset)
-        startPoint = {
-          x: startCenter.x,
-          y: startRect.top - offset
-        };
-        // End before bottom edge center of end node (line stops short of arrow)
-        endPoint = {
-          x: endCenter.x,
-          y: endBottom + offset
-        };
+    ];
+
+    // Score each option based on how many nodes the path overlaps
+    const scoredOptions = connectionOptions.map(option => {
+      const overlaps = this.countPathNodeOverlaps(option.start, option.end, startRect, endRect);
+      return { ...option, overlaps };
+    });
+
+    // Sort by least overlaps, then by shortest distance
+    scoredOptions.sort((a, b) => {
+      if (a.overlaps !== b.overlaps) {
+        return a.overlaps - b.overlaps; // Prefer fewer overlaps
       }
-    }
+      // If same overlaps, prefer shorter distance
+      const distA = Math.abs(a.end.x - a.start.x) + Math.abs(a.end.y - a.start.y);
+      const distB = Math.abs(b.end.x - b.start.x) + Math.abs(b.end.y - b.start.y);
+      return distA - distB;
+    });
 
-    // Create arrow point - position so arrow tip touches node edge, not goes inside
-    const arrowPoint = {
-      x: direction === 'horizontal' ?
-          (dx > 0 ? endRect.left : endRight) :
-          endCenter.x,
-      y: direction === 'vertical' ?
-          (dy > 0 ? endRect.top : endBottom) :
-          endCenter.y
-    };
-
-    return { start: startPoint, end: endPoint, arrow: arrowPoint, direction };
+    // Return the best option
+    return scoredOptions[0];
   }
 
-  createSmoothPath(start, end, direction) {
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
+  /**
+   * Count how many nodes the connection path overlaps with
+   */
+  countPathNodeOverlaps(start, end, startRect, endRect) {
+    if (!this.wallboard || !this.wallboard.nodes) return 0;
 
-    // If nodes are very close, use simple direct connection
-    if (Math.abs(dx) < 60 && Math.abs(dy) < 60) {
-      return `M ${start.x},${start.y} L ${end.x},${end.y}`;
-    }
+    let overlaps = 0;
 
-    // For horizontal connections (connecting left/right edges)
-    // we want to go horizontally from start, then approach the end point horizontally
+    // Check each node (except start and end nodes)
+    this.wallboard.nodes.forEach(node => {
+      const nodeEl = document.getElementById(`node-${node.id}`);
+      if (!nodeEl) return;
+
+      const nodeRect = {
+        left: node.position.x,
+        top: node.position.y,
+        width: nodeEl.offsetWidth,
+        height: nodeEl.offsetHeight
+      };
+
+      // Skip if this is the start or end node
+      if (this.rectsEqual(nodeRect, startRect) || this.rectsEqual(nodeRect, endRect)) {
+        return;
+      }
+
+      // Check if the bounding box of the path intersects this node
+      const pathBounds = {
+        left: Math.min(start.x, end.x),
+        right: Math.max(start.x, end.x),
+        top: Math.min(start.y, end.y),
+        bottom: Math.max(start.y, end.y)
+      };
+
+      const nodeRight = nodeRect.left + nodeRect.width;
+      const nodeBottom = nodeRect.top + nodeRect.height;
+
+      // Check for intersection
+      if (!(pathBounds.right < nodeRect.left ||
+            pathBounds.left > nodeRight ||
+            pathBounds.bottom < nodeRect.top ||
+            pathBounds.top > nodeBottom)) {
+        overlaps++;
+      }
+    });
+
+    return overlaps;
+  }
+
+  /**
+   * Check if two rectangles are equal (same position and size)
+   */
+  rectsEqual(rect1, rect2) {
+    return rect1.left === rect2.left &&
+           rect1.top === rect2.top &&
+           rect1.width === rect2.width &&
+           rect1.height === rect2.height;
+  }
+
+  createSmoothPath(start, end, direction, startRect, endRect) {
+    // Create straight lines with right-angle turns that avoid nodes
+
     if (direction === 'horizontal') {
-      // If already horizontally aligned, just go straight
-      if (Math.abs(dy) < 20) {
+      // For horizontal connections
+      if (Math.abs(start.y - end.y) < 5) {
+        // Nearly aligned horizontally - direct line
         return `M ${start.x},${start.y} L ${end.x},${end.y}`;
       }
-      // Go horizontally from start, then vertically, then horizontally to end
+
+      // Check if a simple midpoint routing would hit any nodes
       const midX = (start.x + end.x) / 2;
-      return `M ${start.x},${start.y} L ${midX},${start.y} L ${midX},${end.y} L ${end.x},${end.y}`;
-    }
-    // For vertical connections (connecting top/bottom edges)
-    // we want to go vertically from start, then approach the end point vertically
-    else {
-      // If already vertically aligned, just go straight
-      if (Math.abs(dx) < 20) {
+      const simplePath = [
+        { x: start.x, y: start.y },
+        { x: midX, y: start.y },
+        { x: midX, y: end.y },
+        { x: end.x, y: end.y }
+      ];
+
+      // Find a clear horizontal position that avoids nodes
+      const clearMidX = this.findClearVerticalLine(start, end, midX, startRect, endRect);
+
+      return `M ${start.x},${start.y} L ${clearMidX},${start.y} L ${clearMidX},${end.y} L ${end.x},${end.y}`;
+
+    } else {
+      // For vertical connections
+      if (Math.abs(start.x - end.x) < 5) {
+        // Nearly aligned vertically - direct line
         return `M ${start.x},${start.y} L ${end.x},${end.y}`;
       }
-      // Go vertically from start, then horizontally, then vertically to end
+
+      // Check if a simple midpoint routing would hit any nodes
       const midY = (start.y + end.y) / 2;
-      return `M ${start.x},${start.y} L ${start.x},${midY} L ${end.x},${midY} L ${end.x},${end.y}`;
+
+      // Find a clear vertical position that avoids nodes
+      const clearMidY = this.findClearHorizontalLine(start, end, midY, startRect, endRect);
+
+      return `M ${start.x},${start.y} L ${start.x},${clearMidY} L ${end.x},${clearMidY} L ${end.x},${end.y}`;
     }
+  }
+
+  /**
+   * Find a vertical line position that avoids nodes
+   */
+  findClearVerticalLine(start, end, preferredX, startRect, endRect) {
+    if (!this.wallboard || !this.wallboard.nodes) return preferredX;
+
+    const minX = Math.min(start.x, end.x);
+    const maxX = Math.max(start.x, end.x);
+    const minY = Math.min(start.y, end.y);
+    const maxY = Math.max(start.y, end.y);
+
+    // Check if preferred position is clear (both nodes and existing paths)
+    let hitNode = false;
+    for (const node of this.wallboard.nodes) {
+      const nodeEl = document.getElementById(`node-${node.id}`);
+      if (!nodeEl) continue;
+
+      const nodeRect = {
+        left: node.position.x,
+        top: node.position.y,
+        width: nodeEl.offsetWidth,
+        height: nodeEl.offsetHeight
+      };
+
+      // Skip start and end nodes
+      if (this.rectsEqual(nodeRect, startRect) || this.rectsEqual(nodeRect, endRect)) continue;
+
+      // Check if vertical line at preferredX intersects this node
+      const nodeRight = nodeRect.left + nodeRect.width;
+      const nodeBottom = nodeRect.top + nodeRect.height;
+
+      if (preferredX >= nodeRect.left - 20 && preferredX <= nodeRight + 20 &&
+          !(maxY < nodeRect.top || minY > nodeBottom)) {
+        hitNode = true;
+        break;
+      }
+    }
+
+    // Check if this vertical line would cross any existing paths
+    const wouldCrossPath = this.checkVerticalLineCrossing(preferredX, minY, maxY);
+
+    if (!hitNode && !wouldCrossPath) return preferredX;
+
+    // Try to route around - prefer staying between start and end
+    const candidates = [preferredX];
+    const step = 50;
+
+    // Add candidates moving away from center
+    for (let offset = step; offset < 300; offset += step) {
+      if (preferredX + offset <= maxX + 50) candidates.push(preferredX + offset);
+      if (preferredX - offset >= minX - 50) candidates.push(preferredX - offset);
+    }
+
+    // Find first clear candidate
+    for (const candidateX of candidates) {
+      let clear = true;
+      for (const node of this.wallboard.nodes) {
+        const nodeEl = document.getElementById(`node-${node.id}`);
+        if (!nodeEl) continue;
+
+        const nodeRect = {
+          left: node.position.x,
+          top: node.position.y,
+          width: nodeEl.offsetWidth,
+          height: nodeEl.offsetHeight
+        };
+
+        if (this.rectsEqual(nodeRect, startRect) || this.rectsEqual(nodeRect, endRect)) continue;
+
+        const nodeRight = nodeRect.left + nodeRect.width;
+        const nodeBottom = nodeRect.top + nodeRect.height;
+
+        if (candidateX >= nodeRect.left - 20 && candidateX <= nodeRight + 20 &&
+            !(maxY < nodeRect.top || minY > nodeBottom)) {
+          clear = false;
+          break;
+        }
+      }
+
+      // Also check path crossing
+      if (clear && this.checkVerticalLineCrossing(candidateX, minY, maxY)) {
+        clear = false;
+      }
+
+      if (clear) return candidateX;
+    }
+
+    return preferredX; // Fallback to preferred if no clear path found
+  }
+
+  /**
+   * Check if a vertical line would cross existing paths
+   */
+  checkVerticalLineCrossing(x, minY, maxY) {
+    if (!this.existingPaths) return false;
+
+    for (const existingPath of this.existingPaths) {
+      // Check if this vertical line crosses any horizontal segments of existing paths
+      if (existingPath.direction === 'vertical') {
+        // Existing path is vertical, check if they're close/overlapping
+        const existingMinY = Math.min(existingPath.start.y, existingPath.end.y);
+        const existingMaxY = Math.max(existingPath.start.y, existingPath.end.y);
+
+        // Check if vertical lines are close and Y ranges overlap
+        if (Math.abs(existingPath.start.x - x) < 30 &&
+            !(maxY < existingMinY || minY > existingMaxY)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Find a horizontal line position that avoids nodes
+   */
+  findClearHorizontalLine(start, end, preferredY, startRect, endRect) {
+    if (!this.wallboard || !this.wallboard.nodes) return preferredY;
+
+    const minX = Math.min(start.x, end.x);
+    const maxX = Math.max(start.x, end.x);
+    const minY = Math.min(start.y, end.y);
+    const maxY = Math.max(start.y, end.y);
+
+    // Check if preferred position is clear (both nodes and existing paths)
+    let hitNode = false;
+    for (const node of this.wallboard.nodes) {
+      const nodeEl = document.getElementById(`node-${node.id}`);
+      if (!nodeEl) continue;
+
+      const nodeRect = {
+        left: node.position.x,
+        top: node.position.y,
+        width: nodeEl.offsetWidth,
+        height: nodeEl.offsetHeight
+      };
+
+      // Skip start and end nodes
+      if (this.rectsEqual(nodeRect, startRect) || this.rectsEqual(nodeRect, endRect)) continue;
+
+      // Check if horizontal line at preferredY intersects this node
+      const nodeRight = nodeRect.left + nodeRect.width;
+      const nodeBottom = nodeRect.top + nodeRect.height;
+
+      if (preferredY >= nodeRect.top - 20 && preferredY <= nodeBottom + 20 &&
+          !(maxX < nodeRect.left || minX > nodeRight)) {
+        hitNode = true;
+        break;
+      }
+    }
+
+    // Check if this horizontal line would cross any existing paths
+    const wouldCrossPath = this.checkHorizontalLineCrossing(preferredY, minX, maxX);
+
+    if (!hitNode && !wouldCrossPath) return preferredY;
+
+    // Try to route around - prefer staying between start and end
+    const candidates = [preferredY];
+    const step = 50;
+
+    // Add candidates moving away from center
+    for (let offset = step; offset < 300; offset += step) {
+      if (preferredY + offset <= maxY + 50) candidates.push(preferredY + offset);
+      if (preferredY - offset >= minY - 50) candidates.push(preferredY - offset);
+    }
+
+    // Find first clear candidate
+    for (const candidateY of candidates) {
+      let clear = true;
+      for (const node of this.wallboard.nodes) {
+        const nodeEl = document.getElementById(`node-${node.id}`);
+        if (!nodeEl) continue;
+
+        const nodeRect = {
+          left: node.position.x,
+          top: node.position.y,
+          width: nodeEl.offsetWidth,
+          height: nodeEl.offsetHeight
+        };
+
+        if (this.rectsEqual(nodeRect, startRect) || this.rectsEqual(nodeRect, endRect)) continue;
+
+        const nodeRight = nodeRect.left + nodeRect.width;
+        const nodeBottom = nodeRect.top + nodeRect.height;
+
+        if (candidateY >= nodeRect.top - 20 && candidateY <= nodeBottom + 20 &&
+            !(maxX < nodeRect.left || minX > nodeRight)) {
+          clear = false;
+          break;
+        }
+      }
+
+      // Also check path crossing
+      if (clear && this.checkHorizontalLineCrossing(candidateY, minX, maxX)) {
+        clear = false;
+      }
+
+      if (clear) return candidateY;
+    }
+
+    return preferredY; // Fallback to preferred if no clear path found
+  }
+
+  /**
+   * Check if a horizontal line would cross existing paths
+   */
+  checkHorizontalLineCrossing(y, minX, maxX) {
+    if (!this.existingPaths) return false;
+
+    for (const existingPath of this.existingPaths) {
+      // Check if this horizontal line crosses any vertical segments of existing paths
+      if (existingPath.direction === 'horizontal') {
+        // Existing path is horizontal, check if they're close/overlapping
+        const existingMinX = Math.min(existingPath.start.x, existingPath.end.x);
+        const existingMaxX = Math.max(existingPath.start.x, existingPath.end.x);
+
+        // Check if horizontal lines are close and X ranges overlap
+        if (Math.abs(existingPath.start.y - y) < 30 &&
+            !(maxX < existingMinX || minX > existingMaxX)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   getConnectionTheme(connectionId) {
@@ -294,10 +598,10 @@ class ConnectionManager {
 
   getThemeColor(themeKey) {
     // Get the color for a theme key
-    if (!this.wallboard || !this.wallboard.themes[themeKey]) {
+    if (!Themes.definitions[themeKey]) {
       return '#f42365'; // Default fallback
     }
-    return this.wallboard.themes[themeKey].accent;
+    return Themes.definitions[themeKey].accent;
   }
 
   setConnectionTheme(connectionId, themeKey) {
@@ -347,10 +651,10 @@ class ConnectionManager {
         <button class="close-btn" onclick="wallboard.connectionManager.hideConnectionThemeSelector()">×</button>
       </div>
       <div class="theme-grid">
-        ${Object.entries(this.wallboard.themes).filter(([key, theme]) => key !== 'pink').map(([key, theme]) => {
+        ${Object.entries(Themes.definitions).filter(([key, theme]) => key !== 'pink').map(([key, theme]) => {
           const isActive = currentTheme === key;
           const displayName = key === 'default' ? 'Global' : theme.name;
-          const previewColor = key === 'default' ? this.wallboard.themes[this.wallboard.globalTheme].accent : theme.accent;
+          const previewColor = key === 'default' ? Themes.definitions[this.wallboard.globalTheme].accent : theme.accent;
 
           return `
             <div class="theme-option ${isActive ? 'active' : ''}"
@@ -407,7 +711,7 @@ class ConnectionManager {
       themeColor = this.getThemeColor(connectionTheme);
     } else {
       // Fallback to global theme
-      themeColor = this.wallboard ? this.wallboard.themes[this.wallboard.globalTheme].accent : '#f42365';
+      themeColor = this.wallboard ? Themes.definitions[this.wallboard.globalTheme].accent : '#f42365';
     }
 
     // Calculate arrow direction based on which edge we're connecting to
@@ -582,10 +886,19 @@ class ConnectionManager {
       }
     });
 
-    // Remove cut connections and clean up their themes
+    // Remove cut connections, clean up their themes, and remove links from markdown
     connectionsToRemove.reverse().forEach(index => {
       const conn = this.connections[index];
       const connectionId = `${conn.start.nodeId}-${conn.end.nodeId}`;
+
+      // Remove the [[link]] from the source node's markdown
+      if (this.wallboard.linkManager) {
+        this.wallboard.linkManager.removeLinkFromContent(
+          conn.start.nodeId,
+          conn.end.nodeId
+        );
+      }
+
       delete this.connectionThemes[connectionId];
       this.connections.splice(index, 1);
     });

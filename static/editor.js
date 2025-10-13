@@ -12,6 +12,13 @@ class EditorManager {
     this.currentNode = node;
     this.autoSaveTimeout = null;
 
+    // Save scroll position as percentage from the node content
+    const nodeContent = document.getElementById(`content-${node.id}`);
+    let savedScrollPercent = 0;
+    if (nodeContent && nodeContent.scrollHeight > nodeContent.clientHeight) {
+      savedScrollPercent = nodeContent.scrollTop / (nodeContent.scrollHeight - nodeContent.clientHeight);
+    }
+
     // Create overlay
     this.editorOverlay = document.createElement('div');
     this.editorOverlay.className = 'editor-overlay';
@@ -19,7 +26,7 @@ class EditorManager {
     // Get theme colors
     const nodeTheme = this.wallboard.nodeThemes[node.id];
     const themeName = nodeTheme || this.wallboard.globalTheme;
-    const theme = this.wallboard.themes[themeName] || this.wallboard.themes.default;
+    const theme = Themes.definitions[themeName] || Themes.definitions.default;
     const accent = theme.accent;
 
     const nodeTitle = this.wallboard.getNodeTitle(node).toUpperCase();
@@ -41,12 +48,19 @@ class EditorManager {
 
     document.body.appendChild(this.editorOverlay);
 
+    // Click outside to close - only if clicking the overlay itself, not the container
+    this.editorOverlay.addEventListener('click', (e) => {
+      if (e.target === this.editorOverlay) {
+        this.close();
+      }
+    });
+
     // Prevent body scroll
     document.body.style.overflow = 'hidden';
 
     // Apply theme styling
     const container = this.editorOverlay.querySelector('.editor-container');
-    container.style.border = `1px solid ${accent}40`;
+    // container.style.border = `1px solid ${accent}40`;
     container.style.boxShadow = `0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px ${accent}20`;
 
     // Prevent scroll events from bubbling to elements behind - attach to container
@@ -190,6 +204,12 @@ class EditorManager {
       clearTimeout(this.autoSaveTimeout);
       this.autoSaveTimeout = setTimeout(() => {
         this.autoSave();
+
+        // Process wiki-style [[links]] after save
+        if (this.currentNode && this.wallboard.linkManager) {
+          const content = this.currentEditor.value();
+          this.wallboard.linkManager.processNodeLinks(this.currentNode.id, content);
+        }
       }, 1000); // Save 1 second after user stops typing
     });
 
@@ -206,6 +226,24 @@ class EditorManager {
         cmScroll.addEventListener('wheel', (e) => {
           e.stopPropagation();
         }, { passive: false });
+      }
+
+      // Restore scroll position using percentage
+      if (savedScrollPercent > 0) {
+        const cm = this.currentEditor.codemirror;
+        const scrollInfo = cm.getScrollInfo();
+        const maxScroll = scrollInfo.height - scrollInfo.clientHeight;
+        const targetScrollTop = maxScroll * savedScrollPercent;
+
+        // Scroll to the calculated position
+        cm.scrollTo(0, targetScrollTop);
+
+        // Also position the cursor near that location
+        const lineHeight = cm.defaultTextHeight() || 20;
+        const targetLine = Math.floor(targetScrollTop / lineHeight);
+        if (targetLine > 0 && targetLine < cm.lineCount()) {
+          cm.setCursor({ line: targetLine, ch: 0 });
+        }
       }
     }, 100);
   }
@@ -484,10 +522,12 @@ class EditorManager {
       // Update the node's display
       const nodeContent = document.getElementById(`content-${this.currentNode.id}`);
       if (nodeContent) {
-        nodeContent.innerHTML = this.wallboard.renderNodeContent(this.currentNode);
+        nodeContent.innerHTML = Sanitization.sanitize(this.wallboard.renderNodeContent(this.currentNode));
 
-        // Re-highlight code blocks
+        // Re-enable checkboxes and re-highlight code blocks
         setTimeout(() => {
+          this.wallboard.enableCheckboxes(nodeContent, this.currentNode);
+
           const codeBlocks = nodeContent.querySelectorAll('pre code');
           codeBlocks.forEach(block => {
             Prism.highlightElement(block);
@@ -510,6 +550,12 @@ class EditorManager {
 
     // Final save before closing
     this.autoSave();
+
+    // Process wiki-style [[links]] immediately when closing editor
+    if (this.currentNode && this.wallboard.linkManager && this.currentEditor) {
+      const content = this.currentEditor.value();
+      this.wallboard.linkManager.processNodeLinks(this.currentNode.id, content, true);
+    }
 
     if (this.currentEditor) {
       this.currentEditor.toTextArea();

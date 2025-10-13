@@ -1,0 +1,105 @@
+// Node operations manager for CRUD operations on nodes
+class NodeOperationsManager {
+  constructor(wallboard) {
+    this.wallboard = wallboard;
+  }
+
+  addMarkdownNode() {
+    const node = this.createNode("markdown", {
+      content: SampleContent.getRandomMarkdown()
+    });
+    this.wallboard.renderNode(node);
+  }
+
+  createNode(type, data) {
+    // Record change for undo/redo BEFORE making changes
+    if (this.wallboard.keyboardShortcuts) {
+      this.wallboard.keyboardShortcuts.recordChange('create_node', { type, data });
+    }
+
+    // Generate unique title
+    const uniqueTitle = NodeUtils.generateUniqueTitle(type, this.wallboard.nodes);
+
+    const node = {
+      id: this.wallboard.nodeIdCounter++,
+      title: uniqueTitle,
+      data: data,
+      position: {
+        x: (this.wallboard.canvasWidth / 2) + (Math.random() - 0.5) * 800,
+        y: (this.wallboard.canvasHeight / 2) + (Math.random() - 0.5) * 600,
+      },
+    };
+    this.wallboard.nodes.push(node);
+    this.wallboard.autoSave();
+    return node;
+  }
+
+  duplicateNode() {
+    if (this.wallboard.contextNode) {
+      // Get the original title and generate a unique one
+      const originalTitle = this.wallboard.getNodeTitle(this.wallboard.contextNode);
+      const uniqueTitle = NodeUtils.generateUniqueTitle(originalTitle, this.wallboard.nodes);
+
+      const newNode = {
+        ...this.wallboard.contextNode,
+        id: this.wallboard.nodeIdCounter++,
+        title: uniqueTitle,
+        position: {
+          x: this.wallboard.contextNode.position.x + 30,
+          y: this.wallboard.contextNode.position.y + 30,
+        },
+        data: { ...this.wallboard.contextNode.data },
+      };
+      this.wallboard.nodes.push(newNode);
+      this.wallboard.renderNode(newNode);
+      this.wallboard.hideContextMenu();
+    }
+  }
+
+  deleteNode() {
+    const node = this.wallboard.contextNode || this.wallboard.selectedNode;
+    if (node) {
+      this.removeNode(node.id);
+      this.wallboard.hideContextMenu();
+    }
+  }
+
+  removeNode(nodeId) {
+    console.log(`Removing node ${nodeId} via button`);
+
+    // Remove all [[links]] to this node from other nodes' markdown
+    if (this.wallboard.linkManager) {
+      this.wallboard.linkManager.removeAllLinksToNode(nodeId);
+    }
+
+    const element = document.getElementById(`node-${nodeId}`);
+    if (element) element.remove();
+
+    const nodesBefore = this.wallboard.nodes.length;
+    const connectionsBefore = this.wallboard.connectionManager.connections.length;
+
+    this.wallboard.nodes = this.wallboard.nodes.filter((n) => n.id !== nodeId);
+
+    // Remove connections through the connection manager
+    this.wallboard.connectionManager.connections = this.wallboard.connectionManager.connections.filter(
+      (c) => c.start.nodeId !== nodeId && c.end.nodeId !== nodeId
+    );
+
+    console.log(`Nodes: ${nodesBefore} → ${this.wallboard.nodes.length}`);
+    console.log(`Connections: ${connectionsBefore} → ${this.wallboard.connectionManager.connections.length}`);
+
+    this.wallboard.connectionManager.updateConnections();
+    this.wallboard.autoSave();
+
+    this.wallboard.mockAPICall("deleteNode", { nodeId });
+  }
+
+  clearBoard() {
+    if (confirm("Clear all nodes and connections?")) {
+      this.wallboard.nodes = [];
+      this.wallboard.connections = [];
+      document.querySelectorAll(".node").forEach((n) => n.remove());
+      document.getElementById("connections").innerHTML = "";
+    }
+  }
+}
