@@ -2,7 +2,7 @@
 
 A fast, intuitive visual knowledge base that lets you create, connect, and organize markdown notes with smooth drag-and-drop interactions.
 
-<img width="1825" height="901" alt="image" src="https://github.com/user-attachments/assets/ffa94794-1161-4755-9d8b-49790d40427f" />
+<img width="1913" height="908" alt="image" src="https://github.com/user-attachments/assets/f44f6cc8-741a-494c-91ac-bdfe18f9380a" />
 
 
 **Live Demo**: [Try QUIRK online](https://quirk.uk?board=https://raw.githubusercontent.com/al4669/quirk/refs/heads/main/examples/godot.json)
