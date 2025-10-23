@@ -1,0 +1,366 @@
+{
+  "name": "Unreal Engine 5 - Complete Learning Path",
+  "description": "Comprehensive learning board for UE5 filmmaking and game development - Created October 2025",
+  "nodes": [
+    {
+      "id": 1,
+      "title": "Start Here - UE5 Overview",
+      "data": {
+        "content": "# Unreal Engine 5 - Complete Learning Journey\n\n## What is Unreal Engine 5?\n\nUE5 provides the tools to create truly expansive worlds with groundbreaking features like Nanite and Lumen that provide a generational leap in visual fidelity. It's free for creating linear content like films, and for game development with a 5% royalty only after earning over $1 million USD.\n\n## System Requirements (Recommended)\n- Quad-core processor (i7, i9, Xeon, AMD Ryzen/Threadripper)\n- 8GB+ RAM (16GB+ recommended)\n- DirectX 11/12 compatible graphics card\n- 256GB+ SSD for OS and project files\n\n## Learning Path Branches\n\n[[Foundation & Interface]]\n[[Core Technologies]]\n[[Game Development Path]]\n[[Filmmaking & Virtual Production Path]]\n[[Programming: Blueprints & C++]]\n[[Advanced Features]]\n[[Career & Community]]",
+        "html": "<h1>Unreal Engine 5 - Complete Learning Journey</h1><p>Comprehensive guide for both filmmaking and game development</p>"
+      },
+      "position": {
+        "x": 15000,
+        "y": 15000
+      }
+    },
+    {
+      "id": 2,
+      "title": "Foundation & Interface",
+      "data": {
+        "content": "# Foundation & Interface\n\n## Getting Started (First 3 Months)\n\nSet a goal to watch and practice with 1-2 tutorials daily for about 3 months, focusing on understanding the interface, basic tools, and core concepts.\n\n### Essential First Steps\n1. Download & Install UE5 from Epic Games\n2. Complete \"Your First Hour in UE5\" tutorial\n3. Learn the Editor interface and navigation\n4. Understand the Content Browser\n5. Master viewport controls and camera navigation\n\n### Official Free Resources\n- Epic's \"Welcome to Unreal Engine\" learning path\n- 2025 Crash Course for New Unreal Engine Developers (GDC2025)\n- Your First Hour in Unreal Engine 5.2\n- Epic Developer Community tutorials\n\n### Key Concepts to Master\n- Project structure and organization\n- Asset importing and management\n- Basic level creation\n- Lighting fundamentals\n- Material basics\n\n[[Interface Navigation]]\n[[Project Setup]]\n[[Asset Management]]\n[[Level Creation Basics]]",
+        "html": "<h1>Foundation & Interface</h1>"
+      },
+      "position": {
+        "x": 15800,
+        "y": 14400
+      }
+    },
+    {
+      "id": 3,
+      "title": "Core Technologies",
+      "data": {
+        "content": "# Core Technologies - UE5's Breakthrough Features\n\n## The Big Three Innovations\n\n### Nanite - Virtualized Geometry\nNanite enables creation of games with massive amounts of geometric detail, directly importing multi-million-polygon meshes while maintaining real-time frame rates. Nanite intelligently streams and processes only the detail you can perceive, largely removing poly count and draw call constraints.\n\n**Benefits:**\n- No need for manual LODs (Level of Detail)\n- Import film-quality assets directly\n- Billions of polygons in real-time\n- Automatic optimization\n\n### Lumen - Dynamic Global Illumination\nLumen is a fully dynamic global illumination and reflections solution that adapts on the fly to changes in direct lighting or geometry. No more waiting for lightmap bakes!\n\n**Benefits:**\n- Real-time dynamic lighting\n- No lightmap UVs needed\n- Instant lighting changes\n- What you see in editor is what you get on console\n\n### MetaHuman Creator\nMetaHuman gives any creator the power to use highly realistic human characters, creating fully rigged photorealistic digital humans in minutes.\n\n**Benefits:**\n- Photorealistic characters in minutes\n- Facial animation ready\n- Fully rigged and animation-ready\n- Cloud-based creation tool\n\n[[Nanite Deep Dive]]\n[[Lumen Lighting]]\n[[MetaHuman Workflow]]\n[[Virtual Shadow Maps]]\n[[World Partition]]",
+        "html": "<h1>Core Technologies</h1>"
+      },
+      "position": {
+        "x": 15800,
+        "y": 15000
+      }
+    },
+    {
+      "id": 4,
+      "title": "Game Development Path",
+      "data": {
+        "content": "# Game Development Path\n\n## Learning Progression\n\n### Beginner Stage (Months 1-3)\n1. Complete a game in one week as a rapid development exercise to focus on core gameplay elements\n2. Create simple prototypes\n3. Learn basic game mechanics\n4. Understand player input\n5. Master collision and physics basics\n\n### Intermediate Stage (Months 4-8)\n1. Build complete game systems\n2. Implement UI/UX with UMG\n3. Create save/load systems\n4. Add sound and music\n5. Polish and optimization\n\n### Advanced Topics\n- Multiplayer/Networking\n- AI and Behavior Trees\n- Advanced Physics\n- Procedural Content Generation (PCG)\n- Performance Optimization\n\n## Sample Projects to Build\n1. **Third-Person Character Game** - Movement, cameras, animations\n2. **FPS Shooter** - Weapons, hit detection, game modes\n3. **Puzzle Game** - Logic systems, UI, progression\n4. **Platformer** - Physics, level design, collectibles\n5. **Open World Game** - Large environments, streaming, world partition\n\n[[Character Movement]]\n[[Combat Systems]]\n[[AI & Behavior Trees]]\n[[Game Modes]]\n[[UI/UX with UMG]]\n[[Multiplayer Basics]]\n[[Performance Optimization]]",
+        "html": "<h1>Game Development Path</h1>"
+      },
+      "position": {
+        "x": 16600,
+        "y": 14400
+      }
+    },
+    {
+      "id": 5,
+      "title": "Filmmaking & Virtual Production Path",
+      "data": {
+        "content": "# Filmmaking & Virtual Production Path\n\n## What is Virtual Production?\n\nVirtual production uses technology to join the digital world with the physical world in real time, blending traditional filmmaking techniques with modern technology. UE5's dedicated virtual production toolset brings new opportunities for creative collaboration to every stage of the filmmaking process—from location scouting and previs, through on-set production and in-camera VFX, to postvis and final pixels.\n\n## Complete Filmmaking Workflow\n\n### Pre-Production\n1. **Previs (Previsualization)**\n   - Using CGI to rough out main visuals and action before shooting begins\n   - Storyboarding in 3D\n   - Camera blocking\n   - Virtual location scouting\n   - Shot planning with virtual cameras\n\n2. **Planning Tools**\n   - Twinmotion for initial concepts\n   - Virtual art departments\n   - Technical visualization (techvis)\n   - Action design (stuntvis)\n\n### Production\n1. **In-Camera VFX (ICVFX)**\n   - LED wall virtual sets\n   - Real-time compositing\n   - Live action integration\n   - On-set visualization\n\n2. **Virtual Cameras (VCams)**\n   - Pilot a camera in UE from an iPad to record movement and create realistic camera moves in the digital world\n\n### Post-Production\n1. **Sequencer** - Timeline-based cinematic editing\n2. **Movie Render Queue** - High-quality final renders\n3. **Compositing** - Integration with other tools\n4. **Color grading and post effects**\n\n## Industry Examples\n- The Mandalorian used LED-stage virtual sets with Unreal Engine\n- 1899 (Netflix) created entire atmospheres, skies, and ships within UE's virtual environments\n- Avengers: Endgame used Unreal in its previs pipeline to plan complex battle sequences\n\n[[Previs & Techvis]]\n[[Sequencer Cinematics]]\n[[Camera Animation]]\n[[Virtual Sets & Environments]]\n[[Movie Render Queue]]\n[[ICVFX & LED Stages]]\n[[MetaHuman for Film]]\n[[Lighting for Cinematics]]",
+        "html": "<h1>Filmmaking & Virtual Production Path</h1>"
+      },
+      "position": {
+        "x": 16600,
+        "y": 15000
+      }
+    },
+    {
+      "id": 6,
+      "title": "Programming: Blueprints & C++",
+      "data": {
+        "content": "# Programming: Blueprints & C++\n\n## The Choice: Blueprints vs C++\n\n### Blueprints - Visual Scripting\nThe Blueprint system is a powerful visual scripting tool that helps developers create gameplay mechanics without needing to write traditional code.\n\n**Best For:**\n- Flexible editing by designers and artists without specific technical training\n- Rapid prototyping\n- Quick iteration and testing\n- Easier data usage\n- Gameplay mechanics that need frequent balancing\n\n**Advantages:**\n- Visual and intuitive\n- No compilation time\n- Easy to learn\n- Great for non-programmers\n- Excellent for rapid iteration\n\n### C++ - Native Programming\n\n**Best For:**\n- Faster runtime performance and explicit design\n- Core game systems\n- Complex algorithms and math\n- Performance-critical code\n- Broader access to engine functionality\n\n**Advantages:**\n- Superior performance\n- Full engine access\n- Better for complex logic\n- Easier to scale large systems\n- Professional debugging tools\n\n## Best Practice: Mix Both!\n\nIt's recommended to use C++ for general core systems and Blueprints for specific gameplay mechanics that extend those systems and need fast iteration.\n\n### Recommended Workflow\n1. **Prototype in Blueprints** - Fast iteration\n2. **Move to C++ when needed** - For performance or complexity\n3. **Create C++ base classes** - Extend with Blueprints\n4. **Use Blueprint Function Libraries** - C++ power in Blueprints\n\n### Common Patterns\n- Programmers create Character classes in C++ that define custom events, then Blueprints extend that class and assign meshes and set defaults\n- Ability systems where the base class is implemented in C++ but designers create Blueprints for actual abilities\n\n## Learning Resources\n1. Start with Blueprints - No prerequisites\n2. Learn Blueprint debugging\n3. Understand UE C++ basics\n4. Study UPROPERTY and UFUNCTION macros\n5. Master Blueprint/C++ communication\n\n[[Blueprint Fundamentals]]\n[[Blueprint Best Practices]]\n[[C++ Basics for UE5]]\n[[Blueprint Function Libraries]]\n[[Mixing Blueprints & C++]]\n[[Event Dispatchers & Delegates]]\n[[Performance Profiling]]",
+        "html": "<h1>Programming: Blueprints & C++</h1>"
+      },
+      "position": {
+        "x": 16600,
+        "y": 15600
+      }
+    },
+    {
+      "id": 7,
+      "title": "Advanced Features",
+      "data": {
+        "content": "# Advanced Features\n\n## Production-Ready Systems\n\n### World Partition\n- Manage massive open worlds efficiently\n- Stream only relevant sections\n- Divide large maps into partitions\n- Reduce memory usage\n- Enable seamless transitions\n\n### Chaos Physics\n- Advanced destruction system\n- Realistic physics simulation\n- Large-scale simulations\n- Vehicle physics\n- Cloth and hair simulation\n\n### Niagara VFX\n- GPU-accelerated particle systems\n- Modular effect creation\n- Real-time VFX\n- Ribbon effects and trails\n- Fluid simulation\n\n### Procedural Content Generation (PCG)\n- PCG tools to scatter trees and foliage, create procedural paths, and light scenes\n- Automated level design\n- Biome generation\n- Asset placement rules\n- Randomized content\n\n### Enhanced Input System\n- Modern input handling\n- Input mapping contexts\n- Player mappable controls\n- Support for all platforms\n\n### Gameplay Ability System (GAS)\n- RPG-style ability framework\n- Buff/debuff systems\n- Cooldowns and resources\n- Networked gameplay\n\n### Control Rig\n- Runtime rigging system\n- IK (Inverse Kinematics)\n- Procedural animation\n- Animation retargeting\n- Facial animation\n\n### Data Assets & Tables\n- Data-driven design\n- CSV and JSON import\n- Curve tables\n- Centralized game data\n- Easy balancing\n\n[[Chaos Destruction]]\n[[Niagara Effects]]\n[[PCG Systems]]\n[[Control Rig Animation]]\n[[Gameplay Ability System]]\n[[Enhanced Input]]\n[[Data-Driven Design]]",
+        "html": "<h1>Advanced Features</h1>"
+      },
+      "position": {
+        "x": 15800,
+        "y": 15600
+      }
+    },
+    {
+      "id": 8,
+      "title": "Nanite Deep Dive",
+      "data": {
+        "content": "# Nanite - Virtualized Geometry System\n\n## What is Nanite?\n\nNanite enables the use of high-fidelity virtualized micropolygon geometry, rendering pixel scale detail and handling high object counts by intelligently doing work on only the detail that can be perceived.\n\n## How It Works\n\n### Core Technology\n- Automatic LOD generation\n- Software-based rasterization\n- Cluster-based rendering\n- Streaming optimization\n- Per-pixel detail\n\n### Benefits\n1. **Film-Quality Assets** - Import ZBrush models directly\n2. **No Manual LODs** - Automatic detail management\n3. **Billions of Polygons** - Scene complexity unlimited\n4. **Consistent Quality** - Detail where you need it\n5. **Fast Iteration** - No more LOD creation\n\n## Using Nanite\n\n### Setup\n1. Enable Nanite on Static Meshes\n2. Set Nanite fallback mesh percentage\n3. Configure Nanite settings per-mesh\n4. Test performance\n\n### Best Practices\n- Use for static meshes with high detail\n- Perfect for environments and architecture\n- Combine with Quixel Megascans\n- Not for skeletal meshes (yet)\n- Be aware of overdraw on current-gen consoles\n\n### Limitations\n- Static meshes only (no skeletal animation)\n- Some material features limited\n- Hardware ray tracing uses fallback mesh\n- Screen space techniques for details\n\n### Quixel Integration\nNanite allows Epic to take advantage of its acquisition of Quixel, the world's largest photogrammetry library.\n\n## Practical Applications\n- The City Sample is made up of billions of polygons from tens of thousands of objects placed throughout the world\n- Architectural visualization\n- Film-quality environments\n- Dense forests and foliage\n- Detailed props and assets\n\n[[Quixel Megascans]]\n[[Nanite Materials]]\n[[Performance Considerations]]",
+        "html": "<h1>Nanite Deep Dive</h1>"
+      },
+      "position": {
+        "x": 15000,
+        "y": 15600
+      }
+    },
+    {
+      "id": 9,
+      "title": "Lumen Lighting",
+      "data": {
+        "content": "# Lumen - Dynamic Global Illumination\n\n## What is Lumen?\n\nLumen generates dynamic global illumination and reflections using hardware ray tracing, providing consistent, high-resolution shadowing that works with film-quality assets.\n\n## Core Concepts\n\n### Global Illumination\n- Indirect lighting simulation\n- Light bounces naturally\n- Real-time updates\n- No pre-baking required\n- Changes adapt on the fly to direct lighting or geometry changes\n\n### Features\n1. **Dynamic Sky Lighting** - Time of day changes\n2. **Emissive Materials** - As light sources\n3. **Surface Cache** - For non-Nanite geometry\n4. **Hardware Ray Tracing** - When available\n5. **Screen Space Traces** - Fill in details\n\n## Setting Up Lumen\n\n### Basic Setup\n1. Enable Lumen in Project Settings\n2. Set Reflection Method to Lumen\n3. Configure quality settings\n4. Use movable lights\n5. Test performance\n\n### Quality Settings\n- Software ray tracing (base quality)\n- Hardware ray tracing (highest quality)\n- Final Gather quality\n- Reflection quality\n- Scene detail\n\n## Lighting Best Practices\n\n### For Games\n- Balance quality vs performance\n- Use appropriate detail levels\n- Optimize reflection traces\n- Consider mobile platforms\n\n### For Film\n- Implement cinematic cameras, control final image, color grade scenes, use LUTs\n- Maximum quality settings\n- Hardware ray tracing enabled\n- Higher sample counts\n- Path tracing for final pixels\n\n### Advantages\n- Skylighting uses Lumen's Final Gather for sky shadowing, allowing indoor areas to be much darker than outdoor areas\n- No lightmap UVs\n- Instant feedback\n- Dynamic changes\n- Realistic indirect lighting\n\n## Virtual Shadow Maps\n\nVSM delivers consistent, high-resolution shadowing that works with film-quality assets and large, dynamically lit open worlds using Nanite and Lumen.\n\n[[Lumen Settings]]\n[[Post Processing]]\n[[Color Grading]]\n[[Cinematic Lighting]]",
+        "html": "<h1>Lumen Lighting</h1>"
+      },
+      "position": {
+        "x": 15000,
+        "y": 16200
+      }
+    },
+    {
+      "id": 10,
+      "title": "MetaHuman Workflow",
+      "data": {
+        "content": "# MetaHuman Creator & Workflow\n\n## What is MetaHuman?\n\nMetaHuman Creator is based on technology from three companies acquired by Epic—3Lateral, Cubic Motion, and Quixel—allowing developers to quickly create realistic human characters.\n\n## Creating MetaHumans\n\n### MetaHuman Creator (Cloud-Based)\n1. Access via Epic Games website\n2. Choose body type and features\n3. Customize facial features\n4. Select hair and clothing\n5. Adjust skin details and makeup\n6. Export to UE5 via Quixel Bridge\n\n### Customization Options\n- Face shape and structure\n- Skin tones and textures\n- Hair styles and colors\n- Eye color and details\n- Teeth and tongue\n- Clothing and accessories\n- Body proportions\n\n## Using MetaHumans in UE5\n\n### Import Process\n1. Download via Quixel Bridge\n2. Import to project\n3. Set up in level\n4. Configure LODs\n5. Test performance\n\n### Animation\n1. **Body Animation**\n   - Standard skeleton\n   - Animation retargeting\n   - Motion capture compatible\n   - Control Rig support\n\n2. **Facial Animation**\n   - Webcam facial animation for MetaHumans using the MetaHuman framework\n   - Live Link Face (iPhone)\n   - Animation Blueprints\n   - Sequencer keyframing\n   - Motion capture integration\n\n### Performance Optimization\n- Multiple LOD levels\n- Strand-based hair system\n- Quality vs performance settings\n- Mobile support\n\n## Best Practices\n\n### For Games\n- Use appropriate LODs\n- Optimize for target platform\n- Consider crowd systems\n- Balance quality vs quantity\n\n### For Film\n- Maximum quality settings\n- Detailed close-ups\n- Full facial performance capture\n- Integration with virtual production\n\n## Advanced Techniques\n- Custom DNA calibration\n- Body scanning integration\n- Hair grooming\n- Clothing customization\n- Expression rigging\n\n[[MetaHuman Animator]]\n[[Facial Performance Capture]]\n[[Character Rigging]]\n[[Animation Retargeting]]",
+        "html": "<h1>MetaHuman Workflow</h1>"
+      },
+      "position": {
+        "x": 15000,
+        "y": 16800
+      }
+    },
+    {
+      "id": 11,
+      "title": "Sequencer Cinematics",
+      "data": {
+        "content": "# Sequencer - Cinematic Creation Tool\n\n## What is Sequencer?\n\nSequencer is UE5's timeline-based cinematic editing tool, similar to professional video editing software but integrated directly into the engine.\n\n## Core Functionality\n\n### Timeline System\n- Multi-track timeline\n- Keyframe animation\n- Curve editor\n- Blend between shots\n- Master sequences\n- Sub-sequences\n\n### Track Types\n1. **Camera Tracks** - Camera animation and cuts\n2. **Transform Tracks** - Object movement\n3. **Animation Tracks** - Character animation\n4. **Audio Tracks** - Sound and music\n5. **Event Tracks** - Trigger gameplay events\n6. **Fade Tracks** - Screen fades\n7. **Level Visibility** - Show/hide levels\n\n## Creating Cinematics\n\n### Basic Workflow\n1. Create new Level Sequence\n2. Add camera cuts\n3. Add actors to sequence\n4. Keyframe transformations\n5. Add animations\n6. Include audio\n7. Apply post-processing\n8. Render final output\n\n### Camera Animation\n1. **Cine Camera Actor**\n   - Professional camera controls\n   - Focal length\n   - Aperture (depth of field)\n   - Film back settings\n   - Focus distance\n\n2. **Camera Cuts**\n   - Multiple camera angles\n   - Smooth transitions\n   - Shot composition\n   - Coverage planning\n\n3. **Virtual Camera**\n   - Pilot a camera in Unreal Engine from an iPad and record that movement\n   - Tactile camera control\n   - Natural camera moves\n   - On-set feel\n\n## Movie Render Queue\n\n### High-Quality Rendering\n- Movie Render Queue speeds up the rendering process and achieves highest quality renders possible\n- Anti-aliasing\n- Motion blur\n- High resolution output\n- Multiple passes (AOVs)\n- Industry-standard formats\n- EXR, ProRes, H.264\n\n### Render Settings\n1. Resolution and aspect ratio\n2. Frame rate\n3. Sample count (anti-aliasing)\n4. Output format\n5. Burn-in overlays\n6. Console variables\n\n## Advanced Techniques\n\n### Multi-Shot Sequences\n- Master sequences\n- Shot management\n- Editorial workflow\n- Version control\n\n### Integration\n- Gameplay sequences\n- Cutscene triggers\n- Interactive cinematics\n- Real-time playback\n\n### Professional Workflow\n- Shot lists and planning\n- Previs to final pixels\n- Color grading pipeline\n- Editorial integration\n- VFX plate generation\n\n[[Camera Techniques]]\n[[Movie Render Queue]]\n[[Post-Production Integration]]\n[[Cinematic Lighting]]",
+        "html": "<h1>Sequencer Cinematics</h1>"
+      },
+      "position": {
+        "x": 17400,
+        "y": 14800
+      }
+    },
+    {
+      "id": 12,
+      "title": "Blueprint Fundamentals",
+      "data": {
+        "content": "# Blueprint Fundamentals\n\n## Introduction to Visual Scripting\n\nBlueprints enable users to build systems by dragging and dropping pre-built nodes, representing code functions.\n\n## Blueprint Types\n\n### 1. Level Blueprint\n- Specific to each level\n- Level-wide logic\n- Triggered by level events\n- Not reusable\n\n### 2. Blueprint Class\n- Reusable objects\n- Can be placed multiple times\n- Inherit from parent classes\n- Actor, Character, Pawn, etc.\n\n### 3. Blueprint Interface\n- Communication between Blueprints\n- No implementation\n- Contract for functionality\n\n### 4. Blueprint Function Library\n- Allows C++ code to be used in both C++ code or in Blueprints\n- Static utility functions\n- No instance needed\n- Shared functionality\n\n### 5. Blueprint Macro Library\n- Reusable node groups\n- Collapse complex logic\n- Can include delays\n\n## Core Concepts\n\n### Variables\n- Store data\n- Public vs private\n- Data types: Bool, Int, Float, String, Vector, Object References\n- Arrays and Maps\n- Default values\n\n### Functions\n- Regular functions (white exec pins)\n- Pure functions (no exec pins)\n- Input and output parameters\n- Local variables\n- Return values\n\n### Events\n- Event BeginPlay\n- Event Tick\n- Custom events\n- Event dispatchers\n- Input events\n\n### Flow Control\n- Branch (if/else)\n- Switch statements\n- For/While loops\n- Sequences\n- Gates\n- Do Once\n\n## Best Practices\n\n### Organization\n1. Use comments liberally\n2. Group related nodes\n3. Name variables clearly\n4. Break into functions\n5. Use macro libraries\n\n### Performance\n1. Avoid Tick when possible\n2. Use timers instead\n3. Cache references\n4. Minimize casts\n5. Use pure functions carefully\n\n### Debugging\n1. Breakpoints\n2. Watch values\n3. Print String nodes\n4. Blueprint debugger\n5. Visual logger\n\n## Common Patterns\n\n### Input Handling\n- Input events\n- Action and Axis mappings\n- Enhanced Input System\n\n### Spawning Objects\n- Spawn Actor from Class\n- Attach to components\n- Set initial properties\n\n### Component Communication\n- Get Component\n- Cast to specific types\n- Event dispatchers\n- Blueprint interfaces\n\n[[Blueprint Classes]]\n[[Event System]]\n[[Blueprint Communication]]\n[[Blueprint Debugging]]",
+        "html": "<h1>Blueprint Fundamentals</h1>"
+      },
+      "position": {
+        "x": 17400,
+        "y": 15400
+      }
+    },
+    {
+      "id": 13,
+      "title": "C++ Basics for UE5",
+      "data": {
+        "content": "# C++ Basics for Unreal Engine 5\n\n## Unreal C++ vs Standard C++\n\nUnreal uses \"Unreal C++\" - standard C++ extended with Epic's framework for game development.\n\n## Key Macros\n\n### UCLASS()\n```cpp\nUCLASS(Blueprintable)\nclass MYGAME_API AMyActor : public AActor\n{\n    GENERATED_BODY()\n};\n```\n\n**Specifiers:**\n- `Blueprintable` - Can be extended in Blueprints\n- `Abstract` - Cannot be instantiated\n- `NotBlueprintable` - Cannot be extended\n\n### UPROPERTY()\n```cpp\nUPROPERTY(EditAnywhere, BlueprintReadWrite, Category = \"Settings\")\nfloat Speed = 100.0f;\n```\n\n**Common Specifiers:**\n- `EditAnywhere` - Editable in editor\n- `BlueprintReadWrite` - Can read/write from BP\n- `BlueprintReadOnly` - Read-only in BP\n- `VisibleAnywhere` - Visible but not editable\n- `Replicated` - Network replication\n\n### UFUNCTION()\n```cpp\nUFUNCTION(BlueprintCallable, Category = \"Gameplay\")\nvoid DoSomething();\n```\n\n**Common Specifiers:**\n- `BlueprintCallable` - Can call from BP\n- `BlueprintPure` - Pure function (no exec pins)\n- `BlueprintImplementableEvent` - BP implements\n- `BlueprintNativeEvent` - C++ default, BP can override\n\n## Core Classes\n\n### AActor\n- Base class for objects in the world\n- Has location, rotation, scale\n- Can have components\n- Tick function\n\n### UActorComponent\n- Modular functionality\n- Reusable behavior\n- No transform\n\n### USceneComponent\n- Has transform\n- Can attach to hierarchy\n- Visual representation\n\n### APawn\n- Can be possessed by controller\n- Player or AI controlled\n- Has movement\n\n### ACharacter\n- Special Pawn with movement\n- Character Movement Component\n- Capsule collision\n\n## Common Patterns\n\n### Component Setup\n```cpp\nAMyActor::AMyActor()\n{\n    // Set this actor to call Tick\n    PrimaryActorTick.bCanEverTick = true;\n    \n    // Create components\n    MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT(\"Mesh\"));\n    RootComponent = MeshComponent;\n}\n```\n\n### Exposing to Blueprints\nC++ classes can be extended with Blueprints, allowing programmers to set up new gameplay classes in code that can be built upon and changed with Blueprints.\n\n### Blueprint Events\n```cpp\nUFUNCTION(BlueprintImplementableEvent)\nvoid OnPlayerEnter();\n\nUFUNCTION(BlueprintNativeEvent)\nvoid OnTakeDamage(float Damage);\n\nvoid OnTakeDamage_Implementation(float Damage)\n{\n    // C++ implementation\n}\n```\n\n## Project Setup\n\n### Creating C++ Classes\n1. Tools → New C++ Class\n2. Choose parent class\n3. Name your class\n4. Compile\n\n### IDE Setup\n- Visual Studio (Windows)\n- Rider (Cross-platform)\n- Xcode (Mac)\n- Visual Studio Code\n\n## Memory Management\n\n### Garbage Collection\n- UObject system handles cleanup\n- Use UPROPERTY() for references\n- Raw pointers can dangle\n\n### Smart Pointers\n- `TSharedPtr<T>` - Reference counted\n- `TWeakPtr<T>` - Weak reference\n- `TUniquePtr<T>` - Single ownership\n\n[[Advanced C++ Patterns]]\n[[Memory Management]]\n[[Blueprint/C++ Integration]]\n[[Performance in C++]]",
+        "html": "<h1>C++ Basics for UE5</h1>"
+      },
+      "position": {
+        "x": 17400,
+        "y": 16000
+      }
+    },
+    {
+      "id": 14,
+      "title": "Career & Community",
+      "data": {
+        "content": "# Career & Community\n\n## Career Paths\n\n### Game Development Roles\n1. **Gameplay Programmer** - C++ and Blueprint systems\n2. **Technical Artist** - Materials, shaders, tools\n3. **Environment Artist** - Level design, world building\n4. **Character Artist** - Characters, MetaHumans, rigging\n5. **VFX Artist** - Niagara effects, particles\n6. **Level Designer** - Game levels, mechanics\n7. **Technical Designer** - Blueprint scripting, tools\n8. **Animation Programmer** - Control Rig, IK systems\n\n### Film & Virtual Production Roles\n1. **Virtual Production Supervisor** - Lead Unreal Operator on projects like Avatar the Last Airbender\n2. **Real-Time VFX Artist** - In-camera effects\n3. **Previs Artist** - Pre-production visualization\n4. **Virtual Cinematographer** - Camera and lighting\n5. **Technical Director** - Pipeline and tools\n6. **Virtual Art Director** - Digital set design\n7. **LED Volume Operator** - ICVFX operation\n\n## Industry Growth\n\nVirtual Production is the fastest-growing area of the film industry, expected to 3x in size by 2030.\n\n## Learning Resources\n\n### Free Official Resources\n- Epic Developer Community\n- Epic Online Learning Platform\n- Unreal Engine Documentation\n- Sample projects (City Sample, Lyra)\n- Virtual Production Field Guide - free step-by-step guide\n\n### Paid Courses\n- Unreal Engine 5 – Full Course for Beginners by Sourav\n- Unreal Engine 5 C++ Multiplayer Shooter by Stephen Ulibarri\n- Unreal Fundamentals by Josh Toonen (18-hour course with 85 lessons)\n- Unreal Engine for Filmmakers course for indie filmmakers\n\n### Books\n- Virtual Filmmaking with Unreal Engine 5 by Hussin Khan and HaZ Dulull\n- Unreal Engine 5 Character Creation, Animation, and Cinematics\n\n### Asset Libraries\n- Quixel Megascans - world's largest library of AAA, cinema-quality assets\n- Unreal Engine Marketplace\n- Fab (Epic's new unified marketplace)\n- Free sample projects\n\n## Community Resources\n\n### Forums & Discussions\n- Unreal Engine Forums\n- Epic Developer Community\n- Reddit r/unrealengine\n- Discord Unreal Source channel\n\n### Learning Platforms\n- YouTube tutorials\n- Udemy courses\n- Coursera\n- LinkedIn Learning\n\n### Networking\n- Game jams\n- Film festivals\n- Unreal Fest events\n- Local meetups\n- Online communities\n\n## Portfolio Building\n\n### For Game Developers\n1. Complete game prototypes\n2. Technical showcases\n3. GitHub repositories\n4. Published games\n5. Game jam entries\n\n### For Filmmakers\n1. Short films and cinematics\n2. Previs reels\n3. Virtual production demos\n4. Technical breakdowns\n5. Behind-the-scenes content\n\n## Industry Standards\n\n### Studios Using UE5\n- Disney, ILM, DNEG, and Framestore\n- Major game studios\n- Indie developers\n- Architectural firms\n- Automotive companies\n\n[[Building Portfolio]]\n[[Job Search Strategies]]\n[[Networking Tips]]\n[[Certification Programs]]",
+        "html": "<h1>Career & Community</h1>"
+      },
+      "position": {
+        "x": 15800,
+        "y": 16200
+      }
+    },
+    {
+      "id": 15,
+      "title": "Interface Navigation",
+      "data": {
+        "content": "# Interface Navigation\n\n## Main Editor Windows\n\n### Viewport\n- 3D scene view\n- Navigation: WASD + Mouse\n- Right-click drag: Rotate camera\n- Middle mouse: Pan\n- Mouse wheel: Zoom\n- Alt + drag: Orbit around point\n- F key: Focus on selected object\n\n### Content Browser\n- Asset management\n- Import files\n- Create new assets\n- Search and filter\n- Folder organization\n- Collections\n\n### Details Panel\n- Properties of selected objects\n- Component list\n- Material slots\n- Physics settings\n- Transform values\n\n### World Outliner\n- List of all actors in level\n- Hierarchy view\n- Search and filter\n- Folders and organization\n- Visibility toggles\n\n### Modes Panel\n- Place actors\n- Painting tools\n- Landscape tools\n- Foliage tools\n- Modeling tools\n\n## Essential Shortcuts\n\n### Navigation\n- `W, A, S, D` - Move camera\n- `E, Q` - Up/Down\n- `Right Mouse Button` - Free look\n- `Middle Mouse Button` - Pan\n- `F` - Focus on selection\n- `G` - Game view (hide editor icons)\n\n### Selection\n- `Ctrl + Click` - Add to selection\n- `Shift + Click` - Range select\n- `Ctrl + A` - Select all\n- `Ctrl + D` - Deselect all\n\n### Manipulation\n- `W` - Move tool\n- `E` - Rotate tool\n- `R` - Scale tool\n- `Space` - Cycle through tools\n- `Ctrl + Z` - Undo\n- `Ctrl + Y` - Redo\n\n### Project\n- `Ctrl + S` - Save current level\n- `Ctrl + Shift + S` - Save all\n- `Alt + P` - Play in editor\n- `Esc` - Stop play\n- `F8` - Eject from play mode\n\n## Viewport Options\n\n### View Modes\n- Lit - Full lighting\n- Unlit - No lighting\n- Wireframe - Geometry only\n- Detail Lighting - Complex lighting\n- Shader Complexity - Performance view\n- Nanite Visualization - Nanite meshes\n- Lumen Visualization - Lumen debug\n\n### Show Flags\n- Grid\n- Collision\n- Navigation\n- Bounds\n- Statistics\n- FPS display\n\n[[Editor Customization]]\n[[Viewport Settings]]\n[[Editor Preferences]]",
+        "html": "<h1>Interface Navigation</h1>"
+      },
+      "position": {
+        "x": 14200,
+        "y": 14000
+      }
+    },
+    {
+      "id": 16,
+      "title": "Project Setup",
+      "data": {
+        "content": "# Project Setup\n\n## Creating New Projects\n\n### Project Templates\n1. **Blank** - Empty project\n2. **First Person** - FPS template with shooting\n3. **Third Person** - Character with camera\n4. **Top Down** - Isometric view\n5. **Vehicle** - Car driving template\n6. **Puzzle** - Logic game template\n7. **Horror** - Suspense mechanics\n\n### Project Settings\n- Blueprint or C++ project\n- Desktop, Console, or Mobile\n- Maximum quality or scalable\n- Starter content inclusion\n- Raytracing enabled/disabled\n\n## Project Organization\n\n### Folder Structure\n```\nContent/\n├── Blueprints/\n│   ├── Characters/\n│   ├── Gameplay/\n│   └── UI/\n├── Maps/\n├── Materials/\n├── Meshes/\n├── Textures/\n├── Audio/\n├── VFX/\n└── Animations/\n```\n\n### Naming Conventions\n- **Prefixes for asset types:**\n  - `BP_` Blueprint\n  - `M_` Material\n  - `MI_` Material Instance\n  - `T_` Texture\n  - `SM_` Static Mesh\n  - `SK_` Skeletal Mesh\n  - `A_` Animation\n  - `NS_` Niagara System\n  - `W_` Widget (UI)\n\n### Project Settings\n\n#### Important Settings\n1. **Maps & Modes**\n   - Default maps\n   - Game mode\n   - Player controller\n\n2. **Input**\n   - Action mappings\n   - Axis mappings\n   - Enhanced Input setup\n\n3. **Rendering**\n   - Lumen enabled\n   - Nanite enabled\n   - Virtual Shadow Maps\n   - Post processing\n\n4. **Physics**\n   - Gravity\n   - Collision channels\n   - Physics simulation\n\n5. **Packaging**\n   - Target platform\n   - Build configuration\n   - Compression settings\n\n## Version Control\n\n### Recommended Systems\n- **Perforce** - Helix Core handles massive game engine files with ease and integrates with more than just Unreal\n- **Git** with LFS\n- **Plastic SCM**\n\n### Best Practices\n- Binary file handling\n- Exclusive checkout for binary assets\n- Regular commits\n- Branching strategy\n- Team collaboration\n\n[[Asset Import Pipeline]]\n[[Source Control Setup]]\n[[Optimization Settings]]",
+        "html": "<h1>Project Setup</h1>"
+      },
+      "position": {
+        "x": 14200,
+        "y": 14600
+      }
+    },
+    {
+      "id": 17,
+      "title": "Quixel Megascans",
+      "data": {
+        "content": "# Quixel Megascans\n\n## What is Megascans?\n\nQuixel Megascans is the world's largest library of AAA, cinema-quality assets based on real-world scan data, ready for use in your projects.\n\n## Asset Types\n\n### Surfaces\n- Photogrammetry-based materials\n- PBR textures (4K, 8K)\n- Displacement maps\n- Multiple variations\n- Tileable materials\n\n### 3D Assets\n- Scanned objects\n- Rocks and boulders\n- Vegetation\n- Urban props\n- Natural elements\n\n### 3D Plants\n- Trees and bushes\n- Grass and flowers\n- Ground cover\n- Multiple LODs\n- Wind animation\n\n### Atlases\n- Decals\n- Imperfections\n- Dirt and damage\n- Layerable details\n\n## Integration with UE5\n\n### Quixel Bridge\n1. Download via Epic Games Launcher\n2. Sign in with Epic account\n3. Browse asset library\n4. Download assets\n5. Add directly to UE5 project\n\n### Nanite Integration\n- Megascans assets work perfectly with Nanite\n- No LOD management needed\n- Film-quality assets in real-time\n- Automatic optimization\n\n### Material System\n- Master materials included\n- Blend materials\n- Smart materials\n- Auto-landscape materials\n\n## Using Megascans\n\n### For Games\n- Fast environment creation\n- Photorealistic quality\n- Optimized for performance\n- Consistent art style\n\n### For Film\n- Cinema-quality textures\n- Maximum resolution\n- Realistic materials\n- Virtual production ready\n\n## Best Practices\n\n### Performance\n1. Use appropriate LODs (pre-Nanite)\n2. Instance materials\n3. Texture streaming\n4. Combine meshes when possible\n\n### Art Direction\n1. Color grading for consistency\n2. Material blending\n3. Custom tweaks\n4. Layered materials\n\n## Free vs Paid\n- Free for UE5 users\n- Premium marketplace assets\n- Custom scan services\n- Enterprise solutions\n\n[[Environment Creation]]\n[[Material Workflows]]\n[[Landscape Tools]]",
+        "html": "<h1>Quixel Megascans</h1>"
+      },
+      "position": {
+        "x": 14200,
+        "y": 15200
+      }
+    },
+    {
+      "id": 18,
+      "title": "Resources Hub",
+      "data": {
+        "content": "# Resources Hub - Essential Links\n\n## Official Epic Games Resources\n\n### Documentation & Learning\n- **Epic Developer Community**: https://dev.epicgames.com\n- **Official Documentation**: https://docs.unrealengine.com\n- **Learning Paths**: Free structured courses\n- **Sample Projects**: City Sample, Lyra, Valley of the Ancient\n\n### Download & Tools\n- **Epic Games Launcher**: Download UE5\n- **Quixel Bridge**: Megascans integration\n- **MetaHuman Creator**: Character creation\n- **Twinmotion**: Previs and archviz\n- **RealityCapture**: Photogrammetry\n\n## Key Learning Platforms\n\n### 2025 Crash Course\n- New developer crash course from GDC2025\n- Comprehensive beginner path\n- Industry best practices\n\n### Free Courses\n- Post processing, cinematic cameras, color grading courses\n- PCG forest paths, MetaHuman webcam animation, baked river simulations\n- Your First Hour in Unreal Engine 5\n\n### Books\n- Virtual Filmmaking with Unreal Engine 5\n- Unreal Engine 5 Character Creation\n- Game Development guides\n\n## Community\n\n### Forums & Discussion\n- Unreal Engine Forums\n- Epic Developer Community\n- Reddit r/unrealengine\n- Discord servers\n\n### Social Media\n- Unreal Engine YouTube\n- Twitter/X updates\n- Instagram showcases\n- LinkedIn professionals\n\n## Asset Marketplaces\n\n### Free Assets\n- Quixel Megascans library\n- Epic Games free monthly content\n- Sample projects\n- Community assets\n\n### Paid Marketplaces\n- Unreal Engine Marketplace\n- Fab (Epic's unified marketplace)\n- Third-party stores\n\n## Helpful Tools\n\n### Version Control\n- Perforce Helix Core for virtual production\n- Git with LFS\n- Plastic SCM\n\n### Asset Creation\n- Blender (3D modeling)\n- Substance Painter/Designer\n- ZBrush\n- Maya/3ds Max\n- Houdini\n\n### Audio\n- FMOD\n- Wwise\n- Audacity\n- Reaper\n\n## Career Resources\n\n### Job Boards\n- Epic Games careers\n- Game industry job sites\n- Film production companies\n- Freelance platforms\n\n### Portfolio Platforms\n- ArtStation\n- Behance\n- Personal websites\n- GitHub (for code)\n- YouTube (for demos)\n\n## Support\n\n### Getting Help\n- AnswerHub (legacy)\n- Epic Developer Community forums\n- Official documentation\n- Community Discord\n- Stack Overflow\n\n### Bug Reports\n- Official bug tracker\n- Forum bug reports\n- Engine source contributions\n\n[[Recommended Tutorials]]\n[[Best Practices Guide]]\n[[Community Challenges]]",
+        "html": "<h1>Resources Hub</h1>"
+      },
+      "position": {
+        "x": 14200,
+        "y": 15800
+      }
+    },
+    {
+      "id": 19,
+      "title": "Virtual Sets & Environments",
+      "data": {
+        "content": "# Virtual Sets & Environment Creation\n\n## Building Film-Quality Sets\n\n### Workflow Overview\n1. **Concept & Reference**\n   - Mood boards\n   - Photo references\n   - Architectural plans\n   - Style guides\n\n2. **Blocking & Layout**\n   - Basic geometry\n   - Scale and proportion\n   - Camera placement\n   - Lighting setup\n\n3. **Asset Creation**\n   - Import models and add materials and textures to build photorealistic, dynamic worlds\n   - Quixel Megascans\n   - Custom models\n   - Nanite meshes\n\n4. **Detailing**\n   - Props and dressing\n   - Surface imperfections\n   - Clutter and realism\n   - Atmospheric effects\n\n5. **Lighting**\n   - Key light placement\n   - Fill and rim lights\n   - Lumen dynamic global illumination\n   - Practical lights\n   - Color temperature\n\n## Environment Types\n\n### Interior Sets\n- Controlled lighting\n- Detailed props\n- Atmosphere and mood\n- Camera-friendly layout\n- Art department collaboration\n\n### Exterior Environments\n- Procedural paths, tree scattering, cinematic forest environments\n- Sky and atmosphere\n- Natural lighting\n- Terrain and landscape\n- Vegetation and foliage\n- Weather systems\n\n### Mixed Environments\n- Indoor/outdoor transitions\n- Windows and portals\n- Dynamic time of day\n- Practical integration\n\n## Tools & Techniques\n\n### Landscape Tools\n- Sculpting\n- Painting layers\n- Splines for roads\n- Water systems\n- Baked river simulations for realistic water rendering\n\n### PCG (Procedural Content Generation)\n- PCG tools to scatter trees and foliage, create procedural paths\n- Asset placement rules\n- Biome generation\n- Variation and randomization\n- Performance optimization\n\n### Foliage System\n- Painted foliage\n- Procedural placement\n- Wind animation\n- LOD management\n- Culling optimization\n\n## Virtual Production Considerations\n\n### LED Volume Design\n- Screen resolution requirements\n- Frustum matching\n- Color space management\n- Refresh rate sync\n- Camera tracking\n\n### Real-Time Performance\n- Target frame rate (60+ fps)\n- LOD settings\n- Streaming optimization\n- GPU management\n- Backup solutions\n\n### Interactive Elements\n- Dynamic lighting changes\n- Moveable props\n- Time of day system\n- Weather controls\n- Director-friendly interfaces\n\n## Best Practices\n\n### For Film Quality\n1. Attention to detail\n2. Realistic scale\n3. Surface imperfections\n4. Proper lighting\n5. Camera-optimized layout\n\n### Performance Balance\n1. Use Nanite for static meshes\n2. Lumen for dynamic lighting\n3. Optimize draw calls\n4. Stream large environments\n5. Test on target hardware\n\n### Art Direction\n1. Consistent style\n2. Color palette\n3. Mood and atmosphere\n4. Camera composition\n5. Story-driven design\n\n[[PCG Systems]]\n[[Landscape Creation]]\n[[Foliage Systems]]\n[[Atmospheric Effects]]",
+        "html": "<h1>Virtual Sets & Environments</h1>"
+      },
+      "position": {
+        "x": 17400,
+        "y": 14200
+      }
+    },
+    {
+      "id": 20,
+      "title": "Multiplayer Basics",
+      "data": {
+        "content": "# Multiplayer & Networking Basics\n\n## Network Architecture\n\n### Client-Server Model\n- Authoritative server\n- Client prediction\n- Server reconciliation\n- Authority and ownership\n- Replication\n\n### Network Roles\n- Listen Server\n- Dedicated Server\n- Client\n- Standalone\n\n## Replication Fundamentals\n\n### Actor Replication\n```cpp\nUPROPERTY(Replicated)\nint32 Health;\n\nUPROPERTY(ReplicatedUsing=OnRep_Score)\nint32 Score;\n\nUFUNCTION()\nvoid OnRep_Score();\n```\n\n### Replication Types\n1. **Variable Replication**\n   - Automatic sync\n   - Conditional replication\n   - RepNotify callbacks\n\n2. **RPC (Remote Procedure Calls)**\n   - Server\n   - Client\n   - NetMulticast\n   - Reliable vs Unreliable\n\n### Network Relevancy\n- Distance-based\n- Always relevant\n- Custom relevancy\n- Network priority\n\n## Common Patterns\n\n### Player State\n- Persistent player data\n- Replicated across clients\n- Score, kills, stats\n- Team assignment\n\n### Game State\n- Global game data\n- Match state\n- Round information\n- Shared resources\n\n### Game Mode\n- Server-only\n- Match flow control\n- Spawning logic\n- Win conditions\n\n## Blueprint Networking\n\n### Replication Setup\n1. Enable \"Replicates\" on Actor\n2. Set \"Replicate Movement\"\n3. Mark variables for replication\n4. Create RPC functions\n\n### RPC Types in Blueprints\n- Run on Server\n- Run on owning Client\n- Multicast\n- Reliable checkbox\n\n## Common Challenges\n\n### Lag Compensation\n- Client prediction\n- Server reconciliation\n- Input buffering\n- Interpolation\n\n### Bandwidth Optimization\n- Compression\n- Update frequency\n- Conditional replication\n- Priority management\n\n### Cheating Prevention\n- Server authority\n- Input validation\n- Anti-cheat measures\n- Replay validation\n\n## Testing\n\n### PIE (Play in Editor)\n- Multiple clients\n- Server + clients\n- Different machines\n- Network emulation\n\n### Standalone Testing\n- Packaged builds\n- Listen server\n- Dedicated server\n- LAN testing\n\n## Advanced Topics\n\n### Session Management\n- Creating sessions\n- Finding sessions\n- Joining games\n- Steam integration\n- Epic Online Services\n\n### Voice Chat\n- Built-in voice\n- Push to talk\n- Spatial audio\n- Team channels\n\n### Dedicated Servers\n- Linux builds\n- Headless mode\n- Server hosting\n- Auto-scaling\n\n## Resources\n\n- Unreal Engine 5 C++ Multiplayer Shooter course teaches multiplayer principles and implementation\n- Official networking documentation\n- Lyra sample project\n- Community examples\n\n[[Advanced Networking]]\n[[Online Subsystems]]\n[[Dedicated Server Setup]]\n[[Network Profiling]]",
+        "html": "<h1>Multiplayer Basics</h1>"
+      },
+      "position": {
+        "x": 18200,
+        "y": 14400
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "1-2",
+      "start": {"nodeId": 1},
+      "end": {"nodeId": 2}
+    },
+    {
+      "id": "1-3",
+      "start": {"nodeId": 1},
+      "end": {"nodeId": 3}
+    },
+    {
+      "id": "1-4",
+      "start": {"nodeId": 1},
+      "end": {"nodeId": 4}
+    },
+    {
+      "id": "1-5",
+      "start": {"nodeId": 1},
+      "end": {"nodeId": 5}
+    },
+    {
+      "id": "1-6",
+      "start": {"nodeId": 1},
+      "end": {"nodeId": 6}
+    },
+    {
+      "id": "1-7",
+      "start": {"nodeId": 1},
+      "end": {"nodeId": 7}
+    },
+    {
+      "id": "1-14",
+      "start": {"nodeId": 1},
+      "end": {"nodeId": 14}
+    },
+    {
+      "id": "2-15",
+      "start": {"nodeId": 2},
+      "end": {"nodeId": 15}
+    },
+    {
+      "id": "2-16",
+      "start": {"nodeId": 2},
+      "end": {"nodeId": 16}
+    },
+    {
+      "id": "3-8",
+      "start": {"nodeId": 3},
+      "end": {"nodeId": 8}
+    },
+    {
+      "id": "3-9",
+      "start": {"nodeId": 3},
+      "end": {"nodeId": 9}
+    },
+    {
+      "id": "3-10",
+      "start": {"nodeId": 3},
+      "end": {"nodeId": 10}
+    },
+    {
+      "id": "5-11",
+      "start": {"nodeId": 5},
+      "end": {"nodeId": 11}
+    },
+    {
+      "id": "5-19",
+      "start": {"nodeId": 5},
+      "end": {"nodeId": 19}
+    },
+    {
+      "id": "5-10",
+      "start": {"nodeId": 5},
+      "end": {"nodeId": 10}
+    },
+    {
+      "id": "6-12",
+      "start": {"nodeId": 6},
+      "end": {"nodeId": 12}
+    },
+    {
+      "id": "6-13",
+      "start": {"nodeId": 6},
+      "end": {"nodeId": 13}
+    },
+    {
+      "id": "8-17",
+      "start": {"nodeId": 8},
+      "end": {"nodeId": 17}
+    },
+    {
+      "id": "14-18",
+      "start": {"nodeId": 14},
+      "end": {"nodeId": 18}
+    },
+    {
+      "id": "4-20",
+      "start": {"nodeId": 4},
+      "end": {"nodeId": 20}
+    }
+  ],
+  "connectionThemes": {},
+  "nodeIdCounter": 21,
+  "globalTheme": "blue",
+  "nodeThemes": {
+    "1": "purple",
+    "2": "green",
+    "3": "orange",
+    "4": "red",
+    "5": "blue",
+    "6": "yellow",
+    "7": "teal",
+    "8": "orange",
+    "9": "orange",
+    "10": "orange",
+    "14": "purple"
+  },
+  "version": "1.0",
+  "exportedAt": "2025-10-24T00:00:00.000Z"
+}
