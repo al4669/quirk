@@ -11,11 +11,18 @@ class NodeContentManager {
     const typeElement = document.getElementById(`type-${nodeId}`);
     const currentType = this.wallboard.getNodeTitle(node);
 
+    // Capture the current width of the typeElement before hiding it
+    const typeWidth = typeElement.offsetWidth;
+
     // Create input field
     const input = document.createElement("input");
     input.type = "text";
     input.value = currentType;
     input.className = "node-type-editor";
+
+    // Set the input width to match the original type element width
+    input.style.width = typeWidth + "px";
+    input.style.maxWidth = typeWidth + "px";
 
     // Replace the type element with input
     typeElement.style.display = "none";
@@ -31,12 +38,21 @@ class NodeContentManager {
         // Generate unique title (excluding current node)
         const uniqueTitle = NodeUtils.generateUniqueTitle(newType, this.wallboard.nodes, nodeId);
 
-        // Use new field name "title", remove old "type" if it exists
+        // Update the node title FIRST before updating references
         node.title = uniqueTitle;
         delete node.type;
         typeElement.textContent = uniqueTitle.toUpperCase();
         typeElement.style.display = "";
         input.remove();
+
+        // Only update references if title actually changed
+        if (uniqueTitle !== currentType) {
+          // Update all [[link]] references in other nodes
+          if (this.wallboard.linkManager) {
+            this.wallboard.linkManager.updateAllReferencesToNode(nodeId, currentType, uniqueTitle);
+          }
+        }
+
         this.wallboard.autoSave();
       }
     };

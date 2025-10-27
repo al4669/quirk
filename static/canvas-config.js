@@ -1,7 +1,7 @@
 // Canvas configuration constants
 class CanvasConfig {
-  static WIDTH = 10000;
-  static HEIGHT = 8000;
+  static WIDTH = 30000;
+  static HEIGHT = 30000;
   static DEFAULT_ZOOM = 1;
 
   static getInitialPanX() {

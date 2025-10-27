@@ -10,6 +10,7 @@ class NodeRenderer {
     const header = document.createElement("div");
     header.className = "node-header";
     header.innerHTML = `
+                    <div class="node-type-and-actions-container">
                     <div class="node-type" id="type-${node.id}">${wallboard.getNodeTitle(node).toUpperCase()}</div>
                     <div class="node-actions">
                         <button class="node-btn" onclick="wallboard.maximizeNode(${
@@ -51,6 +52,7 @@ class NodeRenderer {
                             </svg>
                         </button>
                     </div>
+                  </div>
                 `;
 
     // Add double-click event listener to the node type
@@ -58,7 +60,124 @@ class NodeRenderer {
     nodeTypeElement.addEventListener('dblclick', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      wallboard.editNodeType(node.id);
+
+      // In zoomed-out view, enable inline editing
+      if (wallboard.zoom <= 0.3) {
+        const currentTitle = wallboard.getNodeTitle(node);
+
+        // Store original dimensions
+        const currentWidth = nodeEl.offsetWidth;
+        const currentHeight = nodeEl.offsetHeight;
+
+        // Create inline editor
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentTitle;
+        input.className = 'node-type-inline-editor';
+        input.style.width = '100%';
+        input.style.fontSize = getComputedStyle(nodeTypeElement).fontSize;
+        input.style.fontFamily = getComputedStyle(nodeTypeElement).fontFamily;
+        input.style.textAlign = 'center';
+        input.style.background = 'transparent';
+
+        // Get the actual computed color from the node type element (which has the node's theme applied)
+        const computedColor = getComputedStyle(nodeTypeElement).color;
+        input.style.border = 'none';
+        input.style.color = computedColor;
+
+        input.style.padding = '8px';
+        input.style.borderRadius = '8px';
+        input.style.outline = 'none';
+
+        // Lock node dimensions during editing
+        nodeEl.style.width = currentWidth + 'px';
+        nodeEl.style.height = currentHeight + 'px';
+        nodeEl.style.minWidth = currentWidth + 'px';
+        nodeEl.style.minHeight = currentHeight + 'px';
+
+        // Replace text with input
+        nodeTypeElement.style.display = 'none';
+        header.appendChild(input);
+        input.focus();
+        input.select();
+
+        let isFinishing = false;
+        const finishEditing = () => {
+          if (isFinishing) return;
+          isFinishing = true;
+
+          const newTitle = input.value.trim() || 'Untitled';
+
+          // Update the node title FIRST before updating references
+          node.title = newTitle;
+          node.type = newTitle; // Keep for backwards compatibility
+          nodeTypeElement.textContent = newTitle.toUpperCase();
+          nodeTypeElement.style.display = '';
+          input.remove();
+
+          // Unlock node dimensions
+          nodeEl.style.width = '';
+          nodeEl.style.height = '';
+          nodeEl.style.minWidth = '';
+          nodeEl.style.minHeight = '';
+
+          // Only update references if title actually changed
+          if (newTitle !== currentTitle) {
+            // Update all [[link]] references in other nodes
+            if (wallboard.linkManager) {
+              wallboard.linkManager.updateAllReferencesToNode(node.id, currentTitle, newTitle);
+            }
+          }
+
+          wallboard.saveState();
+
+          // Remove document click handler
+          document.removeEventListener('mousedown', outsideClickHandler);
+        };
+
+        const cancelEditing = () => {
+          if (isFinishing) return;
+          isFinishing = true;
+
+          nodeTypeElement.style.display = '';
+          input.remove();
+          // Unlock node dimensions
+          nodeEl.style.width = '';
+          nodeEl.style.height = '';
+          nodeEl.style.minWidth = '';
+          nodeEl.style.minHeight = '';
+
+          // Remove document click handler
+          document.removeEventListener('mousedown', outsideClickHandler);
+        };
+
+        // Handle clicks outside the input
+        const outsideClickHandler = (event) => {
+          if (!input.contains(event.target) && event.target !== input) {
+            finishEditing();
+          }
+        };
+
+        // Add document click handler with a small delay to avoid immediate trigger
+        setTimeout(() => {
+          document.addEventListener('mousedown', outsideClickHandler);
+        }, 100);
+
+        input.addEventListener('blur', () => {
+          // Small delay to ensure blur happens properly
+          setTimeout(finishEditing, 10);
+        });
+        input.addEventListener('keydown', (ke) => {
+          if (ke.key === 'Enter') {
+            finishEditing();
+          } else if (ke.key === 'Escape') {
+            cancelEditing();
+          }
+        });
+      } else {
+        // Normal behavior for non-zoomed-out view
+        wallboard.editNodeType(node.id);
+      }
     });
 
     // Add double-click to header to exit edit mode
@@ -103,15 +222,110 @@ class NodeRenderer {
 
 
     // Make draggable - header for regular drag
+    // When zoomed out to 30%, split header: left 50% for dragging, right 50% for connections
+    let headerDragStartPos = null;
+    let headerDragStarted = false;
+
     header.addEventListener("mousedown", (e) => {
+      // Don't interfere with buttons or node type
+      if (e.target.closest('.node-btn') || e.target.closest('.node-actions')) return;
+
+      // When zoomed out, check which side was clicked (based on entire node width)
+      if (wallboard.zoom <= 0.3) {
+        const nodeRect = nodeEl.getBoundingClientRect();
+        const clickX = e.clientX - nodeRect.left;
+        const nodeWidth = nodeRect.width;
+
+        // Right 50% of entire node - start connection drag
+        if (clickX > nodeWidth / 2) {
+          headerDragStartPos = { x: e.clientX, y: e.clientY };
+          headerDragStarted = false;
+          e.preventDefault();
+          return;
+        }
+      }
+
+      // Left 50% (or not zoomed out) - normal node dragging
       wallboard.handleNodeDragStart(e, node, nodeEl);
+    });
+
+    header.addEventListener("mousemove", (e) => {
+      if (!headerDragStartPos) return;
+
+      const distance = Math.sqrt(
+        Math.pow(e.clientX - headerDragStartPos.x, 2) +
+        Math.pow(e.clientY - headerDragStartPos.y, 2)
+      );
+
+      if (distance > 10 && !headerDragStarted) {
+        headerDragStarted = true;
+        wallboard.handleConnectionDragStart(headerDragStartPos, node);
+      }
+    });
+
+    header.addEventListener("mouseup", () => {
+      headerDragStartPos = null;
+      headerDragStarted = false;
+    });
+
+    // Update cursor based on position when zoomed out - for entire node
+    const updateCursor = (e) => {
+      if (wallboard.zoom <= 0.3) {
+        const nodeRect = nodeEl.getBoundingClientRect();
+        const mouseX = e.clientX - nodeRect.left;
+        const nodeWidth = nodeRect.width;
+
+        // Right 50% of entire node - crosshair cursor for connections
+        if (mouseX > nodeWidth / 2) {
+          nodeEl.style.setProperty('cursor', 'crosshair', 'important');
+          header.style.setProperty('cursor', 'crosshair', 'important');
+          nodeTypeElement.style.setProperty('cursor', 'crosshair', 'important');
+        } else {
+          // Left 50% of entire node - move cursor for dragging
+          nodeEl.style.setProperty('cursor', 'move', 'important');
+          header.style.setProperty('cursor', 'move', 'important');
+          nodeTypeElement.style.setProperty('cursor', 'move', 'important');
+        }
+      } else {
+        // Reset cursor when not zoomed out
+        nodeEl.style.cursor = '';
+        header.style.cursor = '';
+        nodeTypeElement.style.cursor = '';
+      }
+    };
+
+    nodeEl.addEventListener("mousemove", (e) => {
+      updateCursor(e);
+    });
+
+    header.addEventListener("mousemove", (e) => {
+      updateCursor(e);
     });
 
     // Touch support for header dragging
     header.addEventListener("touchstart", (e) => {
+      if (e.target.closest('.node-btn') || e.target.closest('.node-actions')) return;
+
       if (e.touches.length === 1) {
-        e.preventDefault();
         const touch = e.touches[0];
+
+        // When zoomed out, check which side was touched (based on entire node width)
+        if (wallboard.zoom <= 0.3) {
+          const nodeRect = nodeEl.getBoundingClientRect();
+          const touchX = touch.clientX - nodeRect.left;
+          const nodeWidth = nodeRect.width;
+
+          // Right 50% of entire node - start connection drag
+          if (touchX > nodeWidth / 2) {
+            headerDragStartPos = { x: touch.clientX, y: touch.clientY };
+            headerDragStarted = false;
+            e.preventDefault();
+            return;
+          }
+        }
+
+        // Left 50% (or not zoomed out) - normal node dragging
+        e.preventDefault();
         wallboard.handleNodeDragStart({
           clientX: touch.clientX,
           clientY: touch.clientY,
@@ -120,6 +334,26 @@ class NodeRenderer {
         }, node, nodeEl);
       }
     }, { passive: false });
+
+    header.addEventListener("touchmove", (e) => {
+      if (!headerDragStartPos || e.touches.length !== 1) return;
+
+      const touch = e.touches[0];
+      const distance = Math.sqrt(
+        Math.pow(touch.clientX - headerDragStartPos.x, 2) +
+        Math.pow(touch.clientY - headerDragStartPos.y, 2)
+      );
+
+      if (distance > 10 && !headerDragStarted) {
+        headerDragStarted = true;
+        wallboard.handleConnectionDragStart(headerDragStartPos, node);
+      }
+    }, { passive: false });
+
+    header.addEventListener("touchend", () => {
+      headerDragStartPos = null;
+      headerDragStarted = false;
+    });
 
     // Add connection dragging to the entire node content
     let dragStartPos = null;

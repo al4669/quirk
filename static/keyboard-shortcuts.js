@@ -15,7 +15,13 @@ class KeyboardShortcuts {
   }
 
   handleKeydown(e) {
-    // Don't process shortcuts if user is typing in a text field
+    // Handle Esc key specially - it should work even in text editors
+    if (e.key === 'Escape') {
+      this.handleEscape();
+      return;
+    }
+
+    // Don't process other shortcuts if user is typing in a text field
     if (e.target.matches('input, textarea, .text-editor')) {
       return;
     }
@@ -29,10 +35,6 @@ class KeyboardShortcuts {
         }
         break;
 
-      case 'escape':
-        this.handleEscape();
-        break;
-
       case 'd':
         if (this.wallboard.selectedNodes.size > 0) {
           e.preventDefault();
@@ -43,7 +45,13 @@ class KeyboardShortcuts {
       case 'e':
         if (this.wallboard.selectedNode) {
           e.preventDefault();
-          this.wallboard.toggleEdit(this.wallboard.selectedNode.id);
+
+          // In zoomed-out mode, edit the node title instead of full content
+          if (this.wallboard.zoom <= 0.3) {
+            this.editNodeTitle(this.wallboard.selectedNode);
+          } else {
+            this.wallboard.toggleEdit(this.wallboard.selectedNode.id);
+          }
         }
         break;
 
@@ -69,13 +77,21 @@ class KeyboardShortcuts {
         if (e.ctrlKey || e.metaKey) {
           e.preventDefault();
           this.selectAllNodes();
+        } else {
+          e.preventDefault();
+          this.wallboard.autoArrangeNodes();
         }
+        break;
+
+      case 'i':
+        e.preventDefault();
+        this.addConnectedMarkdownNode();
         break;
 
       case 'm':
         if (e.ctrlKey || e.metaKey) {
           e.preventDefault();
-          this.wallboard.addMarkdownNode();
+          this.addConnectedMarkdownNode();
         }
         break;
 
@@ -92,13 +108,47 @@ class KeyboardShortcuts {
           this.showCommandPalette();
         }
         break;
+
+      case 'k':
+        e.preventDefault();
+        if (window.aiChat) {
+          window.aiChat.toggle();
+        }
+        break;
+
+      case 'c':
+        e.preventDefault();
+        this.centerView();
+        break;
+
+      case 'arrowup':
+      case 'arrowdown':
+      case 'arrowleft':
+      case 'arrowright':
+        e.preventDefault();
+        this.handleArrowNavigation(e.key.toLowerCase());
+        break;
     }
   }
 
   handleEscape() {
+    // Check if AI chat is open - close it first
+    if (window.aiChat && window.aiChat.isOpen) {
+      window.aiChat.close();
+      return;
+    }
+
+    // Check if we're in edit mode
+    const isEditing = document.querySelector('.text-editor') !== null;
+
     this.wallboard.cancelConnection();
     this.wallboard.cancelCutting();
-    this.wallboard.deselectAll();
+
+    // Only deselect if we're not exiting edit mode
+    if (!isEditing) {
+      this.wallboard.deselectAll();
+    }
+
     this.wallboard.exitAllEditModes();
     this.wallboard.hideContextMenu();
     this.wallboard.hideThemeSelector();
@@ -140,6 +190,10 @@ class KeyboardShortcuts {
               <span class="help-key">Drag Canvas</span>
               <span class="help-description">Pan around</span>
             </div>
+            <div class="help-item">
+              <span class="help-key">C</span>
+              <span class="help-description">Center view on all nodes</span>
+            </div>
           </div>
 
           <div class="help-section">
@@ -157,8 +211,24 @@ class KeyboardShortcuts {
               <span class="help-description">Multi-select nodes</span>
             </div>
             <div class="help-item">
+              <span class="help-key">Arrow Keys</span>
+              <span class="help-description">Navigate between cards</span>
+            </div>
+            <div class="help-item">
+              <span class="help-key">I</span>
+              <span class="help-description">Insert new node</span>
+            </div>
+            <div class="help-item">
               <span class="help-key">D</span>
               <span class="help-description">Duplicate selected nodes</span>
+            </div>
+            <div class="help-item">
+              <span class="help-key">E</span>
+              <span class="help-description">Edit node (title when zoomed out, content otherwise)</span>
+            </div>
+            <div class="help-item">
+              <span class="help-key">A</span>
+              <span class="help-description">Auto-arrange nodes</span>
             </div>
             <div class="help-item">
               <span class="help-key">F</span>
@@ -173,10 +243,6 @@ class KeyboardShortcuts {
           <div class="help-section">
             <h4>Editing</h4>
             <div class="help-item">
-              <span class="help-key">Ctrl + M</span>
-              <span class="help-description">Add new markdown node</span>
-            </div>
-            <div class="help-item">
               <span class="help-key">Ctrl + Z / Ctrl + Y</span>
               <span class="help-description">Undo / Redo</span>
             </div>
@@ -188,6 +254,10 @@ class KeyboardShortcuts {
 
           <div class="help-section">
             <h4>Other</h4>
+            <div class="help-item">
+              <span class="help-key">K</span>
+              <span class="help-description">Toggle AI Chat Assistant</span>
+            </div>
             <div class="help-item">
               <span class="help-key">H</span>
               <span class="help-description">Toggle this help modal</span>
@@ -486,9 +556,24 @@ class KeyboardShortcuts {
     const nodeEl = document.getElementById(`node-${node.id}`);
     if (!nodeEl) return;
 
+    // Measure real node dimensions (handle zoomed-out state)
+    const canvas = document.getElementById('canvas');
+    const wasZoomedOut = canvas?.classList.contains('zoomed-out');
+
+    if (wasZoomedOut) {
+      canvas.classList.remove('zoomed-out');
+    }
+
+    const nodeWidth = nodeEl.offsetWidth || 250;
+    const nodeHeight = nodeEl.offsetHeight || 180;
+
+    if (wasZoomedOut) {
+      canvas.classList.add('zoomed-out');
+    }
+
     // Get node's center position in canvas coordinates
-    const nodeCenterX = node.position.x + nodeEl.offsetWidth / 2;
-    const nodeCenterY = node.position.y + nodeEl.offsetHeight / 2;
+    const nodeCenterX = node.position.x + nodeWidth / 2;
+    const nodeCenterY = node.position.y + nodeHeight / 2;
 
     // Set zoom to 100% (1.0)
     this.wallboard.zoom = 1.0;
@@ -503,6 +588,132 @@ class KeyboardShortcuts {
 
     // Apply the transform
     this.wallboard.zoomPanManager.updateTransform();
+  }
+
+  centerView() {
+    if (this.wallboard.minimap) {
+      this.wallboard.minimap.centerOnNodes();
+    }
+  }
+
+  editNodeTitle(node) {
+    const nodeEl = document.getElementById(`node-${node.id}`);
+    if (!nodeEl) return;
+
+    const header = nodeEl.querySelector('.node-header');
+    const nodeTypeElement = header.querySelector('.node-type');
+    if (!nodeTypeElement) return;
+
+    const currentTitle = this.wallboard.getNodeTitle(node);
+
+    // Store original dimensions
+    const currentWidth = nodeEl.offsetWidth;
+    const currentHeight = nodeEl.offsetHeight;
+
+    // Create inline editor
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentTitle;
+    input.className = 'node-type-inline-editor';
+    input.style.width = '100%';
+    input.style.fontSize = getComputedStyle(nodeTypeElement).fontSize;
+    input.style.fontFamily = getComputedStyle(nodeTypeElement).fontFamily;
+    input.style.textAlign = 'center';
+    input.style.background = 'transparent';
+
+    // Get the actual computed color from the node type element (which has the node's theme applied)
+    const computedColor = getComputedStyle(nodeTypeElement).color;
+    input.style.border = 'none';
+    input.style.color = computedColor;
+    input.style.padding = '8px';
+    input.style.borderRadius = '8px';
+    input.style.outline = 'none';
+
+    // Lock node dimensions during editing
+    nodeEl.style.width = currentWidth + 'px';
+    nodeEl.style.height = currentHeight + 'px';
+    nodeEl.style.minWidth = currentWidth + 'px';
+    nodeEl.style.minHeight = currentHeight + 'px';
+
+    // Replace text with input
+    nodeTypeElement.style.display = 'none';
+    header.appendChild(input);
+    input.focus();
+    input.select();
+
+    let isFinishing = false;
+    const finishEditing = () => {
+      if (isFinishing) return;
+      isFinishing = true;
+
+      const newTitle = input.value.trim() || 'Untitled';
+
+      // Update the node title FIRST before updating references
+      node.title = newTitle;
+      node.type = newTitle; // Keep for backwards compatibility
+      nodeTypeElement.textContent = newTitle.toUpperCase();
+      nodeTypeElement.style.display = '';
+      input.remove();
+
+      // Unlock node dimensions
+      nodeEl.style.width = '';
+      nodeEl.style.height = '';
+      nodeEl.style.minWidth = '';
+      nodeEl.style.minHeight = '';
+
+      // Only update references if title actually changed
+      if (newTitle !== currentTitle) {
+        // Update all [[link]] references in other nodes
+        if (this.wallboard.linkManager) {
+          this.wallboard.linkManager.updateAllReferencesToNode(node.id, currentTitle, newTitle);
+        }
+      }
+
+      this.wallboard.autoSave();
+
+      // Remove document click handler
+      document.removeEventListener('mousedown', outsideClickHandler);
+    };
+
+    const cancelEditing = () => {
+      if (isFinishing) return;
+      isFinishing = true;
+
+      nodeTypeElement.style.display = '';
+      input.remove();
+      // Unlock node dimensions
+      nodeEl.style.width = '';
+      nodeEl.style.height = '';
+      nodeEl.style.minWidth = '';
+      nodeEl.style.minHeight = '';
+
+      // Remove document click handler
+      document.removeEventListener('mousedown', outsideClickHandler);
+    };
+
+    // Handle clicks outside the input
+    const outsideClickHandler = (event) => {
+      if (!input.contains(event.target) && event.target !== input) {
+        finishEditing();
+      }
+    };
+
+    // Add document click handler with a small delay to avoid immediate trigger
+    setTimeout(() => {
+      document.addEventListener('mousedown', outsideClickHandler);
+    }, 100);
+
+    input.addEventListener('blur', () => {
+      // Small delay to ensure blur happens properly
+      setTimeout(finishEditing, 10);
+    });
+    input.addEventListener('keydown', (ke) => {
+      if (ke.key === 'Enter') {
+        finishEditing();
+      } else if (ke.key === 'Escape') {
+        cancelEditing();
+      }
+    });
   }
 
   showCommandPalette() {
@@ -670,6 +881,148 @@ class KeyboardShortcuts {
 
     // Focus on the selected node
     this.focusOnSelectedNode();
+  }
+
+  addConnectedMarkdownNode() {
+    // If a node is selected, create a new node positioned near it
+    if (this.wallboard.selectedNode) {
+      const selectedNode = this.wallboard.selectedNode;
+      const selectedEl = document.getElementById(`node-${selectedNode.id}`);
+
+      // Calculate position to the right of the selected node
+      // Use actual node width to avoid overlap, plus spacing
+      const spacing = 50; // Gap between nodes
+      let newX = selectedNode.position.x;
+      let newY = selectedNode.position.y;
+
+      if (selectedEl) {
+        // Position to the right of the selected node
+        newX = selectedNode.position.x + selectedEl.offsetWidth + spacing;
+      } else {
+        // Fallback if element not found
+        newX = selectedNode.position.x + 300;
+      }
+
+      const newPosition = {
+        x: newX,
+        y: newY
+      };
+
+      // Create the new node with the calculated position
+      const newNode = this.wallboard.addMarkdownNode(newPosition);
+
+      // Create a connection from the selected node to the new node
+      if (newNode) {
+        this.wallboard.connectionManager.createConnection(
+          { nodeId: selectedNode.id },
+          { nodeId: newNode.id }
+        );
+
+        // Add link to ## Links section
+        if (this.wallboard.linkManager) {
+          const newNodeTitle = this.wallboard.getNodeTitle(newNode);
+          this.wallboard.linkManager.addLinkToSection(selectedNode.id, newNodeTitle);
+        }
+
+        // Select the newly created node
+        this.wallboard.selectNode(newNode, false);
+      }
+    } else {
+      // No node selected, just create a node at default position
+      this.wallboard.addMarkdownNode();
+    }
+  }
+
+  handleArrowNavigation(direction) {
+    // If no node is selected, select the first node
+    if (!this.wallboard.selectedNode && this.wallboard.nodes.length > 0) {
+      const firstNode = this.wallboard.nodes[0];
+      this.wallboard.selectNode(firstNode, false);
+      return;
+    }
+
+    // If no nodes exist, do nothing
+    if (this.wallboard.nodes.length === 0) {
+      return;
+    }
+
+    const currentNode = this.wallboard.selectedNode;
+    if (!currentNode) return;
+
+    // Get current node's center position
+    const currentEl = document.getElementById(`node-${currentNode.id}`);
+    if (!currentEl) return;
+
+    const currentCenterX = currentNode.position.x + currentEl.offsetWidth / 2;
+    const currentCenterY = currentNode.position.y + currentEl.offsetHeight / 2;
+
+    // Find the nearest node in the specified direction
+    let nearestNode = null;
+    let minDistance = Infinity;
+
+    this.wallboard.nodes.forEach(node => {
+      if (node.id === currentNode.id) return; // Skip current node
+
+      const nodeEl = document.getElementById(`node-${node.id}`);
+      if (!nodeEl) return;
+
+      const nodeCenterX = node.position.x + nodeEl.offsetWidth / 2;
+      const nodeCenterY = node.position.y + nodeEl.offsetHeight / 2;
+
+      // Calculate relative position
+      const deltaX = nodeCenterX - currentCenterX;
+      const deltaY = nodeCenterY - currentCenterY;
+
+      // Check if node is in the correct direction
+      let isInDirection = false;
+      let distance = 0;
+
+      switch (direction) {
+        case 'arrowup':
+          // Node should be above (negative Y)
+          if (deltaY < -10) { // 10px threshold to avoid near-horizontal nodes
+            isInDirection = true;
+            // Distance combines vertical distance (primary) and horizontal offset (secondary)
+            distance = Math.abs(deltaY) + Math.abs(deltaX) * 0.5;
+          }
+          break;
+
+        case 'arrowdown':
+          // Node should be below (positive Y)
+          if (deltaY > 10) {
+            isInDirection = true;
+            distance = Math.abs(deltaY) + Math.abs(deltaX) * 0.5;
+          }
+          break;
+
+        case 'arrowleft':
+          // Node should be to the left (negative X)
+          if (deltaX < -10) {
+            isInDirection = true;
+            distance = Math.abs(deltaX) + Math.abs(deltaY) * 0.5;
+          }
+          break;
+
+        case 'arrowright':
+          // Node should be to the right (positive X)
+          if (deltaX > 10) {
+            isInDirection = true;
+            distance = Math.abs(deltaX) + Math.abs(deltaY) * 0.5;
+          }
+          break;
+      }
+
+      // Update nearest node if this one is closer
+      if (isInDirection && distance < minDistance) {
+        minDistance = distance;
+        nearestNode = node;
+      }
+    });
+
+    // If we found a node in that direction, select it
+    if (nearestNode) {
+      this.wallboard.selectNode(nearestNode, false);
+    }
   }
 
   escapeHtml(text) {

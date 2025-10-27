@@ -516,8 +516,10 @@ class EditorManager {
       // Update node content
       this.currentNode.data.content = content;
 
-      // Render with marked.js
-      this.currentNode.data.html = marked.parse(content);
+      // Render with MarkdownRenderer to support math formulas
+      this.currentNode.data.html = typeof MarkdownRenderer !== 'undefined'
+        ? MarkdownRenderer.render(content)
+        : marked.parse(content);
 
       // Update the node's display
       const nodeContent = document.getElementById(`content-${this.currentNode.id}`);

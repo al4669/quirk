@@ -4,14 +4,15 @@ class NodeOperationsManager {
     this.wallboard = wallboard;
   }
 
-  addMarkdownNode() {
+  addMarkdownNode(position = null) {
     const node = this.createNode("markdown", {
       content: SampleContent.getRandomMarkdown()
-    });
+    }, position);
     this.wallboard.renderNode(node);
+    return node;
   }
 
-  createNode(type, data) {
+  createNode(type, data, position = null) {
     // Record change for undo/redo BEFORE making changes
     if (this.wallboard.keyboardShortcuts) {
       this.wallboard.keyboardShortcuts.recordChange('create_node', { type, data });
@@ -20,14 +21,38 @@ class NodeOperationsManager {
     // Generate unique title
     const uniqueTitle = NodeUtils.generateUniqueTitle(type, this.wallboard.nodes);
 
+    // If no position provided, place at center of current viewport
+    let nodePosition = position;
+    if (!nodePosition) {
+      // Get viewport center in screen coordinates
+      const viewportCenterX = window.innerWidth / 2;
+      const viewportCenterY = window.innerHeight / 2;
+
+      // Convert to canvas coordinates using direct formula
+      // Canvas has transform: translate(panX, panY) scale(zoom)
+      // So: screenPos = canvasPos * zoom + panX
+      // Therefore: canvasPos = (screenPos - panX) / zoom
+      const canvasX = (viewportCenterX - this.wallboard.panX) / this.wallboard.zoom;
+      const canvasY = (viewportCenterY - this.wallboard.panY) / this.wallboard.zoom;
+
+      console.log('[NodeCreate] Placing node at viewport center:', {
+        viewportCenter: { x: viewportCenterX, y: viewportCenterY },
+        canvasPos: { x: canvasX, y: canvasY },
+        pan: { x: this.wallboard.panX, y: this.wallboard.panY },
+        zoom: this.wallboard.zoom
+      });
+
+      nodePosition = {
+        x: canvasX - 125, // Center the node (assuming ~250px width)
+        y: canvasY - 90   // Center the node (assuming ~180px height)
+      };
+    }
+
     const node = {
       id: this.wallboard.nodeIdCounter++,
       title: uniqueTitle,
       data: data,
-      position: {
-        x: (this.wallboard.canvasWidth / 2) + (Math.random() - 0.5) * 800,
-        y: (this.wallboard.canvasHeight / 2) + (Math.random() - 0.5) * 600,
-      },
+      position: nodePosition,
     };
     this.wallboard.nodes.push(node);
     this.wallboard.autoSave();

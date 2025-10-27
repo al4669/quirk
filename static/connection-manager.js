@@ -213,51 +213,66 @@ class ConnectionManager {
     // Consistent offset for all connection points
     const offset = 16;
 
-    // Try all possible connection combinations and pick the one with least node overlaps
+    // Calculate spatial relationship between nodes
+    const dx = endCenter.x - startCenter.x;
+    const dy = endCenter.y - startCenter.y;
+    const isMoreHorizontal = Math.abs(dx) > Math.abs(dy);
+
+    // Try all possible connection combinations and pick the best one
     const connectionOptions = [
       // Horizontal options
       {
         start: { x: startRight + offset, y: startCenter.y },
         end: { x: endRect.left - offset, y: endCenter.y },
         arrow: { x: endRect.left, y: endCenter.y },
-        direction: 'horizontal'
+        direction: 'horizontal',
+        spatialFit: dx > 0 && isMoreHorizontal ? 0 : 2 // Best fit if end is to the right and more horizontal
       },
       {
         start: { x: startRect.left - offset, y: startCenter.y },
         end: { x: endRight + offset, y: endCenter.y },
         arrow: { x: endRight, y: endCenter.y },
-        direction: 'horizontal'
+        direction: 'horizontal',
+        spatialFit: dx < 0 && isMoreHorizontal ? 0 : 2 // Best fit if end is to the left and more horizontal
       },
       // Vertical options
       {
         start: { x: startCenter.x, y: startBottom + offset },
         end: { x: endCenter.x, y: endRect.top - offset },
         arrow: { x: endCenter.x, y: endRect.top },
-        direction: 'vertical'
+        direction: 'vertical',
+        spatialFit: dy > 0 && !isMoreHorizontal ? 0 : 2 // Best fit if end is below and more vertical
       },
       {
         start: { x: startCenter.x, y: startRect.top - offset },
         end: { x: endCenter.x, y: endBottom + offset },
         arrow: { x: endCenter.x, y: endBottom },
-        direction: 'vertical'
+        direction: 'vertical',
+        spatialFit: dy < 0 && !isMoreHorizontal ? 0 : 2 // Best fit if end is above and more vertical
       }
     ];
 
-    // Score each option based on how many nodes the path overlaps
+    // Score each option based on spatial fit, overlaps, and distance
     const scoredOptions = connectionOptions.map(option => {
       const overlaps = this.countPathNodeOverlaps(option.start, option.end, startRect, endRect);
-      return { ...option, overlaps };
+      const distance = Math.abs(option.end.x - option.start.x) + Math.abs(option.end.y - option.start.y);
+      return { ...option, overlaps, distance };
     });
 
-    // Sort by least overlaps, then by shortest distance
+    // Sort by: (1) spatial fit, (2) fewer overlaps, (3) shorter distance
     scoredOptions.sort((a, b) => {
-      if (a.overlaps !== b.overlaps) {
-        return a.overlaps - b.overlaps; // Prefer fewer overlaps
+      // First priority: How well does this connection match the spatial relationship?
+      if (a.spatialFit !== b.spatialFit) {
+        return a.spatialFit - b.spatialFit;
       }
-      // If same overlaps, prefer shorter distance
-      const distA = Math.abs(a.end.x - a.start.x) + Math.abs(a.end.y - a.start.y);
-      const distB = Math.abs(b.end.x - b.start.x) + Math.abs(b.end.y - b.start.y);
-      return distA - distB;
+
+      // Second priority: fewer overlaps
+      if (a.overlaps !== b.overlaps) {
+        return a.overlaps - b.overlaps;
+      }
+
+      // Third priority: shorter distance
+      return a.distance - b.distance;
     });
 
     // Return the best option

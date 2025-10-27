@@ -32,12 +32,12 @@ class ZoomPanManager {
     const viewportCenterX = window.innerWidth / 2;
     const viewportCenterY = window.innerHeight / 2;
 
-    // Calculate zoom
+    // Calculate zoom with minimum of 30% to prevent glitching
     const oldZoom = this.wallboard.zoom;
     if (e.deltaY < 0) {
       this.wallboard.zoom = Math.min(this.wallboard.zoom + zoomFactor, 3); // Max zoom 3x
     } else {
-      this.wallboard.zoom = Math.max(this.wallboard.zoom - zoomFactor, 0.2); // Min zoom 0.2x
+      this.wallboard.zoom = Math.max(this.wallboard.zoom - zoomFactor, 0.3); // Min zoom 30%
     }
 
     // Adjust pan to zoom from center of viewport
@@ -123,7 +123,15 @@ class ZoomPanManager {
   }
 
   updateTransform() {
+    const canvas = document.getElementById('canvas');
     DomUtils.applyTransform('canvas', this.wallboard.zoom, this.wallboard.panX, this.wallboard.panY);
+
+    // Add zoomed-out class at 30% zoom for simplified view
+    if (this.wallboard.zoom <= 0.3) {
+      canvas.classList.add('zoomed-out');
+    } else {
+      canvas.classList.remove('zoomed-out');
+    }
 
     // Debounce connection updates on mobile
     if (window.innerWidth <= 768) {

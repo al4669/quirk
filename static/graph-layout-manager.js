@@ -5,6 +5,38 @@ class GraphLayoutManager {
   }
 
   /**
+   * Helper to measure real node dimensions (removing zoomed-out class temporarily if needed)
+   * @param {number} nodeId - The node ID to measure
+   * @returns {{width: number, height: number}} - The real unscaled dimensions
+   */
+  measureNodeDimensions(nodeId) {
+    const nodeEl = document.getElementById(`node-${nodeId}`);
+    if (!nodeEl) {
+      return { width: 250, height: 180 }; // Default fallback
+    }
+
+    // Check if canvas has zoomed-out class (which hides content and makes nodes smaller)
+    const canvas = document.getElementById('canvas');
+    const wasZoomedOut = canvas?.classList.contains('zoomed-out');
+
+    // Temporarily remove zoomed-out class to get real dimensions
+    if (wasZoomedOut) {
+      canvas.classList.remove('zoomed-out');
+    }
+
+    // Measure the node
+    const width = nodeEl.offsetWidth || 250;
+    const height = nodeEl.offsetHeight || 180;
+
+    // Restore zoomed-out class if it was there
+    if (wasZoomedOut) {
+      canvas.classList.add('zoomed-out');
+    }
+
+    return { width, height };
+  }
+
+  /**
    * Calculate hierarchical tree layout for all nodes
    * @param {object} options - Layout configuration
    * @returns {Map} - Map of nodeId -> {x, y} positions
@@ -20,19 +52,10 @@ class GraphLayoutManager {
       return new Map();
     }
 
-    // Get actual node sizes
+    // Get actual node sizes (use helper to handle zoomed-out state)
     const nodeSizes = new Map();
     this.wallboard.nodes.forEach(node => {
-      const nodeEl = document.getElementById(`node-${node.id}`);
-      if (nodeEl) {
-        const rect = nodeEl.getBoundingClientRect();
-        nodeSizes.set(node.id, {
-          width: rect.width / this.wallboard.zoom || 250,
-          height: rect.height / this.wallboard.zoom || 180
-        });
-      } else {
-        nodeSizes.set(node.id, { width: 250, height: 180 });
-      }
+      nodeSizes.set(node.id, this.measureNodeDimensions(node.id));
     });
 
     // Build graph structure from connections
@@ -49,7 +72,7 @@ class GraphLayoutManager {
 
     // Center the layout on canvas if requested
     if (centerCanvas) {
-      this.centerLayout(positions);
+      this.centerLayout(positions, nodeSizes);
     }
 
     return positions;
@@ -58,21 +81,21 @@ class GraphLayoutManager {
   /**
    * Center the layout on the canvas
    */
-  centerLayout(positions) {
+  centerLayout(positions, nodeSizes = null) {
     if (positions.size === 0) return;
 
-    // Find bounding box of all nodes (including estimated node dimensions)
-    const nodeWidth = 250;
-    const nodeHeight = 180;
-
+    // Find bounding box of all nodes
     let minX = Infinity, maxX = -Infinity;
     let minY = Infinity, maxY = -Infinity;
 
-    positions.forEach(pos => {
+    positions.forEach((pos, nodeId) => {
+      // Use actual node size if available, otherwise use default estimate
+      const size = nodeSizes?.get(nodeId) || { width: 250, height: 180 };
+
       minX = Math.min(minX, pos.x);
-      maxX = Math.max(maxX, pos.x + nodeWidth);
+      maxX = Math.max(maxX, pos.x + size.width);
       minY = Math.min(minY, pos.y);
-      maxY = Math.max(maxY, pos.y + nodeHeight);
+      maxY = Math.max(maxY, pos.y + size.height);
     });
 
     // Calculate center of the layout
@@ -105,8 +128,9 @@ class GraphLayoutManager {
 
   /**
    * Build adjacency list from connections
+   * @param {boolean} ignoreBackwardEdges - If true, ignore bidirectional connections (keep only one direction)
    */
-  buildGraphStructure() {
+  buildGraphStructure(ignoreBackwardEdges = false) {
     const graph = {
       outgoing: new Map(), // node -> [children]
       incoming: new Map()  // node -> [parents]
@@ -118,17 +142,37 @@ class GraphLayoutManager {
       graph.incoming.set(node.id, []);
     });
 
+    // Track connections we've already processed (for bidirectional detection)
+    const processedConnections = new Set();
+
     // Build from connections
     this.wallboard.connectionManager.connections.forEach(conn => {
       const sourceId = conn.start.nodeId;
       const targetId = conn.end.nodeId;
 
+      // Create a normalized connection key for bidirectional detection
+      const forwardKey = `${sourceId}-${targetId}`;
+      const reverseKey = `${targetId}-${sourceId}`;
+
+      if (ignoreBackwardEdges) {
+        // Check if we've already seen the reverse connection
+        if (processedConnections.has(reverseKey)) {
+          // This is a backward edge (B→A when we already have A→B), skip it
+          console.log(`[GraphLayout] Ignoring backward edge: ${sourceId}→${targetId} (reverse of ${targetId}→${sourceId})`);
+          return;
+        }
+      }
+
+      // Add this connection
       if (graph.outgoing.has(sourceId)) {
         graph.outgoing.get(sourceId).push(targetId);
       }
       if (graph.incoming.has(targetId)) {
         graph.incoming.get(targetId).push(sourceId);
       }
+
+      // Mark as processed
+      processedConnections.add(forwardKey);
     });
 
     return graph;
@@ -581,18 +625,9 @@ class GraphLayoutManager {
 
     if (nodes.length === 0) return positions;
 
-    // Get actual node sizes
+    // Get actual node sizes (use helper to handle zoomed-out state)
     nodes.forEach(node => {
-      const nodeEl = document.getElementById(`node-${node.id}`);
-      if (nodeEl) {
-        const rect = nodeEl.getBoundingClientRect();
-        nodeSizes.set(node.id, {
-          width: rect.width / this.wallboard.zoom || 250,
-          height: rect.height / this.wallboard.zoom || 180
-        });
-      } else {
-        nodeSizes.set(node.id, { width: 250, height: 180 });
-      }
+      nodeSizes.set(node.id, this.measureNodeDimensions(node.id));
     });
 
     // Build graph structure
@@ -608,7 +643,7 @@ class GraphLayoutManager {
     this.positionNodesRadially(positions, roots, graph, nodeSizes);
 
     // Center the layout
-    this.centerLayout(positions);
+    this.centerLayout(positions, nodeSizes);
 
     return positions;
   }
@@ -810,26 +845,21 @@ class GraphLayoutManager {
       if (excludeFromSizing.includes(node.id)) {
         nodeSizes.set(node.id, { width: 300, height: 200 }); // Average normal node size
       } else {
-        const nodeEl = document.getElementById(`node-${node.id}`);
-        if (nodeEl) {
-          const rect = nodeEl.getBoundingClientRect();
-          nodeSizes.set(node.id, {
-            width: rect.width / this.wallboard.zoom || 250,
-            height: rect.height / this.wallboard.zoom || 180
-          });
-        } else {
-          nodeSizes.set(node.id, { width: 250, height: 180 });
-        }
+        // Use helper to measure real dimensions (handles zoomed-out state)
+        nodeSizes.set(node.id, this.measureNodeDimensions(node.id));
       }
     });
 
     // If no connections, arrange in a compact grid
     if (this.wallboard.connectionManager.connections.length === 0) {
-      return this.calculateCompactGrid(nodeSizes);
+      const gridPositions = this.calculateCompactGrid(nodeSizes);
+      // Center the layout before returning
+      this.centerLayout(gridPositions, nodeSizes);
+      return gridPositions;
     }
 
-    // Build graph structure
-    const graph = this.buildGraphStructure();
+    // Build graph structure - ignore backward edges to prevent cycles
+    const graph = this.buildGraphStructure(true);
 
     // Find nodes with fewest connections to use as roots
     const roots = this.findOptimalRoots(graph);
@@ -844,7 +874,7 @@ class GraphLayoutManager {
     this.positionLevelsCompact(positions, levels, nodeSizes);
 
     // Center the layout
-    this.centerLayout(positions);
+    this.centerLayout(positions, nodeSizes);
 
     return positions;
   }
@@ -882,6 +912,16 @@ class GraphLayoutManager {
   calculateCompactGrid(nodeSizes) {
     const positions = new Map();
     const nodes = this.wallboard.nodes;
+
+    // Special case: single node - center it at origin (will be centered by centerLayout)
+    if (nodes.length === 1) {
+      const node = nodes[0];
+      const size = nodeSizes.get(node.id) || { width: 250, height: 180 };
+      // Position at origin (0,0), centerLayout will move it to canvas center
+      positions.set(node.id, { x: -size.width / 2, y: -size.height / 2 });
+      return positions;
+    }
+
     const horizontalGap = 120; // Tighter spacing
     const verticalGap = 120;
 
@@ -1046,11 +1086,12 @@ class GraphLayoutManager {
   }
 
   /**
-   * Position nodes in hierarchical levels with compact spacing - left-to-right
+   * Position nodes in hierarchical levels with compact spacing - left-to-right tree structure
+   * Creates a funnel/branching pattern where nodes branch out from their parents
    */
   positionLevelsCompact(positions, levels, nodeSizes) {
-    const horizontalGap = 150; // Horizontal gap between levels
-    const verticalGap = 120; // Consistent vertical gap between nodes
+    const horizontalGap = 250; // Horizontal gap between levels
+    const verticalGap = 100; // Vertical gap between siblings
 
     const graph = this.buildGraphStructure();
 
@@ -1058,56 +1099,117 @@ class GraphLayoutManager {
 
     // Position each level
     levels.forEach((nodeIds, levelIndex) => {
-      // Calculate total height needed for this level with consistent spacing
-      const totalHeight = nodeIds.reduce((sum, id, idx) => {
-        const size = nodeSizes.get(id) || { width: 250, height: 180 };
-        return sum + size.height + (idx < nodeIds.length - 1 ? verticalGap : 0);
-      }, 0);
-
       if (levelIndex === 0) {
-        // Position roots vertically centered with consistent gaps
-        let currentY = -totalHeight / 2;
+        // Position root nodes in a vertical column
+        let currentY = 0;
 
-        nodeIds.forEach(nodeId => {
+        nodeIds.forEach((nodeId, idx) => {
           const size = nodeSizes.get(nodeId) || { width: 250, height: 180 };
           positions.set(nodeId, { x: currentX, y: currentY });
           currentY += size.height + verticalGap;
         });
       } else {
-        // Position children based on parent positions, then redistribute with consistent spacing
-        const nodeData = nodeIds.map(nodeId => {
+        // Position children nodes near their parents to create tree branches
+        // Group nodes by their parent(s)
+        const nodesByParent = new Map();
+
+        nodeIds.forEach(nodeId => {
           const parents = graph.incoming.get(nodeId) || [];
-          let parentY = 0;
 
-          // Calculate average parent Y position for sorting
           if (parents.length > 0) {
-            const parentPositions = parents
-              .map(pid => positions.get(pid))
-              .filter(p => p);
+            // Use first parent for positioning (handles cases with multiple parents)
+            const primaryParent = parents[0];
 
-            if (parentPositions.length > 0) {
-              parentY = parentPositions.reduce((sum, p) => sum + p.y, 0) / parentPositions.length;
+            if (!nodesByParent.has(primaryParent)) {
+              nodesByParent.set(primaryParent, []);
             }
+            nodesByParent.get(primaryParent).push(nodeId);
+          } else {
+            // Orphan node (shouldn't happen but handle it)
+            if (!nodesByParent.has('orphans')) {
+              nodesByParent.set('orphans', []);
+            }
+            nodesByParent.get('orphans').push(nodeId);
+          }
+        });
+
+        // Position children relative to their parents
+        nodesByParent.forEach((childIds, parentId) => {
+          if (parentId === 'orphans') {
+            // Position orphans at the bottom
+            let currentY = 1000; // Large offset for orphans
+            childIds.forEach(nodeId => {
+              const size = nodeSizes.get(nodeId) || { width: 250, height: 180 };
+              positions.set(nodeId, { x: currentX, y: currentY });
+              currentY += size.height + verticalGap;
+            });
+            return;
           }
 
-          return { nodeId, parentY, size: nodeSizes.get(nodeId) || { width: 250, height: 180 } };
+          const parentPos = positions.get(parentId);
+          if (!parentPos) return;
+
+          const parentSize = nodeSizes.get(parentId) || { width: 250, height: 180 };
+          const parentCenterY = parentPos.y + parentSize.height / 2;
+
+          // Calculate total height needed for all children
+          const childrenTotalHeight = childIds.reduce((sum, id, idx) => {
+            const size = nodeSizes.get(id) || { width: 250, height: 180 };
+            return sum + size.height + (idx < childIds.length - 1 ? verticalGap : 0);
+          }, 0);
+
+          // Start Y position: center children around parent's Y position
+          let currentY = parentCenterY - childrenTotalHeight / 2;
+
+          childIds.forEach(nodeId => {
+            const size = nodeSizes.get(nodeId) || { width: 250, height: 180 };
+            positions.set(nodeId, { x: currentX, y: currentY });
+            currentY += size.height + verticalGap;
+          });
         });
 
-        // Sort by desired parent Y position to maintain parent-child visual proximity
-        nodeData.sort((a, b) => a.parentY - b.parentY);
-
-        // Distribute with perfectly consistent vertical spacing
-        let currentY = -totalHeight / 2;
-
-        nodeData.forEach(({ nodeId, size }) => {
-          positions.set(nodeId, { x: currentX, y: currentY });
-          currentY += size.height + verticalGap;
-        });
+        // Resolve any vertical overlaps between different parent groups
+        this.resolveVerticalOverlapsInLevel(nodeIds, positions, nodeSizes, verticalGap);
       }
 
       const maxWidth = Math.max(...nodeIds.map(id => nodeSizes.get(id)?.width || 250));
       currentX += maxWidth + horizontalGap;
     });
+  }
+
+  /**
+   * Resolve vertical overlaps within a level by shifting nodes apart
+   */
+  resolveVerticalOverlapsInLevel(nodeIds, positions, nodeSizes, gap) {
+    // Sort nodes by Y position, filtering out any without positions
+    const sorted = nodeIds
+      .map(id => ({
+        id,
+        pos: positions.get(id),
+        size: nodeSizes.get(id) || { width: 250, height: 180 }
+      }))
+      .filter(item => item.pos !== undefined) // Skip nodes without positions
+      .sort((a, b) => a.pos.y - b.pos.y);
+
+    // Iteratively push apart overlapping nodes
+    let maxIterations = 10;
+    for (let iter = 0; iter < maxIterations; iter++) {
+      let hadOverlap = false;
+
+      for (let i = 1; i < sorted.length; i++) {
+        const prev = sorted[i - 1];
+        const curr = sorted[i];
+
+        const minY = prev.pos.y + prev.size.height + gap;
+
+        if (curr.pos.y < minY) {
+          curr.pos.y = minY;
+          hadOverlap = true;
+        }
+      }
+
+      if (!hadOverlap) break;
+    }
   }
 
   /**
@@ -1256,19 +1358,9 @@ class GraphLayoutManager {
 
     if (nodes.length === 0) return positions;
 
-    // Get actual node sizes from DOM
+    // Get actual node sizes (use helper to handle zoomed-out state)
     nodes.forEach(node => {
-      const nodeEl = document.getElementById(`node-${node.id}`);
-      if (nodeEl) {
-        const rect = nodeEl.getBoundingClientRect();
-        nodeSizes.set(node.id, {
-          width: rect.width / this.wallboard.zoom || 250,
-          height: rect.height / this.wallboard.zoom || 180
-        });
-      } else {
-        // Fallback for nodes not yet rendered
-        nodeSizes.set(node.id, { width: 250, height: 180 });
-      }
+      nodeSizes.set(node.id, this.measureNodeDimensions(node.id));
     });
 
     // Initialize positions - use current positions if they exist, otherwise circle layout
@@ -1417,7 +1509,7 @@ class GraphLayoutManager {
     }
 
     // Center the layout
-    this.centerLayout(positions);
+    this.centerLayout(positions, nodeSizes);
 
     // Return simplified positions (remove velocity data)
     const finalPositions = new Map();
@@ -1549,19 +1641,10 @@ class GraphLayoutManager {
 
     console.log('[GraphLayout] Arranging', newNodeIds.length, 'new nodes around source node', sourceNodeId);
 
-    // Get node sizes
+    // Get node sizes (use helper to handle zoomed-out state)
     const nodeSizes = new Map();
     [sourceNodeId, ...newNodeIds].forEach(nodeId => {
-      const nodeEl = document.getElementById(`node-${nodeId}`);
-      if (nodeEl) {
-        const rect = nodeEl.getBoundingClientRect();
-        nodeSizes.set(nodeId, {
-          width: rect.width / this.wallboard.zoom || 250,
-          height: rect.height / this.wallboard.zoom || 180
-        });
-      } else {
-        nodeSizes.set(nodeId, { width: 250, height: 180 });
-      }
+      nodeSizes.set(nodeId, this.measureNodeDimensions(nodeId));
     });
 
     const sourceSize = nodeSizes.get(sourceNodeId);

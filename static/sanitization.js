@@ -26,16 +26,22 @@ class Sanitization {
         'a', 'strong', 'em', 'code', 'pre',
         'blockquote', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
         'img', 'span', 'div',
-        'input', 'label' // For checkboxes
+        'input', 'label', // For checkboxes
+        // KaTeX MathML elements
+        'math', 'semantics', 'mrow', 'mi', 'mn', 'mo', 'mfrac', 'msup', 'msub',
+        'msqrt', 'mtext', 'annotation', 'mspace', 'mpadded', 'munder', 'mover',
+        'munderover', 'mtable', 'mtr', 'mtd', 'menclose', 'mstyle'
       ],
       ALLOWED_ATTR: [
         'href', 'title', 'alt', 'src',
         'class', 'id',
         'type', 'checked', 'disabled', // For checkboxes
-        'data-line' // For checkbox tracking
+        'data-line', // For checkbox tracking
+        'style', 'aria-hidden', 'xmlns', // For KaTeX rendering
+        'data-expanded' // For AI thinking sections
       ],
       ALLOW_DATA_ATTR: true, // Allow data-* attributes for functionality
-      FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
+      FORBID_TAGS: ['script', 'iframe', 'object', 'embed'],
       FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover'], // Block event handlers
       KEEP_CONTENT: true, // Keep text content even if tags are removed
       RETURN_TRUSTED_TYPE: false

@@ -48,7 +48,7 @@ class LinkManager {
         return;
       }
 
-      // Track newly created nodes for selective auto-arrange
+      // Track newly created nodes for automatic arrangement
       const newlyCreatedNodeIds = [];
 
       // 2. For each link, find or create target node and ensure connection
@@ -69,7 +69,6 @@ class LinkManager {
       this.pruneOrphanedConnections(nodeId, linkTitles);
 
       // 4. Force immediate connection redraw
-      // Note: Auto-arrange is deferred until edit mode exits to avoid layout issues with edit-mode sizing
       if (this.wallboard.connectionManager) {
         this.wallboard.connectionManager.updateConnections();
       }
@@ -138,16 +137,21 @@ class LinkManager {
 
     node = this.wallboard.nodeOperationsManager.createNode(uniqueTitle, {
       content: placeholderContent,
-      html: marked.parse(placeholderContent)
+      html: typeof MarkdownRenderer !== 'undefined'
+        ? MarkdownRenderer.render(placeholderContent)
+        : marked.parse(placeholderContent)
     });
 
-    // Smart placement near the source node (initial position before auto-arrange)
+    // Position the new node using hierarchical graph logic
     if (sourceNodeId) {
       const sourceNode = this.wallboard.getNodeById(sourceNodeId);
       if (sourceNode) {
-        node.position = this.findBestPositionNearNode(sourceNode, node.id);
+        node.position = this.calculateSmartPosition(sourceNode, node.id);
       }
     }
+
+    // Ensure the new node does NOT have a custom theme - it should inherit the global theme
+    delete this.wallboard.nodeThemes[node.id];
 
     this.wallboard.renderNode(node);
 
@@ -155,47 +159,150 @@ class LinkManager {
   }
 
   /**
-   * Find the best position for a new node near a source node, avoiding overlaps
+   * Calculate smart position for a new linked node using hierarchical layout logic
+   * Places node to the right of source, vertically aligned with siblings
    * @param {object} sourceNode - The source node
-   * @param {number} newNodeId - The ID of the new node
+   * @param {number} newNodeId - The new node ID
    * @returns {object} - {x, y} position
    */
-  findBestPositionNearNode(sourceNode, newNodeId) {
-    const nodeWidth = 300;
-    const nodeHeight = 200;
-    const spacing = 50;
+  calculateSmartPosition(sourceNode, newNodeId) {
+    const horizontalGap = 250;
+    const verticalGap = 100;
 
-    // Try positions in a circular pattern around the source node
-    const angles = [0, 45, 90, 135, 180, 225, 270, 315]; // degrees
-    const distance = 400; // Distance from source node
+    // Get source node dimensions
+    const sourceNodeEl = document.getElementById(`node-${sourceNode.id}`);
+    const sourceWidth = sourceNodeEl ? sourceNodeEl.offsetWidth : 300;
+    const sourceHeight = sourceNodeEl ? sourceNodeEl.offsetHeight : 200;
 
-    for (const angle of angles) {
-      const radians = (angle * Math.PI) / 180;
-      const x = sourceNode.position.x + Math.cos(radians) * distance;
-      const y = sourceNode.position.y + Math.sin(radians) * distance;
+    // Estimate new node dimensions (will adjust after render)
+    const newNodeWidth = 300;
+    const newNodeHeight = 150;
 
-      // Check if this position overlaps with any existing nodes
-      const overlaps = this.wallboard.nodes.some(n => {
-        if (n.id === sourceNode.id || n.id === newNodeId) return false;
+    // Find all children of the source node (siblings of the new node)
+    const graph = this.buildSimpleGraph();
+    const siblings = graph.outgoing.get(sourceNode.id) || [];
 
-        const dx = Math.abs(n.position.x - x);
-        const dy = Math.abs(n.position.y - y);
+    // Calculate X position: to the right of source node
+    const newX = sourceNode.position.x + sourceWidth + horizontalGap;
 
-        return dx < (nodeWidth + spacing) && dy < (nodeHeight + spacing);
+    // Calculate Y position: stack below existing siblings
+    let newY = sourceNode.position.y; // Start aligned with parent
+
+    if (siblings.length > 0) {
+      // Find the lowest sibling to stack below it
+      let maxY = sourceNode.position.y;
+
+      siblings.forEach(siblingId => {
+        const sibling = this.wallboard.getNodeById(siblingId);
+        if (sibling && sibling.id !== newNodeId) {
+          const siblingEl = document.getElementById(`node-${siblingId}`);
+          const siblingHeight = siblingEl ? siblingEl.offsetHeight : 200;
+          const siblingBottom = sibling.position.y + siblingHeight;
+
+          if (siblingBottom > maxY) {
+            maxY = siblingBottom;
+          }
+        }
       });
 
-      if (!overlaps) {
-        return { x, y };
-      }
+      // Position below the lowest sibling
+      newY = maxY + verticalGap;
     }
 
-    // If all positions are taken, try farther away
-    const radians = (Math.random() * 360 * Math.PI) / 180;
-    const farDistance = 600;
-    return {
-      x: sourceNode.position.x + Math.cos(radians) * farDistance,
-      y: sourceNode.position.y + Math.sin(radians) * farDistance
+    // Check for collisions with other nodes and adjust if needed
+    const finalPosition = this.adjustForCollisions(
+      newX,
+      newY,
+      newNodeWidth,
+      newNodeHeight,
+      newNodeId,
+      sourceNode.id
+    );
+
+    return finalPosition;
+  }
+
+  /**
+   * Build a simple graph structure for positioning
+   */
+  buildSimpleGraph() {
+    const graph = {
+      outgoing: new Map(),
+      incoming: new Map()
     };
+
+    // Initialize for all nodes
+    this.wallboard.nodes.forEach(node => {
+      graph.outgoing.set(node.id, []);
+      graph.incoming.set(node.id, []);
+    });
+
+    // Build from connections
+    this.wallboard.connectionManager.connections.forEach(conn => {
+      const sourceId = conn.start.nodeId;
+      const targetId = conn.end.nodeId;
+
+      if (graph.outgoing.has(sourceId)) {
+        graph.outgoing.get(sourceId).push(targetId);
+      }
+      if (graph.incoming.has(targetId)) {
+        graph.incoming.get(targetId).push(sourceId);
+      }
+    });
+
+    return graph;
+  }
+
+  /**
+   * Adjust position to avoid collisions with existing nodes
+   */
+  adjustForCollisions(x, y, width, height, newNodeId, sourceNodeId) {
+    const gap = 80;
+    let currentY = y;
+    let maxIterations = 50;
+    let iteration = 0;
+
+    while (iteration < maxIterations) {
+      let hasCollision = false;
+
+      // Check against all existing nodes
+      for (const existingNode of this.wallboard.nodes) {
+        if (existingNode.id === newNodeId || existingNode.id === sourceNodeId) {
+          continue;
+        }
+
+        const existingEl = document.getElementById(`node-${existingNode.id}`);
+        const existingWidth = existingEl ? existingEl.offsetWidth : 300;
+        const existingHeight = existingEl ? existingEl.offsetHeight : 200;
+
+        // Calculate centers
+        const newCenterX = x + width / 2;
+        const newCenterY = currentY + height / 2;
+        const existingCenterX = existingNode.position.x + existingWidth / 2;
+        const existingCenterY = existingNode.position.y + existingHeight / 2;
+
+        const dx = Math.abs(newCenterX - existingCenterX);
+        const dy = Math.abs(newCenterY - existingCenterY);
+
+        const minDx = (width + existingWidth) / 2 + gap;
+        const minDy = (height + existingHeight) / 2 + gap;
+
+        if (dx < minDx && dy < minDy) {
+          // Collision detected - move down
+          currentY = existingNode.position.y + existingHeight + gap;
+          hasCollision = true;
+          break;
+        }
+      }
+
+      if (!hasCollision) {
+        break;
+      }
+
+      iteration++;
+    }
+
+    return { x, y: currentY };
   }
 
   /**
@@ -284,7 +391,9 @@ class LinkManager {
 
     // Update node content
     node.data.content = content;
-    node.data.html = marked.parse(content);
+    node.data.html = typeof MarkdownRenderer !== 'undefined'
+      ? MarkdownRenderer.render(content)
+      : marked.parse(content);
 
     // Update display
     this.updateNodeDisplay(nodeId);
@@ -389,8 +498,6 @@ class LinkManager {
     this.wallboard.nodes.forEach(node => {
       if (node.id === deletedNodeId) return; // Skip the deleted node itself
 
-      const linkText = `[[${deletedTitle}]]`;
-
       // Check if this node has a link to the deleted node (with flexible whitespace)
       const escapedTitle = this.escapeRegex(deletedTitle);
       const hasLink = new RegExp(`\\[\\[\\s*${escapedTitle}\\s*\\]\\]`).test(node.data.content);
@@ -414,12 +521,115 @@ class LinkManager {
 
         // Update node content
         node.data.content = content.trim();
-        node.data.html = marked.parse(node.data.content);
+        node.data.html = typeof MathRenderer !== 'undefined'
+          ? MathRenderer.render(node.data.content)
+          : marked.parse(node.data.content);
 
         // Update display
         this.updateNodeDisplay(node.id);
       }
     });
+  }
+
+  /**
+   * Update all [[link]] references when a node is renamed
+   * @param {number} nodeId - The ID of the node that was renamed
+   * @param {string} oldTitle - The old title
+   * @param {string} newTitle - The new title
+   */
+  updateAllReferencesToNode(nodeId, oldTitle, newTitle) {
+    console.log(`[LinkManager] Updating all references: "${oldTitle}" -> "${newTitle}"`);
+
+    // Track which nodes need link reprocessing
+    const nodesToReprocess = [];
+
+    // Find all nodes that have links to this node
+    this.wallboard.nodes.forEach(node => {
+      if (node.id === nodeId) return; // Skip the renamed node itself
+
+      // Check if this node has a link to the old title (with flexible whitespace)
+      const escapedOldTitle = this.escapeRegex(oldTitle);
+      const hasLink = new RegExp(`\\[\\[\\s*${escapedOldTitle}\\s*\\]\\]`, 'i').test(node.data.content);
+
+      if (hasLink) {
+        console.log(`[LinkManager] Updating references in node ${node.id}`);
+
+        // Replace all occurrences of [[oldTitle]] with [[newTitle]] (case-insensitive)
+        let content = node.data.content;
+
+        // Replace the link (case-insensitive, with flexible whitespace)
+        content = content.replace(
+          new RegExp(`\\[\\[\\s*${escapedOldTitle}\\s*\\]\\]`, 'gi'),
+          `[[${newTitle}]]`
+        );
+
+        // Update node content
+        node.data.content = content;
+        // Clear cached HTML to force re-render with link processing
+        delete node.data.html;
+
+        console.log(`[LinkManager] Updated references in node ${node.id}`);
+
+        // Update display (re-renders the content with proper wiki-link styling)
+        this.updateNodeDisplay(node.id);
+
+        // Track for reprocessing
+        nodesToReprocess.push({ id: node.id, content });
+      }
+    });
+
+    // After all content is updated, reprocess links to update connections
+    // This ensures the renamed node exists with its new title before processing
+    nodesToReprocess.forEach(({ id, content }) => {
+      // Just update connections, don't create new nodes
+      this.updateConnectionsOnly(id, content);
+    });
+  }
+
+  /**
+   * Update connections for a node without creating new nodes
+   * @param {number} nodeId - The node ID
+   * @param {string} content - The markdown content
+   */
+  updateConnectionsOnly(nodeId, content) {
+    console.log(`[LinkManager] updateConnectionsOnly for node ${nodeId}`);
+
+    // Extract all [[links]] from content
+    const linkTitles = this.extractLinks(content);
+    console.log(`[LinkManager] Found ${linkTitles.length} links:`, linkTitles);
+
+    if (linkTitles.length === 0) {
+      this.pruneOrphanedConnections(nodeId, []);
+      return;
+    }
+
+    // For each link, find existing node and ensure connection (don't create new nodes)
+    linkTitles.forEach(linkTitle => {
+      console.log(`[LinkManager] Looking for node with title "${linkTitle}"`);
+
+      const targetNode = this.wallboard.nodes.find(n => {
+        const nodeTitle = this.wallboard.getNodeTitle(n);
+        const matches = nodeTitle.toLowerCase() === linkTitle.toLowerCase();
+        console.log(`[LinkManager] Comparing "${nodeTitle}" with "${linkTitle}": ${matches}`);
+        return matches;
+      });
+
+      if (targetNode) {
+        console.log(`[LinkManager] Found target node ${targetNode.id}, creating connection`);
+        // Only create connection if target node exists
+        this.ensureConnection(nodeId, targetNode.id);
+      } else {
+        console.log(`[LinkManager] No target node found for "${linkTitle}"`);
+      }
+    });
+
+    // Remove connections that no longer have corresponding links
+    this.pruneOrphanedConnections(nodeId, linkTitles);
+
+    // Force immediate connection redraw
+    if (this.wallboard.connectionManager) {
+      this.wallboard.connectionManager.updateConnections();
+    }
   }
 
   /**

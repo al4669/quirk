@@ -115,6 +115,43 @@ class QuirkStorage {
     });
   }
 
+  // API Key Management (secure storage)
+  async saveAPIKey(provider, apiKey) {
+    const key = `api_key_${provider}`;
+    await this.saveSetting(key, apiKey);
+  }
+
+  async getAPIKey(provider) {
+    const key = `api_key_${provider}`;
+    return await this.getSetting(key, '');
+  }
+
+  async deleteAPIKey(provider) {
+    const key = `api_key_${provider}`;
+    await this.initPromise;
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['settings'], 'readwrite');
+      const store = transaction.objectStore('settings');
+      const request = store.delete(key);
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  // LLM Configuration Management
+  async saveLLMConfig(config) {
+    await this.saveSetting('llm_config', config);
+  }
+
+  async getLLMConfig() {
+    return await this.getSetting('llm_config', {
+      provider: 'ollama',
+      endpoint: 'http://localhost:11434/api/chat',
+      model: 'llama3.2'
+    });
+  }
+
   // Migration from localStorage
   async migrateFromLocalStorage() {
     console.log('Checking for localStorage data to migrate...');
@@ -141,6 +178,34 @@ class QuirkStorage {
     const globalTheme = localStorage.getItem('wallboard_global_theme');
     if (globalTheme) {
       await this.saveSetting('wallboard_global_theme', globalTheme);
+    }
+
+    // Migrate AI settings to IndexedDB
+    let aiEndpoint = localStorage.getItem('ai_chat_endpoint');
+    const aiModel = localStorage.getItem('ai_chat_model');
+    const aiProvider = localStorage.getItem('ai_chat_provider') || 'ollama';
+
+    // Auto-migrate old direct API endpoints to proxy endpoints
+    if (aiEndpoint) {
+      if (aiEndpoint.includes('api.anthropic.com')) {
+        console.log('Migrating Anthropic endpoint to proxy...');
+        aiEndpoint = 'http://localhost:8080/api/anthropic';
+        localStorage.setItem('ai_chat_endpoint', aiEndpoint);
+      } else if (aiEndpoint.includes('api.openai.com')) {
+        console.log('Migrating OpenAI endpoint to proxy...');
+        aiEndpoint = 'http://localhost:8080/api/openai';
+        localStorage.setItem('ai_chat_endpoint', aiEndpoint);
+      }
+    }
+
+    if (aiEndpoint || aiModel || aiProvider !== 'ollama') {
+      const config = {
+        provider: aiProvider,
+        endpoint: aiEndpoint || 'http://localhost:11434/api/chat',
+        model: aiModel || 'llama3.2'
+      };
+      await this.saveLLMConfig(config);
+      console.log('Migrated AI settings to IndexedDB');
     }
 
     // Clean up localStorage after successful migration

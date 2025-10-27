@@ -40,6 +40,21 @@ class ContextMenuManager {
         </svg>
         Change Theme
       </div>
+    `;
+
+    // Add "Run from here" option on all nodes
+    if (this.wallboard.executionManager) {
+      menuItems += `
+        <div class="context-item" onclick="wallboard.executionManager.executeFromNode(${node.id}); wallboard.hideContextMenu();">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          Run from here ▶️
+        </div>
+      `;
+    }
+
+    menuItems += `
       <div class="context-divider"></div>
       <div class="context-item" onclick="wallboard.removeNode(${node.id}); wallboard.hideContextMenu();">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -21,6 +21,7 @@ class Wallboard {
     this.nodeContentManager = new NodeContentManager(this);
     this.linkManager = new LinkManager(this);
     this.graphLayoutManager = new GraphLayoutManager(this);
+    this.minimap = null; // Will be initialized after board loads
 
     // Properties for new drag-and-drop logic
     this.draggedNode = null;
@@ -65,6 +66,7 @@ class Wallboard {
     this.autoSaveTimeout = null;
 
     this.alignmentManager = new AlignmentManager(this);
+    this.executionManager = new ExecutionManager(this);
 
     this.init();
   }
@@ -168,6 +170,16 @@ class Wallboard {
     // Initialize keyboard shortcuts manager
     this.keyboardShortcuts = new KeyboardShortcuts(this);
 
+    // Initialize minimap
+    this.minimap = new Minimap(this);
+
+    // Center view on nodes after initial load
+    if (this.nodes.length > 0) {
+      setTimeout(() => {
+        this.minimap.centerOnNodes();
+      }, 100);
+    }
+
     // Optimized drag event listeners - attached to document for better performance
     document.addEventListener("mousemove", this.handleMouseMove.bind(this), {
       passive: true,
@@ -252,12 +264,12 @@ class Wallboard {
 
   // --- Node Operations - delegated to NodeOperationsManager ---
 
-  addMarkdownNode() {
-    return this.nodeOperationsManager.addMarkdownNode();
+  addMarkdownNode(position = null) {
+    return this.nodeOperationsManager.addMarkdownNode(position);
   }
 
-  createNode(type, data) {
-    return this.nodeOperationsManager.createNode(type, data);
+  createNode(type, data, position = null) {
+    return this.nodeOperationsManager.createNode(type, data, position);
   }
 
   // Helper function for backwards compatibility
@@ -603,8 +615,23 @@ class Wallboard {
     const nodeEl = document.getElementById(`node-${node.id}`);
     if (!nodeEl) return;
 
-    const nodeCenterX = node.position.x + nodeEl.offsetWidth / 2;
-    const nodeCenterY = node.position.y + nodeEl.offsetHeight / 2;
+    // Measure real node dimensions (handle zoomed-out state)
+    const canvas = document.getElementById('canvas');
+    const wasZoomedOut = canvas?.classList.contains('zoomed-out');
+
+    if (wasZoomedOut) {
+      canvas.classList.remove('zoomed-out');
+    }
+
+    const nodeWidth = nodeEl.offsetWidth || 250;
+    const nodeHeight = nodeEl.offsetHeight || 180;
+
+    if (wasZoomedOut) {
+      canvas.classList.add('zoomed-out');
+    }
+
+    const nodeCenterX = node.position.x + nodeWidth / 2;
+    const nodeCenterY = node.position.y + nodeHeight / 2;
 
     this.zoom = 1.0;
 
@@ -668,7 +695,7 @@ class Wallboard {
   // Auto-arrange nodes using graph layout
   autoArrangeNodes(animate = true) {
     if (this.graphLayoutManager) {
-      this.graphLayoutManager.autoArrange(animate);
+      this.graphLayoutManager.autoArrange(animate, true); // Pan to center after arranging
     }
   }
 

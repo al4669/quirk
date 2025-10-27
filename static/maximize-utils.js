@@ -127,6 +127,10 @@ class MaximizeUtils {
         const node = wallboard.nodes.find((n) => n.id === nodeId);
         if (node && node.data && node.data.content !== undefined) {
           node.data.content = editor.value;
+          // Regenerate HTML with MarkdownRenderer to support math formulas
+          node.data.html = typeof MarkdownRenderer !== 'undefined'
+            ? MarkdownRenderer.render(node.data.content)
+            : marked.parse(node.data.content);
           // Update the original node content as well
           const originalContent = document.getElementById(`content-${nodeId}`);
           if (originalContent) {
@@ -179,6 +183,10 @@ class MaximizeUtils {
       // Save and switch to view mode
       if (node.data && node.data.content !== undefined) {
         node.data.content = isEditing.value;
+        // Regenerate HTML with MarkdownRenderer to support math formulas
+        node.data.html = typeof MarkdownRenderer !== 'undefined'
+          ? MarkdownRenderer.render(node.data.content)
+          : marked.parse(node.data.content);
 
         // Restore view mode
         content.style.width = "";

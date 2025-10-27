@@ -50,6 +50,10 @@ class ThemeManager {
     document.documentElement.style.setProperty('--accent-light', ColorUtils.lightenColor(accentHex, 20));
     document.documentElement.style.setProperty('--accent-dark', ColorUtils.darkenColor(accentHex, 20));
 
+    // Compute accessible text color for accent backgrounds
+    const textOnAccent = ColorUtils.getAccessibleTextColor(accentHex);
+    document.documentElement.style.setProperty('--text-on-accent', textOnAccent);
+
     // Update background gradients
     document.documentElement.style.setProperty('--bg-accent-glow', `rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.1)`);
     document.documentElement.style.setProperty('--bg-accent-light', `rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.05)`);
@@ -67,12 +71,18 @@ class ThemeManager {
       nodeElement.style.setProperty('--node-accent', theme.accent);
       nodeElement.style.setProperty('--node-accent-glow', `${theme.accent}40`);
       nodeElement.style.setProperty('--node-accent-light', ColorUtils.lightenColor(theme.accent, 20));
+
+      // Compute accessible text color for this node's accent
+      const textOnAccent = ColorUtils.getAccessibleTextColor(theme.accent);
+      nodeElement.style.setProperty('--text-on-accent', textOnAccent);
+
       nodeElement.classList.add('custom-theme');
     } else {
       // Use global theme - remove custom properties
       nodeElement.style.removeProperty('--node-accent');
       nodeElement.style.removeProperty('--node-accent-glow');
       nodeElement.style.removeProperty('--node-accent-light');
+      nodeElement.style.removeProperty('--text-on-accent');
       nodeElement.classList.remove('custom-theme');
     }
   }

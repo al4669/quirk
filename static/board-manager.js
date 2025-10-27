@@ -51,6 +51,7 @@ class BoardManager {
       nodeIdCounter: 0,
       globalTheme: wallboard.globalTheme || 'default',
       nodeThemes: {},
+      executionState: {},
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -90,6 +91,7 @@ class BoardManager {
     wallboard.nodeIdCounter = board.nodeIdCounter || 0;
     wallboard.globalTheme = board.globalTheme || 'default';
     wallboard.nodeThemes = board.nodeThemes || {};
+    wallboard.executionManager.executionState = board.executionState || {};
 
     // Migrate old "type" field to new "title" field for backwards compatibility
     wallboard.nodes.forEach(node => {
@@ -112,6 +114,19 @@ class BoardManager {
     await wallboard.storage.saveSetting('wallboard_last_board', boardId);
 
     this.updateBoardSelector(wallboard);
+
+    // Center view on nodes after board loads
+    if (wallboard.minimap && wallboard.nodes.length > 0) {
+      // Small delay to ensure DOM elements are fully rendered
+      setTimeout(() => {
+        wallboard.minimap.centerOnNodes();
+      }, 100);
+    }
+
+    // Notify AI chat of board switch to reload per-board chat history
+    if (window.aiChat) {
+      window.aiChat.onBoardSwitch();
+    }
   }
 
   static async saveCurrentBoard(wallboard) {
@@ -127,6 +142,7 @@ class BoardManager {
     board.nodeIdCounter = wallboard.nodeIdCounter;
     board.globalTheme = wallboard.globalTheme;
     board.nodeThemes = wallboard.nodeThemes;
+    board.executionState = wallboard.executionManager.executionState;
     board.updatedAt = new Date().toISOString();
 
     // Save to IndexedDB (fast, async)
