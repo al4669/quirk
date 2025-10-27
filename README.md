@@ -1,161 +1,407 @@
-# QUIRK - Visual Knowledge Management
+# QUIRK - Visual Knowledge Management with AI
 
-A fast, intuitive visual knowledge base that lets you create, connect, and organize markdown notes with smooth drag-and-drop interactions.
+A fast, intuitive visual knowledge base that lets you create, connect, and organize markdown notes with smooth drag-and-drop interactions. Now with **AI Chat** and **JavaScript Execution** powered by Claude, GPT, or local LLMs.
 
-<img width="1913" height="908" alt="image" src="https://github.com/user-attachments/assets/f44f6cc8-741a-494c-91ac-bdfe18f9380a" />
-
+<img width="1469" height="849" alt="image" src="https://github.com/user-attachments/assets/14869423-f34f-4c84-8394-2503bd084ae2" />
 
 **Live Demo**: [Try QUIRK online](https://quirk.uk?board=https://raw.githubusercontent.com/al4669/quirk/refs/heads/main/examples/godot.json)
 
+---
+
 ## Features
 
-🔒 **Privacy First** - Your data never leaves your device
+### Core Features
+- 🔒 **Privacy First** - Your data never leaves your device
+- 🏠 **Local Storage** - Works completely offline, no account required
+- ✨ **Visual Node Interface** - Drag and drop markdown cards
+- 🔗 **Smart Connections** - Draw relationships between ideas
+- 📝 **Full Markdown** - Rich text with syntax highlighting
+- 🖼️ **Images & Code** - Support for images via URL and code blocks
+- 🎨 **16 Beautiful Themes** - Customize individual nodes or global workspace
+- 🌐 **GitHub Sharing** - Load and share board templates
+- 📤 **Own Your Data** - Export as standard markdown files
+- ⚡ **Zero Setup** - Just open index.html in any browser
 
-🏠 **Local Storage** - Works completely offline, no account required
+### AI Features
+- 🤖 **AI Chat Assistant** - Create and organize nodes with natural language
+- 🧠 **Multi-Provider Support** - Claude, GPT, Ollama, or any OpenAI-compatible API
+- 💬 **Streaming Responses** - Real-time AI interaction
+- 🎭 **Animated Characters** - Buddy (cloud) or Read (robot with voice)
+- 🔐 **Secure API Keys** - Stored locally in IndexedDB
 
-✨ **Visual Node Interface** - Drag and drop markdown cards
+### Execution System
+- ⚙️ **JavaScript Execution** - Run code blocks in nodes
+- 🔄 **Data Pipelines** - Connect nodes to create workflows
+- 🌊 **Data Flow API** - Pass data between nodes with `quirk.inputs()`
+- 🤖 **LLM Integration** - Call Claude/GPT from code via `quirk.llm()`
+- 🔁 **Cycle Detection** - Handle graph cycles intelligently
+- ✅ **Visual Feedback** - See execution status in real-time
 
-🔗 **Smart Connections** - Draw relationships between idea
-
-📝 **Full Markdown** - Rich text with syntax highlighting
-
-🖼️ **Images & Code** - Support for images via URL and code blocks
-
-🎨 **16 Beautiful Themes** - Customize individual nodes or global workspace
-
-🌐 **GitHub Sharing** - Load and share board templates via public GitHub repositories
-
-📤 **Own Your Data** - Export as standard markdown files
-
-⚡ **Zero Setup** - Just open index.html in any browser
-
-🚀 **Scales Smoothly** - Handles hundreds of nodes without performance loss
+---
 
 ## Quick Start
 
-1. **Try Online**: Visit [quirk.uk](https://quirk.uk) for instant access
-2. **Or Download**: Clone this repo or download as ZIP and open `index.html`
-3. **Create**: Click "Markdown" to add your first note
-4. **Connect**: Drag from any note content to another to create connections
-5. **Customize**: Use the theme selector to personalize your workspace
-6. **Load Shared Boards**: Visit `quirk.uk?board=github-url` to import boards from GitHub repos
+### Option 1: Online (Instant)
+1. Visit [quirk.uk](https://quirk.uk)
+2. Click "Markdown" to add your first note
+3. Press **K** to open AI Chat
+
+### Option 2: Run Locally with AI (Recommended)
+
+#### Step 1: Start the Server
+```bash
+go run server.go
+```
+
+#### Step 2: Open Browser
+```
+http://localhost:8080
+```
+
+#### Step 3: Configure AI
+- Press **K** to open AI Chat
+- Click Settings (⚙️)
+- Choose provider:
+  - **Ollama** (local, free)
+  - **Claude** (cloud, requires API key)
+  - **OpenAI** (cloud, requires API key)
+
+---
+
+## AI Setup Guide
+
+### Using Ollama (Local, Free)
+
+**1. Install Ollama:**
+```bash
+# macOS/Linux
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Or visit https://ollama.com
+```
+
+**2. Run a model:**
+```bash
+ollama pull llama3.2
+ollama serve
+```
+
+**3. Configure in QUIRK:**
+- Press **K** → Settings
+- Provider: Ollama (Local)
+- Endpoint: `http://localhost:11434/api/chat`
+- Model: `llama3.2`
+
+### Using Claude (Cloud)
+
+**1. Get API Key:**
+- Visit https://console.anthropic.com
+- Create account and get API key
+
+**2. Configure in QUIRK:**
+- Press **K** → Settings
+- Provider: Claude (Anthropic)
+- Enter your API key
+- Endpoint: `http://localhost:8080/api/anthropic` (uses local proxy)
+- Model: `claude-sonnet-4-5-20250929`
+
+**3. Start the proxy server:**
+```bash
+go run server.go
+```
+
+The Go proxy bypasses CORS restrictions - it's completely local and secure.
+
+### Using OpenAI (Cloud)
+
+Same as Claude, but:
+- Get API key from https://platform.openai.com/api-keys
+- Provider: OpenAI
+- Endpoint: `http://localhost:8080/api/openai`
+- Model: `gpt-4` or `gpt-3.5-turbo`
+
+---
+
+## AI Chat Examples
+
+Press **K** to open chat, then try:
+
+**Create a project structure:**
+> "Create a board for a web app with nodes for frontend, backend, database, and deployment. Connect them."
+
+**Brainstorm:**
+> "Generate 10 startup ideas in the AI space with descriptions"
+
+**Organize:**
+> "Arrange these nodes in a mind map with the main topic centered"
+
+**Learn:**
+> "Create a React learning path from beginner to advanced"
+
+---
+
+## Execution System Quick Start
+
+### 1. Simple JavaScript Node
+
+Create a markdown node:
+```markdown
+# Hello World
+
+```js
+const message = "Hello from QUIRK!";
+quirk.output(message);
+```
+```
+
+Right-click → **Run from here ▶️**
+
+### 2. Data Pipeline
+
+**Node 1: Generate Data**
+```markdown
+# Data Source
+
+```js
+const data = [1, 2, 3, 4, 5];
+quirk.output(data);
+```
+```
+
+**Node 2: Process Data** (connect from Node 1)
+```markdown
+# Double Values
+
+```js
+const inputs = quirk.inputs();
+const doubled = inputs[0].map(x => x * 2);
+quirk.output(doubled);
+```
+```
+
+### 3. AI-Powered Node
+
+```markdown
+# AI Analyzer
+
+```js
+const inputs = quirk.inputs();
+const data = inputs[0];
+
+const prompt = `Analyze this data: ${JSON.stringify(data)}`;
+const analysis = await quirk.llm(prompt);
+
+quirk.output(analysis);
+```
+```
+
+---
 
 ## Keyboard Shortcuts
 
-- `Drag` from card content → Create connections
-- `Alt + Drag` → Cut connections  
-- `Mouse Wheel` → Zoom in/out
-- `Drag Canvas` → Pan around
-- `Delete` → Remove selected node
-- `Escape` → Cancel connection/cutting mode
-- `Double-click` node content → Edit mode
-- `Double-click` node type → Rename node type
+### Canvas Navigation
+- **Mouse Wheel** - Zoom in/out
+- **Drag Canvas** - Pan around
+- **Double-click** node - Edit mode
 
-## Privacy & Data
+### Node Operations
+- **Drag** from content - Create connection
+- **Alt + Drag** - Cut connections
+- **Delete** - Remove selected node
+- **Escape** - Cancel action
 
-QUIRK is designed with privacy as the foundation:
+### AI & Special
+- **K** - Toggle AI Chat
+- **Right-click** node → Run - Execute code
 
-- **No data collection** - Zero telemetry, analytics, or tracking
-- **Local storage only** - Your notes are stored in your browser's localStorage
-- **Works offline** - No internet connection required after initial load
-- **No accounts** - No sign-up, no passwords, no user profiles
-- **Standard exports** - Your data exports as regular markdown files
-- **Self-hostable** - Run entirely from your own server or filesystem
+---
 
-Even when using quirk.uk, your data never leaves your browser. The server only delivers the application files.
+## Execution API Reference
 
-**GitHub board loading**: Even when loading boards from GitHub URLs, the data is fetched once and becomes completely local. No ongoing connection or tracking.
+### `quirk.inputs()`
+Get outputs from connected upstream nodes.
+```js
+const [data1, data2] = quirk.inputs();
+```
 
-## Architecture
+### `quirk.output(value)`
+Set output for this node (available to downstream nodes).
+```js
+quirk.output({ result: 42, status: 'success' });
+```
 
-QUIRK is built with vanilla JavaScript and a clean, modular architecture:
+### `quirk.llm(prompt, config?)`
+Call LLM API (Claude/GPT).
+```js
+const response = await quirk.llm('Explain quantum computing');
+quirk.output(response);
+```
 
-- **app.js** - Main wallboard class and node management
-- **connection-manager.js** - Visual connection system with smooth bezier curves
-- **export-manager.js** - Import/export functionality with ZIP support
-- **app.css** - Responsive styling with CSS custom properties and hardware acceleration
+### `quirk.nodes()`
+Get all nodes in the board.
+```js
+const allNodes = quirk.nodes();
+```
 
-No frameworks, no build process, no dependencies beyond standard web APIs.
+### `quirk.getNode(id)`
+Get specific node by ID.
+```js
+const node = quirk.getNode(42);
+```
+
+---
+
+## Example Workflows
+
+### Data Processing Pipeline
+```
+[CSV Data] → [Parse] → [Filter] → [Transform] → [Visualize]
+```
+
+### AI Content Generation
+```
+[Topic] → [Generate Outline (AI)] → [Write Content (AI)] → [Format]
+```
+
+### Iterative Refinement
+```
+[Draft Text] → [Improve (AI)] → [Evaluate] → (loop back)
+```
+System detects cycles and allows up to 10 iterations.
+
+---
+
+## Privacy & Security
+
+### Zero Data Collection
+- No telemetry, analytics, or tracking
+- No accounts or passwords
+- No external servers (except your chosen LLM provider)
+
+### Local-First Architecture
+- All data stored in browser IndexedDB
+- Works completely offline (except AI calls)
+- API keys stored securely in IndexedDB
+- Execution happens client-side
+
+### What Gets Sent Where
+- **To Ollama**: Prompts (stays on your machine)
+- **To Claude/OpenAI**: Prompts + API key (direct to provider via local proxy)
+- **To QUIRK servers**: Nothing (we don't have servers)
+
+The Go proxy server runs on **your machine** and only forwards requests to AI providers. It never logs or stores your data.
+
+---
+
+## Export & Sharing
+
+### Export Options
+- **Export for GitHub** - Clean JSON for sharing
+- **Export Board as ZIP** - Markdown files
+- **Export All Boards** - Complete backup
+
+### GitHub Sharing
+1. Export board as JSON
+2. Upload to GitHub repo
+3. Share link: `quirk.uk?board=your-github-raw-url`
+4. Others get their own local copy
+
+Perfect for templates, tutorials, and knowledge bases!
+
+---
 
 ## Browser Compatibility
 
 - Chrome 80+
-- Firefox 75+ 
+- Firefox 75+
 - Safari 13+
 - Edge 80+
 
+---
+
 ## Development
 
-No build process needed! Just edit the files and refresh your browser.
+No build process! Just edit and refresh.
 
-For development, consider running a local server:
 ```bash
+# Run local server for development
 python -m http.server 8000
 # or
 npx serve
 ```
 
-## Multiple Boards
+**Architecture:**
+- `app.js` - Main application logic
+- `ai-chat.js` - AI chat system
+- `execution-manager.js` - Code execution pipeline
+- `connection-manager.js` - Visual connections
+- `server.go` - Local proxy for Claude/OpenAI APIs
 
-Create separate boards for different projects:
-- Switch between boards via the dropdown
-- Each board maintains its own nodes and connections
-- Import/export individual boards or everything at once
-- Rename and delete boards as needed
+---
 
-## Sharing Board Templates
+## Troubleshooting
 
-Share your boards as templates via GitHub:
+### AI Chat Issues
 
-1. **Export for GitHub**: Use "Export for GitHub Sharing" to create a clean JSON file
-2. **Upload to GitHub**: Commit the JSON file to any public repository
-3. **Share the Link**: Use `quirk.uk?board=your-github-raw-url` to let others import your board
-4. **Independent Copies**: Each person gets their own local copy to modify freely
+**"API key required"**
+- Add your API key in Settings (⚙️)
+- Make sure provider matches (Claude/OpenAI/Ollama)
 
-**Example URLs:**
-- `quirk.uk?board=https://github.com/user/repo/blob/main/board.json`
-- `quirk.uk?board=https://raw.githubusercontent.com/user/repo/main/board.json`
+**"Failed to fetch"**
+- For Claude/OpenAI: Run `go run server.go` first
+- For Ollama: Run `ollama serve`
 
-Perfect for:
-- 📚 **Educational templates** others can build upon
-- 🎯 **Project starter boards** for team onboarding
-- 💡 **Knowledge base templates** for different domains
-- 🤝 **Sharing interesting board structures** with the community
+**"CORS error"**
+- Use the Go proxy server (`go run server.go`)
+- Endpoints should be `http://localhost:8080/api/anthropic` or `/api/openai`
 
-**Privacy Maintained**: Once loaded, boards become completely local with no ongoing connection to GitHub.
+### Execution Issues
 
-## Export & Import
+**"No executable code blocks found"**
+- Use ` ```js ` or ` ```javascript ` code blocks
 
-Your data belongs to you:
-- Export for GitHub sharing as clean JSON files
-- Export current board as ZIP with markdown files
-- Export all boards as complete backup
-- Import previously exported boards
-- Connection relationships preserved in JSON metadata
-- Standard markdown format ensures future compatibility
+**"Max iterations reached"**
+- Cycle detected, increase limit in console:
+  ```js
+  wallboard.executionManager.maxIterations = 20;
+  ```
+
+**Browser asking to save password**
+- This is normal (API key field is type="password")
+- Tell browser to never save for localhost:8080
+
+---
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-Areas where help is especially appreciated:
+We welcome contributions! Key areas:
 - Mobile/touch improvements
 - Accessibility enhancements
 - Additional export formats
-- Keyboard navigation
 - Performance optimizations
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+---
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License - Your data, your code, your freedom.
+
+---
 
 ## Why QUIRK?
 
-In a world where every app wants to harvest your data, QUIRK takes a different approach:
+In a world where every app wants to harvest your data:
 
-- Your thoughts remain private
-- No subscriptions or vendor lock-in
-- Works forever, even if quirk.uk goes offline
-- Built by developers, for people who value digital sovereignty
+- **Your thoughts remain private** - No cloud required
+- **No subscriptions** - Free forever
+- **No vendor lock-in** - Standard markdown exports
+- **Built by developers** - For people who value digital sovereignty
+- **AI without compromise** - Use local LLMs or choose your provider
 
-QUIRK proves you can have a modern, polished app experience without sacrificing privacy or control over your data.
+QUIRK proves you can have a modern, polished app with AI features without sacrificing privacy or control.
+
+---
+
+**Get started: Press `K` for AI Chat • Right-click nodes to Run • Export anytime**

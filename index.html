@@ -12,6 +12,11 @@
     <script src="static/deps/marked.min.js"></script>
     <script src="static/markdown-config.js"></script>
 
+    <!-- KaTeX 0.16.9 for Math Rendering -->
+    <link rel="stylesheet" href="static/deps/katex.min.css">
+    <script src="static/deps/katex.min.js"></script>
+    <script src="static/deps/katex-auto-render.min.js"></script>
+
     <!-- DOMPurify 3.0.6 for XSS protection -->
     <script src="static/deps/purify.min.js"></script>
     <script src="static/sanitization.js"></script>
@@ -41,6 +46,7 @@
     <script src="static/deps/howler.min.js"></script>
 
     <link rel="stylesheet" href="static/app.css?v=1.1">
+    <link rel="stylesheet" href="static/ai-chat.css">
 
 </head>
 <body>
@@ -115,13 +121,7 @@
             </svg>
             <span class="tool-text">Export</span>
         </button>
-        <button class="tool-btn" onclick="wallboard.renameBoardDialog(); document.querySelector('.toolbar').classList.remove('mobile-open');">
-            <svg class="tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-            </svg>
-            <span class="tool-text">Rename Board</span>
-        </button>
+       
         <button class="tool-btn" onclick="wallboard.createNewBoardDialog(); document.querySelector('.toolbar').classList.remove('mobile-open');">
             <svg class="tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -135,6 +135,13 @@
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
             </svg>
             <span class="tool-text">Delete Board</span>
+        </button>
+        <button class="tool-btn" onclick="wallboard.executionManager.showLLMConfigDialog(); document.querySelector('.toolbar').classList.remove('mobile-open');">
+            <svg class="tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M12 1v6m0 6v6M5.6 5.6l4.2 4.2m4.2 4.2l4.2 4.2M1 12h6m6 0h6M5.6 18.4l4.2-4.2m4.2-4.2l4.2-4.2"></path>
+            </svg>
+            <span class="tool-text">LLM Config</span>
         </button>
     </div>
 
@@ -222,6 +229,23 @@
    <script src="static/node-content-manager.js"></script>
    <script src="static/link-manager.js"></script>
    <script src="static/graph-layout-manager.js"></script>
+   <script src="static/execution-manager.js"></script>
+   <script src="static/minimap.js"></script>
+   <script src="static/autohide-manager.js"></script>
    <script src="static/app.js"></script>
+
+   <!-- Anime.js for character animations -->
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+
+   <!-- Character System -->
+   <script src="static/characters/character-base.js"></script>
+   <script src="static/characters/buddy-character.js"></script>
+   <script src="static/characters/read-character.js"></script>
+
+   <script src="static/ai-chat.js"></script>
+   <script>
+     // Initialize AI Chat after wallboard is ready
+     window.aiChat = new AIChat(wallboard);
+   </script>
 </body>
 </html>
