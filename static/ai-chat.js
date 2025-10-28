@@ -30,7 +30,7 @@ class AIChat {
     switch(provider) {
       case 'anthropic': return 'claude-sonnet-4-5-20250929';
       case 'openai': return 'gpt-4';
-      default: return 'llama3.2';
+      default: return 'qwen3:4b';
     }
   }
 
@@ -240,8 +240,8 @@ class AIChat {
           </div>
           <div class="ai-settings-field">
             <label>Model Name</label>
-            <input type="text" id="aiModelInput" value="${this.apiModel}" placeholder="llama3.2">
-            <small id="aiModelHint">For Ollama: llama3.2, mistral, etc.</small>
+            <input type="text" id="aiModelInput" value="${this.apiModel}" placeholder="qwen3:4b">
+            <small id="aiModelHint">For Ollama: qwen3:4b, llama3.2, mistral, etc.</small>
           </div>
           <div class="ai-settings-field">
             <label style="display: flex; align-items: center; gap: 8px;">
@@ -312,16 +312,17 @@ class AIChat {
     document.getElementById('aiSettingsCancel').addEventListener('click', () => this.closeSettings());
 
     // Provider selection handler
-    document.getElementById('aiProviderSelect').addEventListener('change', (e) => {
-      this.updateProviderUI(e.target.value);
+    document.getElementById('aiProviderSelect').addEventListener('change', async (e) => {
+      await this.updateProviderUI(e.target.value);
     });
 
     // Clear chat
     document.getElementById('aiChatClear').addEventListener('click', () => this.clearChat());
   }
 
-  updateProviderUI(provider) {
+  async updateProviderUI(provider) {
     const apiKeyField = document.getElementById('aiApiKeyField');
+    const apiKeyInput = document.getElementById('aiApiKeyInput');
     const endpointInput = document.getElementById('aiEndpointInput');
     const modelInput = document.getElementById('aiModelInput');
     const endpointHint = document.getElementById('aiEndpointHint');
@@ -329,6 +330,17 @@ class AIChat {
 
     // Show/hide API key field
     apiKeyField.style.display = provider !== 'ollama' ? 'block' : 'none';
+
+    // Load saved API key for this provider
+    if (provider !== 'ollama' && this.wallboard.storage) {
+      await this.ensureStorageReady();
+      const savedKey = await this.wallboard.storage.getAPIKey(provider);
+      if (apiKeyInput) {
+        apiKeyInput.value = savedKey || '';
+      }
+    } else if (apiKeyInput) {
+      apiKeyInput.value = '';
+    }
 
     // Update default endpoint and model
     endpointInput.value = this.getDefaultEndpoint(provider);
@@ -346,7 +358,7 @@ class AIChat {
         break;
       default:
         endpointHint.textContent = 'Ollama native: http://localhost:11434/api/chat';
-        modelHint.textContent = 'For Ollama: llama3.2, mistral, etc.';
+        modelHint.textContent = 'For Ollama: qwen3:4b, llama3.2, mistral, etc.';
     }
   }
 
@@ -423,8 +435,8 @@ class AIChat {
     // Build message history - only include if there are saved messages
     const messages = [
       { role: 'system', content: systemPrompt },
-      // Only include recent history if messages array is not empty
-      ...(this.messages.length > 0 ? this.messages.slice(-10).map(m => ({ role: m.role, content: m.content })) : []),
+      // Only include recent history if messages array is not empty, and filter out empty messages
+      ...(this.messages.length > 0 ? this.messages.slice(-10).filter(m => m.content && m.content.trim()).map(m => ({ role: m.role, content: m.content })) : []),
       { role: 'user', content: userMessage }
     ];
 
@@ -1228,7 +1240,18 @@ Created **3 nodes** covering Python fundamentals, libraries, and best practices!
     }
 
     // Update API key field visibility based on current provider
-    this.updateProviderUI(this.provider);
+    await this.updateProviderUI(this.provider);
+
+    // Populate endpoint and model fields with CURRENT saved values
+    // (updateProviderUI sets defaults, but we want to show what's actually saved)
+    const endpointInput = document.getElementById('aiEndpointInput');
+    const modelInput = document.getElementById('aiModelInput');
+    if (endpointInput) {
+      endpointInput.value = this.apiEndpoint;
+    }
+    if (modelInput) {
+      modelInput.value = this.apiModel;
+    }
 
     document.getElementById('aiSettingsModal').style.display = 'flex';
   }

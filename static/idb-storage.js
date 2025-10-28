@@ -148,7 +148,7 @@ class QuirkStorage {
     return await this.getSetting('llm_config', {
       provider: 'ollama',
       endpoint: 'http://localhost:11434/api/chat',
-      model: 'llama3.2'
+      model: 'qwen3:4b'
     });
   }
 
@@ -202,7 +202,7 @@ class QuirkStorage {
       const config = {
         provider: aiProvider,
         endpoint: aiEndpoint || 'http://localhost:11434/api/chat',
-        model: aiModel || 'llama3.2'
+        model: aiModel || 'qwen3:4b'
       };
       await this.saveLLMConfig(config);
       console.log('Migrated AI settings to IndexedDB');

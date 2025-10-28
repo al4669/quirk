@@ -3149,16 +3149,21 @@ body {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 50%;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
   z-index: 10;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   transition: all 0.2s ease;
   pointer-events: none;
+}
+
+.execution-status-badge svg {
+  width: 18px;
+  height: 18px;
+  display: block;
 }
 
 .node.executing .execution-status-badge {

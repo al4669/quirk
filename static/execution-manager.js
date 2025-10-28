@@ -21,7 +21,7 @@ class ExecutionManager {
     // Use the same config as AI chat for consistency
     const provider = localStorage.getItem('ai_chat_provider') || 'ollama';
     const endpoint = localStorage.getItem('ai_chat_endpoint') || 'http://localhost:11434/api/chat';
-    const model = localStorage.getItem('ai_chat_model') || 'llama3.2';
+    const model = localStorage.getItem('ai_chat_model') || 'qwen3:4b';
 
     // Load API key from IndexedDB
     let apiKey = '';
@@ -103,10 +103,10 @@ class ExecutionManager {
         <div style="margin: 20px 0;">
           <label style="display: block; margin-bottom: 8px; color: var(--text-secondary);">Model</label>
           <input type="text" id="llm-model" value="${this.llmConfig.model}"
-                 placeholder="llama3.2"
+                 placeholder="qwen3:4b"
                  style="width: 100%; padding: 8px; background: var(--bg-secondary); color: var(--text); border: 1px solid var(--border); border-radius: 4px;">
           <small style="color: var(--text-tertiary); font-size: 12px; display: block; margin-top: 4px;">
-            Ollama: llama3.2, mistral, etc.<br>
+            Ollama: qwen3:4b, llama3.2, mistral, etc.<br>
             Anthropic: claude-sonnet-4-5-20250929, claude-3-5-sonnet-20241022<br>
             OpenAI: gpt-4, gpt-3.5-turbo
           </small>
@@ -256,6 +256,20 @@ class ExecutionManager {
     // Remove all instruct blocks
     text = text.replace(/```instruct\n[\s\S]*?```/g, '');
     return text.trim();
+  }
+
+  // Strip markdown links to prevent LLM from seeing/reproducing them
+  stripMarkdownLinks(text) {
+    if (!text || typeof text !== 'string') return text;
+
+    // Replace [text](url) with just text
+    // This prevents the LLM from seeing node links like [Node Name](id:123)
+    let cleaned = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+
+    // Also strip wiki-style links [[NAME]]
+    cleaned = cleaned.replace(/\[\[([^\]]+)\]\]/g, '$1');
+
+    return cleaned;
   }
 
   // Resolve template variables like {{Node Title}} or {{Node Title Result}}
@@ -516,7 +530,10 @@ class ExecutionManager {
         const instructPrompt = instructBlocks.join('\n\n');
 
         // Resolve template variables in instruct prompt
-        const resolvedPrompt = this.resolveTemplateVariables(instructPrompt, node.id);
+        let resolvedPrompt = this.resolveTemplateVariables(instructPrompt, node.id);
+
+        // Strip markdown links from the prompt to prevent LLM from seeing/reproducing them
+        resolvedPrompt = this.stripMarkdownLinks(resolvedPrompt);
 
         // Get upstream data to include in LLM context
         const inputs = this.getUpstreamNodeIds(node.id).map(id => {
@@ -531,15 +548,18 @@ class ExecutionManager {
         if (inputs.length > 0) {
           prompt += `\n\n## Input Data\n\n`;
           inputs.forEach((input, i) => {
-            const inputStr = typeof input === 'object' ? JSON.stringify(input, null, 2) : String(input);
+            let inputStr = typeof input === 'object' ? JSON.stringify(input, null, 2) : String(input);
+            // Strip markdown links from input to prevent LLM from reproducing them
+            inputStr = this.stripMarkdownLinks(inputStr);
             prompt += `Input ${i + 1}:\n${inputStr}\n\n`;
           });
         }
 
         console.log(`Calling LLM with instruct blocks from node ${node.id}...`);
 
-        // Get text content (markdown without blocks)
-        const textContent = this.getTextContent(node.data.content);
+        // Get text content (markdown without blocks) and strip links
+        let textContent = this.getTextContent(node.data.content);
+        textContent = this.stripMarkdownLinks(textContent);
 
         // Create result node immediately for LLM output
         console.log(`Creating result node for LLM node ${node.id} (${node.title})...`);
@@ -554,13 +574,11 @@ class ExecutionManager {
           }
         });
 
-        // Combine LLM output with text content
+        // For instruct blocks, use ONLY the LLM output as the final result
+        // Don't append original text content (which may contain links/connections)
         let finalOutput = llmOutput;
-        if (textContent) {
-          finalOutput = llmOutput ? `${llmOutput}\n\n${textContent}` : textContent;
-        }
 
-        // Update result node with final combined content
+        // Update result node with final LLM output only
         if (resultNode) {
           this.updateResultNodeContent(resultNode, finalOutput);
         }
@@ -1209,30 +1227,49 @@ class ExecutionManager {
 
     // Update badge content based on status
     if (status === 'running') {
-      badge.innerHTML = '⏳';
+      badge.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" opacity="0.25"/>
+          <path d="M12 2 A10 10 0 0 1 22 12" stroke-dasharray="32" stroke-dashoffset="0">
+            <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/>
+          </path>
+        </svg>
+      `;
       badge.title = 'Executing...';
-      badge.style.display = 'block';
+      badge.style.display = 'flex';
     } else if (status === 'success') {
       const time = data.executionTime ? `${data.executionTime}ms` : '';
-      badge.innerHTML = '✅';
+      badge.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" fill="rgba(16, 185, 129, 0.1)"/>
+          <path d="M9 12l2 2 4-4"/>
+        </svg>
+      `;
       badge.title = `Success ${time}`;
-      badge.style.display = 'block';
+      badge.style.display = 'flex';
 
       // Auto-hide after 3 seconds
       setTimeout(() => {
         badge.style.display = 'none';
       }, 3000);
     } else if (status === 'error') {
-      badge.innerHTML = '❌';
+      badge.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" fill="rgba(239, 68, 68, 0.1)"/>
+          <path d="M15 9l-6 6M9 9l6 6"/>
+        </svg>
+      `;
       badge.title = `Error: ${data.error || 'Unknown error'}`;
-      badge.style.display = 'block';
+      badge.style.display = 'flex';
     } else {
       badge.style.display = 'none';
     }
 
     // Add iteration count if cycling
     if (data.iterationCount && data.iterationCount > 1) {
-      badge.innerHTML += ` ${data.iterationCount}`;
+      badge.setAttribute('data-iterations', data.iterationCount);
+    } else {
+      badge.removeAttribute('data-iterations');
     }
   }
 
