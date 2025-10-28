@@ -1,0 +1,198 @@
+{
+  "name": "Workflow",
+  "description": "Wallboard exported on 10/28/2025",
+  "nodes": [
+    {
+      "id": 25,
+      "title": "IDEA",
+      "data": {
+        "content": "# Start here\n\nI want to develop a realtime web game multiplayer game using Golang and NATS and websockets and Pocketbase.\n\n[[DISCOVERY]]",
+        "html": "<h1>Start here</h1>\n<p>I want to develop a realtime web game multiplayer game using Golang and NATS and websockets and Pocketbase.</p>\n<p><span class=\"ai-command-badge\">DISCOVERY</span></p>\n"
+      },
+      "position": {
+        "x": 12117,
+        "y": 14851
+      },
+      "content": "**Client Brief**\n\n\"We need a cybersecurity training game for 500 employees\"\n\nJust a simple sentence.\nLet's turn this into a complete project."
+    },
+    {
+      "id": 26,
+      "title": "DISCOVERY",
+      "data": {
+        "content": "```instruct\n{{IDEA}}\n\nYou are an expert AI project manager specializing in B2B game development. \n\nConduct a discovery interview by asking:\n- What are the specific learning objectives?\n- Who is the target audience? (roles, experience level)\n- What's the budget range and timeline?\n- Are there technical constraints or integrations needed?\n- How will success be measured?\n\nOutput: Structured requirements document with all answers organized by category.\n[[SCOPE]]\n```",
+        "html": "<pre><code class=\"language-instruct\">{{IDEA}}\n\nYou are an expert AI project manager specializing in B2B game development. \n\nConduct a discovery interview by asking:\n- What are the specific learning objectives?\n- Who is the target audience? (roles, experience level)\n- What&#39;s the budget range and timeline?\n- Are there technical constraints or integrations needed?\n- How will success be measured?\n\nOutput: Structured requirements document with all answers organized by category.\n<span class=\"ai-command-badge\">SCOPE</span>\n</code></pre>\n"
+      },
+      "position": {
+        "x": 12869,
+        "y": 14754
+      },
+      "content": "**AI-Assisted Discovery (2 min)**\n\n{{IDEA_RESULT}}\n\nYou are an expert AI project manager specializing in B2B game development. \n\nConduct a discovery interview by asking:\n- What are the specific learning objectives?\n- Who is the target audience? (roles, experience level)\n- What's the budget range and timeline?\n- Are there technical constraints or integrations needed?\n- How will success be measured?\n\nOutput: Structured requirements document with all answers organized by category."
+    },
+    {
+      "id": 27,
+      "title": "SCOPE",
+      "data": {
+        "content": "```instruct\n{{DISCOVERY RESULT}}\n\nYou are a senior project manager. Create a comprehensive Project Scope document including:\n\n1. Executive Summary (2-3 paragraphs)\n2. Project Objectives (bulleted list)\n3. Deliverables (specific, measurable)\n4. Success Criteria (quantifiable metrics)\n5. Assumptions & Constraints\n6. Out of Scope (what we're NOT doing)\n\nFormat as professional Word document. Use clear headings and business language.\n[[TECHNICAL SPEC]]\n```",
+        "html": "<pre><code class=\"language-instruct\">{{DISCOVERY RESULT}}\n\nYou are a senior project manager. Create a comprehensive Project Scope document including:\n\n1. Executive Summary (2-3 paragraphs)\n2. Project Objectives (bulleted list)\n3. Deliverables (specific, measurable)\n4. Success Criteria (quantifiable metrics)\n5. Assumptions &amp; Constraints\n6. Out of Scope (what we&#39;re NOT doing)\n\nFormat as professional Word document. Use clear headings and business language.\n[[TECHNICAL SPEC]]\n</code></pre>\n"
+      },
+      "position": {
+        "x": 13621,
+        "y": 14754
+      },
+      "content": "**Auto-Generate Scope Document**\n\n{{DISCOVERY_RESULT}}\n\nYou are a senior project manager. Create a comprehensive Project Scope document including:\n\n1. Executive Summary (2-3 paragraphs)\n2. Project Objectives (bulleted list)\n3. Deliverables (specific, measurable)\n4. Success Criteria (quantifiable metrics)\n5. Assumptions & Constraints\n6. Out of Scope (what we're NOT doing)\n\nFormat as professional Word document. Use clear headings and business language."
+    },
+    {
+      "id": 28,
+      "title": "TECHNICAL SPEC",
+      "data": {
+        "content": "```instruct\n{{SCOPE RESULT}}\n\nYou are a lead software architect for web-based games. Create a Technical Specification document:\n\n1. System Architecture (diagram description + components)\n2. Recommended Tech Stack (with justification)\n3. API Requirements (endpoints, data models)\n4. Security Considerations (authentication, data protection)\n5. Hosting & Deployment Plan (infrastructure needs)\n6. Performance Requirements (load times, concurrent users)\n7. Third-party Integrations\n\nBe specific and technical. Include diagrams where helpful.\n[[PRODUCT REQUIREMENTS]]\n```",
+        "html": "<pre><code class=\"language-instruct\">{{SCOPE RESULT}}\n\nYou are a lead software architect for web-based games. Create a Technical Specification document:\n\n1. System Architecture (diagram description + components)\n2. Recommended Tech Stack (with justification)\n3. API Requirements (endpoints, data models)\n4. Security Considerations (authentication, data protection)\n5. Hosting &amp; Deployment Plan (infrastructure needs)\n6. Performance Requirements (load times, concurrent users)\n7. Third-party Integrations\n\nBe specific and technical. Include diagrams where helpful.\n[[PRODUCT REQUIREMENTS]]\n</code></pre>\n"
+      },
+      "position": {
+        "x": 14373,
+        "y": 14742
+      },
+      "content": "**Generate Technical Documentation**\n\n{{SCOPE_RESULT}}\n\nYou are a lead software architect for web-based games. Create a Technical Specification document:\n\n1. System Architecture (diagram description + components)\n2. Recommended Tech Stack (with justification)\n3. API Requirements (endpoints, data models)\n4. Security Considerations (authentication, data protection)\n5. Hosting & Deployment Plan (infrastructure needs)\n6. Performance Requirements (load times, concurrent users)\n7. Third-party Integrations\n\nBe specific and technical. Include diagrams where helpful."
+    },
+    {
+      "id": 29,
+      "title": "PRODUCT REQUIREMENTS",
+      "data": {
+        "content": "```instruct\n{{TECHNICAL SPEC RESULT}}\n\nYou are a product owner for B2B games. Generate:\n\n**User Stories & Features:**\n- 3 player personas with backgrounds\n- Epic-level features (5-7 main features)\n- Detailed user stories (As a [role], I want [action], so that [benefit])\n- Acceptance criteria for each story\n- Priority ranking (Must Have, Should Have, Nice to Have)\n\n**Wireframes.pdf:**\n- Describe 5-8 key screens with layout details\n- Note: Designer will create actual mockups from descriptions\n[[Project Plan]]\n```\n",
+        "html": "<pre><code class=\"language-instruct\">{{TECHNICAL SPEC RESULT}}\n\nYou are a product owner for B2B games. Generate:\n\n**User Stories &amp; Features:**\n- 3 player personas with backgrounds\n- Epic-level features (5-7 main features)\n- Detailed user stories (As a [role], I want [action], so that [benefit])\n- Acceptance criteria for each story\n- Priority ranking (Must Have, Should Have, Nice to Have)\n\n**Wireframes.pdf:**\n- Describe 5-8 key screens with layout details\n- Note: Designer will create actual mockups from descriptions\n[[Project Plan]]\n</code></pre>\n"
+      },
+      "position": {
+        "x": 15125,
+        "y": 14730
+      },
+      "content": "**Create Product Requirements**\n\n{{TECHNICAL_SPEC}}\n\nYou are a product owner for B2B games. Generate:\n\n**User Stories & Features.docx:**\n- 3 player personas with backgrounds\n- Epic-level features (5-7 main features)\n- Detailed user stories (As a [role], I want [action], so that [benefit])\n- Acceptance criteria for each story\n- Priority ranking (Must Have, Should Have, Nice to Have)\n\n**Wireframes.pdf:**\n- Describe 5-8 key screens with layout details\n- Note: Designer will create actual mockups from descriptions"
+    },
+    {
+      "id": 30,
+      "title": "Project Plan",
+      "data": {
+        "content": "```instruct\n{{PRODUCT REQUIREMENTS RESULT}}\n\nYou are an experienced project manager. Create:\n\n**Project Plan:**\n- Break project into phases (Discovery, Design, Development, QA, Launch)\n- List milestones with dates (assume 12-week timeline)\n- Resource allocation (roles needed: developers, designers, QA)\n- Dependencies between tasks\n- Risk assessment with mitigation strategies\n\n**Budget Estimate:**\n- Cost breakdown by phase and resource type\n- Hourly rates and total estimates\n- Contingency buffer (15%)\n[[Design Brief]]\n```",
+        "html": "<pre><code class=\"language-instruct\">{{PRODUCT REQUIREMENTS RESULT}}\n\nYou are an experienced project manager. Create:\n\n**Project Plan:**\n- Break project into phases (Discovery, Design, Development, QA, Launch)\n- List milestones with dates (assume 12-week timeline)\n- Resource allocation (roles needed: developers, designers, QA)\n- Dependencies between tasks\n- Risk assessment with mitigation strategies\n\n**Budget Estimate:**\n- Cost breakdown by phase and resource type\n- Hourly rates and total estimates\n- Contingency buffer (15%)\n[[Design Brief]]\n</code></pre>\n"
+      },
+      "position": {
+        "x": 15877,
+        "y": 14718
+      },
+      "content": "**Generate Timeline & Resources**\n\n{{PRODUCT_REQUIREMENTS}}\n\nYou are an experienced project manager. Create:\n\n**Project Plan.xlsx:**\n- Break project into phases (Discovery, Design, Development, QA, Launch)\n- List milestones with dates (assume 12-week timeline)\n- Resource allocation (roles needed: developers, designers, QA)\n- Dependencies between tasks\n- Risk assessment with mitigation strategies\n\n**Budget Estimate.xlsx:**\n- Cost breakdown by phase and resource type\n- Hourly rates and total estimates\n- Contingency buffer (15%)"
+    },
+    {
+      "id": 31,
+      "title": "Design Brief",
+      "data": {
+        "content": "```instruct\n{{PROJECT PLAN RESULT}}\n\nYou are a creative director for game projects. Generate:\n\n**Design Brief:**\n- Visual Direction (art style, mood, references)\n- Brand Guidelines (colors, typography, tone)\n- UI/UX Principles for this project\n- Asset Requirements (categories needed)\n- Style References (describe 3-4 reference examples)\n\n**Asset List:**\n- Complete inventory of required assets\n- Categories: UI elements, characters, backgrounds, icons, audio\n- Specifications (dimensions, formats, quantities)\n- Priority levels\n[[QA Plan]]\n```",
+        "html": "<pre><code class=\"language-instruct\">{{PROJECT PLAN RESULT}}\n\nYou are a creative director for game projects. Generate:\n\n**Design Brief:**\n- Visual Direction (art style, mood, references)\n- Brand Guidelines (colors, typography, tone)\n- UI/UX Principles for this project\n- Asset Requirements (categories needed)\n- Style References (describe 3-4 reference examples)\n\n**Asset List:**\n- Complete inventory of required assets\n- Categories: UI elements, characters, backgrounds, icons, audio\n- Specifications (dimensions, formats, quantities)\n- Priority levels\n[[QA Plan]]\n</code></pre>\n"
+      },
+      "position": {
+        "x": 16629,
+        "y": 14706
+      },
+      "content": "**Create Design Documentation**\n\n{{PROJECT_PLAN}}\n\nYou are a creative director for game projects. Generate:\n\n**Design Brief.docx:**\n- Visual Direction (art style, mood, references)\n- Brand Guidelines (colors, typography, tone)\n- UI/UX Principles for this project\n- Asset Requirements (categories needed)\n- Style References (describe 3-4 reference examples)\n\n**Asset List.xlsx:**\n- Complete inventory of required assets\n- Categories: UI elements, characters, backgrounds, icons, audio\n- Specifications (dimensions, formats, quantities)\n- Priority levels"
+    },
+    {
+      "id": 32,
+      "title": "QA Plan",
+      "data": {
+        "content": "```instruct\n{{DESIGN BRIEF RESULT}}\n\nYou are a QA lead for web games. Create:\n\n**QA Test Plan:**\n- Testing Strategy (types: functional, usability, performance)\n- Test Scenarios (10-15 key scenarios)\n- Acceptance Criteria (what defines \"done\")\n- Bug Tracking Process (severity levels, workflow)\n- Device/Browser Testing Matrix\n\n**Test Cases:**\n- Detailed test cases for each feature\n- Steps to reproduce\n- Expected results\n- Pass/Fail criteria\n- Edge cases and negative tests\n```",
+        "html": "<pre><code class=\"language-instruct\">{{DESIGN BRIEF RESULT}}\n\nYou are a QA lead for web games. Create:\n\n**QA Test Plan:**\n- Testing Strategy (types: functional, usability, performance)\n- Test Scenarios (10-15 key scenarios)\n- Acceptance Criteria (what defines &quot;done&quot;)\n- Bug Tracking Process (severity levels, workflow)\n- Device/Browser Testing Matrix\n\n**Test Cases:**\n- Detailed test cases for each feature\n- Steps to reproduce\n- Expected results\n- Pass/Fail criteria\n- Edge cases and negative tests\n</code></pre>\n"
+      },
+      "position": {
+        "x": 17381,
+        "y": 14706
+      },
+      "content": "**Generate Testing Documentation**\n\n{{DESIGN_BRIEF}}\n\nYou are a QA lead for web games. Create:\n\n**QA Test Plan.docx:**\n- Testing Strategy (types: functional, usability, performance)\n- Test Scenarios (10-15 key scenarios)\n- Acceptance Criteria (what defines \"done\")\n- Bug Tracking Process (severity levels, workflow)\n- Device/Browser Testing Matrix\n\n**Test Cases.xlsx:**\n- Detailed test cases for each feature\n- Steps to reproduce\n- Expected results\n- Pass/Fail criteria\n- Edge cases and negative tests"
+    }
+  ],
+  "connections": [
+    {
+      "id": "25-26",
+      "start": {
+        "nodeId": 25
+      },
+      "end": {
+        "nodeId": 26
+      }
+    },
+    {
+      "id": "26-27",
+      "start": {
+        "nodeId": 26
+      },
+      "end": {
+        "nodeId": 27
+      }
+    },
+    {
+      "id": "27-28",
+      "start": {
+        "nodeId": 27
+      },
+      "end": {
+        "nodeId": 28
+      }
+    },
+    {
+      "id": "28-29",
+      "start": {
+        "nodeId": 28
+      },
+      "end": {
+        "nodeId": 29
+      }
+    },
+    {
+      "id": "29-30",
+      "start": {
+        "nodeId": 29
+      },
+      "end": {
+        "nodeId": 30
+      }
+    },
+    {
+      "id": "30-31",
+      "start": {
+        "nodeId": 30
+      },
+      "end": {
+        "nodeId": 31
+      }
+    },
+    {
+      "id": "31-32",
+      "start": {
+        "nodeId": 31
+      },
+      "end": {
+        "nodeId": 32
+      }
+    }
+  ],
+  "connectionThemes": {
+    "25-26": "sky",
+    "26-27": "sky",
+    "27-28": "sky",
+    "28-29": "sky",
+    "29-30": "sky",
+    "30-31": "sky",
+    "31-32": "sky"
+  },
+  "nodeIdCounter": 44,
+  "globalTheme": "default",
+  "nodeThemes": {
+    "25": "sky",
+    "26": "sky",
+    "27": "sky",
+    "28": "sky",
+    "29": "sky",
+    "30": "sky",
+    "31": "sky",
+    "32": "sky"
+  },
+  "version": "1.0",
+  "exportedAt": "2025-10-28T08:09:22.738Z"
+}
