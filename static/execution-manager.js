@@ -698,6 +698,77 @@ class ExecutionManager {
     }
   }
 
+  // Find a non-overlapping position for a new node
+  // Tries the initial position first, then searches for alternatives
+  findNonOverlappingPosition(startX, startY, nodeWidth, nodeHeight, gap) {
+    const position = { x: startX, y: startY };
+    const maxAttempts = 20;
+    let attempt = 0;
+
+    // Helper function to check if two rectangles overlap
+    const overlaps = (x1, y1, w1, h1, x2, y2, w2, h2) => {
+      return !(x1 + w1 + gap < x2 || x2 + w2 + gap < x1 ||
+               y1 + h1 + gap < y2 || y2 + h2 + gap < y1);
+    };
+
+    // Check if position overlaps with any existing nodes
+    const hasOverlap = (x, y) => {
+      return this.wallboard.nodes.some(node => {
+        // Use graph layout manager to get actual node dimensions
+        const existingSize = this.wallboard.graphLayoutManager.measureNodeDimensions(node.id);
+
+        return overlaps(
+          x, y, nodeWidth, nodeHeight,
+          node.position.x, node.position.y, existingSize.width, existingSize.height
+        );
+      });
+    };
+
+    // Try initial position
+    if (!hasOverlap(position.x, position.y)) {
+      return position;
+    }
+
+    // Try positions in a spiral pattern: down, right, down-right, etc.
+    const verticalStep = nodeHeight + gap;
+    const horizontalStep = nodeWidth + gap;
+
+    while (attempt < maxAttempts) {
+      attempt++;
+
+      // Try moving down
+      const downY = startY + (verticalStep * attempt);
+      if (!hasOverlap(startX, downY)) {
+        return { x: startX, y: downY };
+      }
+
+      // Try moving right
+      const rightX = startX + (horizontalStep * attempt);
+      if (!hasOverlap(rightX, startY)) {
+        return { x: rightX, y: startY };
+      }
+
+      // Try diagonal down-right
+      if (!hasOverlap(rightX, downY)) {
+        return { x: rightX, y: downY };
+      }
+
+      // Try left
+      const leftX = startX - (horizontalStep * attempt);
+      if (!hasOverlap(leftX, startY)) {
+        return { x: leftX, y: startY };
+      }
+
+      // Try diagonal down-left
+      if (!hasOverlap(leftX, downY)) {
+        return { x: leftX, y: downY };
+      }
+    }
+
+    // Fallback: return far below to avoid overlaps
+    return { x: startX, y: startY + (verticalStep * maxAttempts) };
+  }
+
   // Create a result node immediately (before execution completes)
   // Reuses existing result node if one exists
   createResultNode(sourceNode, initialContent = 'Generating...') {
@@ -750,20 +821,38 @@ class ExecutionManager {
       // Update content to initial content
       this.updateResultNodeContent(existingResultNode, initialContent);
 
+      // Apply emerald theme to existing result node
+      this.wallboard.nodeThemes[existingResultNode.id] = 'emerald';
+      this.wallboard.applyNodeTheme(existingResultNode.id);
+
       return existingResultNode;
     }
 
     console.log(`[createResultNode] No existing result node found - creating new one for node ${sourceNode.id}...`);
 
-    // Calculate position (offset from source node)
-    const offsetX = 300;
-    const offsetY = 0;
-    const position = {
-      x: sourceNode.position.x + offsetX,
-      y: sourceNode.position.y + offsetY
-    };
+    // Calculate position below source node with collision detection
+    const sourceSize = this.wallboard.graphLayoutManager.measureNodeDimensions(sourceNode.id);
+    const verticalGap = 100; // Gap between source and result
+    const horizontalGap = 50; // Minimum gap between adjacent nodes
 
-    // Create node using wallboard's method
+    // Reserve space for maximum node size during streaming
+    const maxNodeWidth = 400;
+    const maxNodeHeight = 600;
+
+    // Start position: directly below source node
+    const startX = sourceNode.position.x;
+    const startY = sourceNode.position.y + sourceSize.height + verticalGap;
+
+    // Find non-overlapping position using collision detection
+    const position = this.findNonOverlappingPosition(
+      startX,
+      startY,
+      maxNodeWidth,
+      maxNodeHeight,
+      horizontalGap
+    );
+
+    // Create node at the calculated position
     const resultNode = this.wallboard.nodeOperationsManager.createNode(
       'markdown',
       { content: initialContent },
@@ -775,6 +864,10 @@ class ExecutionManager {
 
     // Render the node visually on the canvas
     this.wallboard.renderNode(resultNode);
+
+    // Apply emerald theme to new result node
+    this.wallboard.nodeThemes[resultNode.id] = 'emerald';
+    this.wallboard.applyNodeTheme(resultNode.id);
 
     // Update the DOM to show the new title
     const nodeTypeEl = document.getElementById(`type-${resultNode.id}`);

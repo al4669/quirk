@@ -11,9 +11,22 @@ class AIChat {
     this.apiKey = ''; // Will be loaded from IndexedDB in init()
     this.showThinking = localStorage.getItem('ai_show_thinking') !== 'false'; // Default to true
     this.selectedCharacter = localStorage.getItem('ai_character') || 'buddy'; // 'buddy' or 'read'
+    this.customPrompt = localStorage.getItem('ai_custom_prompt') || ''; // Custom personality prompt
+    this.customPromptMode = localStorage.getItem('ai_custom_prompt_mode') || 'append'; // 'append' or 'replace'
+    // Temperature: null means use model default, otherwise use configured value
+    const savedTemp = localStorage.getItem('ai_chat_temperature');
+    this.temperature = savedTemp !== null ? parseFloat(savedTemp) : null;
     this.controller = null;
     this.lastOpenTime = 0;
     this.character = null; // Current character instance (Buddy or Read)
+
+    // Tool calling state
+    this.pendingToolResults = []; // Store tool results to send back to LLM
+    this.currentToolUse = null; // Current tool being accumulated (Anthropic)
+    this.accumulatedToolJson = ''; // Accumulated partial JSON (Anthropic)
+    this.currentAssistantToolUses = []; // Store tool_use blocks for assistant message
+    this.openAIToolCalls = {}; // Accumulate OpenAI tool calls by index
+    this.previousToolCalls = []; // Track previous tool calls to detect loops
 
     this.init();
   }
@@ -128,6 +141,412 @@ class AIChat {
     console.log('Character switch complete');
   }
 
+  /**
+   * Get tool definitions for LLM tool calling
+   * @param {string} provider - 'anthropic', 'openai', or 'ollama'
+   * Returns array of tools in provider-specific format
+   */
+  getToolDefinitions(provider = null) {
+    // Detect provider if not specified
+    if (!provider) {
+      provider = this.apiEndpoint.includes('anthropic') ? 'anthropic' : 'openai';
+    }
+
+    const isAnthropic = provider === 'anthropic';
+
+    // Base tool definitions (name, description, parameters)
+    const baseTools = [
+      {
+        name: "create_node",
+        description: "Create a new node on the board with a title and content. The content should be detailed, useful, and use markdown formatting (lists, bold, etc.). Always provide real content, never placeholders.",
+        parameters: {
+          type: "object",
+          properties: {
+            title: {
+              type: "string",
+              description: "The title of the node (concise, descriptive)"
+            },
+            content: {
+              type: "string",
+              description: "The detailed content of the node (use markdown: lists, bold, code blocks, etc.)"
+            }
+          },
+          required: ["title", "content"]
+        }
+      },
+      {
+        name: "edit_node",
+        description: "Edit an existing node's content. You can update either the title, content, or both.",
+        parameters: {
+          type: "object",
+          properties: {
+            node_id: {
+              type: "integer",
+              description: "The ID of the node to edit"
+            },
+            title: {
+              type: "string",
+              description: "The new title for the node (optional)"
+            },
+            content: {
+              type: "string",
+              description: "The new content for the node (optional)"
+            }
+          },
+          required: ["node_id"]
+        }
+      },
+      {
+        name: "delete_node",
+        description: "Delete a node from the board. Use with caution!",
+        parameters: {
+          type: "object",
+          properties: {
+            node_id: {
+              type: "integer",
+              description: "The ID of the node to delete"
+            }
+          },
+          required: ["node_id"]
+        }
+      },
+      {
+        name: "connect_nodes",
+        description: "Create a connection between two nodes on the board.",
+        parameters: {
+          type: "object",
+          properties: {
+            from_node_id: {
+              type: "integer",
+              description: "The ID of the source node"
+            },
+            to_node_id: {
+              type: "integer",
+              description: "The ID of the target node"
+            }
+          },
+          required: ["from_node_id", "to_node_id"]
+        }
+      },
+      {
+        name: "search_nodes",
+        description: "Search for nodes on the current board by keyword or phrase. Returns matching nodes with their IDs, titles, and content.",
+        parameters: {
+          type: "object",
+          properties: {
+            query: {
+              type: "string",
+              description: "The search query (searches in both titles and content)"
+            }
+          },
+          required: ["query"]
+        }
+      },
+      {
+        name: "get_board_state",
+        description: "Get the current state of the board including all nodes and connections. Useful for understanding the board before making changes.",
+        parameters: {
+          type: "object",
+          properties: {},
+          required: []
+        }
+      },
+      {
+        name: "arrange_nodes",
+        description: "Automatically arrange all nodes on the board in a clean layout.",
+        parameters: {
+          type: "object",
+          properties: {},
+          required: []
+        }
+      },
+      {
+        name: "clear_board",
+        description: "Clear all nodes from the board. DESTRUCTIVE - ask user for confirmation first!",
+        parameters: {
+          type: "object",
+          properties: {},
+          required: []
+        }
+      }
+    ];
+
+    // Transform to provider-specific format
+    if (isAnthropic) {
+      // Anthropic format: flat structure with input_schema
+      return baseTools.map(tool => ({
+        name: tool.name,
+        description: tool.description,
+        input_schema: tool.parameters
+      }));
+    } else {
+      // OpenAI/Ollama format: nested with type and function
+      return baseTools.map(tool => ({
+        type: "function",
+        function: {
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.parameters
+        }
+      }));
+    }
+  }
+
+  /**
+   * Execute a tool call from the LLM
+   * @param {Object} toolCall - Tool call object with {id, name, input}
+   */
+  async executeTool(toolCall) {
+    const { id, name, input } = toolCall;
+    console.log(`[Tool] Executing ${name} with input:`, input);
+
+    let result = {
+      success: false,
+      data: null,
+      error: null
+    };
+
+    try {
+      switch (name) {
+        case 'create_node': {
+          const { title, content } = input;
+          const position = this.getSmartNodePosition();
+          const newNode = this.wallboard.nodeOperationsManager.createNode('markdown', { content }, position);
+
+          if (newNode) {
+            newNode.title = title;
+            newNode.content = content;
+
+            // Remove and re-render with proper title
+            const nodeEl = document.getElementById(`node-${newNode.id}`);
+            if (nodeEl) {
+              nodeEl.remove();
+            }
+
+            this.wallboard.renderNode(newNode);
+            this.wallboard.autoSave();
+
+            result.success = true;
+            result.data = {
+              node_id: newNode.id,
+              title: newNode.title,
+              message: `Created node "${title}" with ID ${newNode.id}`
+            };
+
+            console.log(`[Tool] Created node ${newNode.id}: "${title}"`);
+          } else {
+            result.error = 'Failed to create node';
+          }
+          break;
+        }
+
+        case 'edit_node': {
+          const { node_id, title, content } = input;
+          const node = this.wallboard.getNodeById(node_id);
+
+          if (node) {
+            if (title !== undefined) {
+              node.title = title;
+            }
+            if (content !== undefined) {
+              node.content = content;
+              node.data = node.data || {};
+              node.data.content = content;
+            }
+
+            // Re-render the node
+            const nodeEl = document.getElementById(`node-${node_id}`);
+            if (nodeEl) {
+              nodeEl.remove();
+            }
+            this.wallboard.renderNode(node);
+            this.wallboard.autoSave();
+
+            result.success = true;
+            result.data = {
+              node_id: node_id,
+              message: `Updated node ${node_id}`
+            };
+
+            console.log(`[Tool] Edited node ${node_id}`);
+          } else {
+            result.error = `Node ${node_id} not found`;
+          }
+          break;
+        }
+
+        case 'delete_node': {
+          const { node_id } = input;
+          const node = this.wallboard.getNodeById(node_id);
+
+          if (node) {
+            this.wallboard.removeNode(node_id);
+
+            result.success = true;
+            result.data = {
+              message: `Deleted node ${node_id}`
+            };
+
+            console.log(`[Tool] Deleted node ${node_id}`);
+          } else {
+            result.error = `Node ${node_id} not found`;
+          }
+          break;
+        }
+
+        case 'connect_nodes': {
+          const { from_node_id, to_node_id } = input;
+          const fromNode = this.wallboard.getNodeById(from_node_id);
+          const toNode = this.wallboard.getNodeById(to_node_id);
+
+          if (fromNode && toNode) {
+            this.wallboard.connectionManager.createConnection(
+              { nodeId: from_node_id },
+              { nodeId: to_node_id }
+            );
+
+            result.success = true;
+            result.data = {
+              message: `Connected node ${from_node_id} to ${to_node_id}`
+            };
+
+            console.log(`[Tool] Connected ${from_node_id} → ${to_node_id}`);
+          } else {
+            result.error = `One or both nodes not found: ${from_node_id}, ${to_node_id}`;
+          }
+          break;
+        }
+
+        case 'search_nodes': {
+          const { query } = input;
+          const matchingNodes = this.wallboard.nodes.filter(node => {
+            const title = this.wallboard.getNodeTitle(node).toLowerCase();
+            const content = (node.content || '').toLowerCase();
+            const searchQuery = query.toLowerCase();
+            return title.includes(searchQuery) || content.includes(searchQuery);
+          });
+
+          result.success = true;
+          result.data = {
+            count: matchingNodes.length,
+            nodes: matchingNodes.map(n => ({
+              id: n.id,
+              title: this.wallboard.getNodeTitle(n),
+              content: n.content ? n.content.substring(0, 200) : ''
+            }))
+          };
+
+          console.log(`[Tool] Found ${matchingNodes.length} nodes matching "${query}"`);
+          break;
+        }
+
+        case 'get_board_state': {
+          const boardInfo = {
+            board_name: this.wallboard.boards[this.wallboard.currentBoardId]?.name || 'Unknown',
+            node_count: this.wallboard.nodes.length,
+            connection_count: this.wallboard.connectionManager.connections.length,
+            nodes: this.wallboard.nodes.map(n => ({
+              id: n.id,
+              title: this.wallboard.getNodeTitle(n),
+              content: n.content ? n.content.substring(0, 150) : '',
+              type: n.type
+            })),
+            connections: this.wallboard.connectionManager.connections.map(c => ({
+              from: c.source?.nodeId,
+              to: c.target?.nodeId
+            }))
+          };
+
+          result.success = true;
+          result.data = boardInfo;
+
+          console.log(`[Tool] Retrieved board state: ${boardInfo.node_count} nodes, ${boardInfo.connection_count} connections`);
+          break;
+        }
+
+        case 'arrange_nodes': {
+          this.wallboard.autoArrangeNodes();
+
+          result.success = true;
+          result.data = {
+            message: 'Arranged all nodes automatically'
+          };
+
+          console.log(`[Tool] Auto-arranged nodes`);
+          break;
+        }
+
+        case 'clear_board': {
+          // Clear all nodes
+          const nodeCount = this.wallboard.nodes.length;
+          this.wallboard.nodes.forEach(node => {
+            this.wallboard.removeNode(node.id);
+          });
+
+          result.success = true;
+          result.data = {
+            message: `Cleared board (removed ${nodeCount} nodes)`
+          };
+
+          console.log(`[Tool] Cleared board (${nodeCount} nodes removed)`);
+          break;
+        }
+
+        default:
+          result.error = `Unknown tool: ${name}`;
+          console.error(`[Tool] Unknown tool: ${name}`);
+      }
+    } catch (error) {
+      result.success = false;
+      result.error = error.message;
+      console.error(`[Tool] Error executing ${name}:`, error);
+    }
+
+    // Store result for next API call
+    this.pendingToolResults.push({
+      id: id,
+      name: name,
+      result: result
+    });
+
+    return result;
+  }
+
+  /**
+   * Build tool result messages for the next API call
+   * Format varies by provider (Anthropic vs OpenAI/Ollama)
+   */
+  buildToolResultMessages() {
+    if (this.pendingToolResults.length === 0) {
+      return [];
+    }
+
+    console.log(`[Tool] Building result messages for ${this.pendingToolResults.length} tools`);
+
+    // Detect provider from current endpoint
+    const isAnthropic = this.apiEndpoint.includes('anthropic');
+
+    if (isAnthropic) {
+      // Anthropic format: single user message with tool_result content blocks
+      return [{
+        role: 'user',
+        content: this.pendingToolResults.map(tr => ({
+          type: 'tool_result',
+          tool_use_id: tr.id,
+          content: JSON.stringify(tr.result)
+        }))
+      }];
+    } else {
+      // OpenAI/Ollama format: separate messages with role "tool"
+      return this.pendingToolResults.map(tr => ({
+        role: 'tool',
+        tool_call_id: tr.id, // OpenAI uses this
+        name: tr.name, // Ollama might use this
+        content: JSON.stringify(tr.result)
+      }));
+    }
+  }
+
   createChatPanel() {
     const chatPanel = document.createElement('div');
     chatPanel.id = 'ai-chat-panel';
@@ -204,9 +623,12 @@ class AIChat {
       </div>
 
       <!-- Settings Modal -->
-      <div class="ai-settings-modal" id="aiSettingsModal" style="display: none;">
-        <div class="ai-settings-content">
+      <div class="ai-settings-modal" id="aiSettingsModal" style="display: none;" data-form-type="other">
+        <div class="ai-settings-content" data-form-type="other">
           <h3>AI Chat Settings</h3>
+          <!-- Dummy fields to prevent password manager interference -->
+          <input type="text" name="prevent-autofill" autocomplete="off" style="display: none;" tabindex="-1" aria-hidden="true">
+          <input type="password" name="prevent-autofill-pw" autocomplete="off" style="display: none;" tabindex="-1" aria-hidden="true">
 
           <div class="ai-settings-field">
             <label>Character</label>
@@ -229,7 +651,7 @@ class AIChat {
 
           <div class="ai-settings-field" id="aiApiKeyField" style="display: ${this.provider !== 'ollama' ? 'block' : 'none'};">
             <label>API Key</label>
-            <input type="password" id="aiApiKeyInput" value="${this.apiKey || ''}" placeholder="sk-ant-... or sk-..." autocomplete="off">
+            <input type="password" id="aiApiKeyInput" name="api-token-key" value="${this.apiKey || ''}" placeholder="sk-ant-... or sk-..." autocomplete="off" data-form-type="other" data-lpignore="true" aria-label="API Token" readonly>
             <small>Your API key (stored securely in IndexedDB). Required for Claude and OpenAI.</small>
           </div>
 
@@ -242,6 +664,26 @@ class AIChat {
             <label>Model Name</label>
             <input type="text" id="aiModelInput" value="${this.apiModel}" placeholder="qwen3:4b">
             <small id="aiModelHint">For Ollama: qwen3:4b, llama3.2, mistral, etc.</small>
+          </div>
+          <div class="ai-settings-field">
+            <label>Temperature</label>
+            <input type="number" id="aiTemperatureInput" value="${this.temperature !== null ? this.temperature : ''}" min="0" max="2" step="0.1" placeholder="1.0">
+            <small>Controls randomness (0-2). Higher = more creative. Some models only support default (1). Leave empty to use model default.</small>
+          </div>
+          <div class="ai-settings-field">
+            <label>Custom Prompt <button type="button" class="ai-prompt-show-default" id="aiShowDefaultPrompt" title="View Default Prompt">👁️ View Default</button></label>
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+              <label style="display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: normal;">
+                <input type="radio" name="promptMode" value="append" ${this.customPromptMode === 'append' ? 'checked' : ''} style="margin: 0;">
+                <span>Append</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: normal;">
+                <input type="radio" name="promptMode" value="replace" ${this.customPromptMode === 'replace' ? 'checked' : ''} style="margin: 0;">
+                <span>Replace</span>
+              </label>
+            </div>
+            <textarea id="aiCustomPromptInput" rows="6" placeholder="Add custom personality or instructions here...">${this.customPrompt}</textarea>
+            <small><strong>Append:</strong> Adds to default personality. <strong>Replace:</strong> Completely overrides personality section. Tools/board info always included.</small>
           </div>
           <div class="ai-settings-field">
             <label style="display: flex; align-items: center; gap: 8px;">
@@ -311,6 +753,9 @@ class AIChat {
     document.getElementById('aiSettingsSave').addEventListener('click', () => this.saveSettings());
     document.getElementById('aiSettingsCancel').addEventListener('click', () => this.closeSettings());
 
+    // Show default prompt button
+    document.getElementById('aiShowDefaultPrompt').addEventListener('click', () => this.showDefaultPrompt());
+
     // Provider selection handler
     document.getElementById('aiProviderSelect').addEventListener('change', async (e) => {
       await this.updateProviderUI(e.target.value);
@@ -318,6 +763,22 @@ class AIChat {
 
     // Clear chat
     document.getElementById('aiChatClear').addEventListener('click', () => this.clearChat());
+
+    // Prevent password manager interference on API key field
+    // Make it readonly initially, then remove readonly on focus
+    const apiKeyInput = document.getElementById('aiApiKeyInput');
+    if (apiKeyInput) {
+      apiKeyInput.setAttribute('readonly', 'true');
+      apiKeyInput.addEventListener('focus', function() {
+        this.removeAttribute('readonly');
+      });
+      apiKeyInput.addEventListener('blur', function() {
+        // Re-add readonly after a short delay to prevent autofill on blur
+        setTimeout(() => {
+          this.setAttribute('readonly', 'true');
+        }, 100);
+      });
+    }
   }
 
   async updateProviderUI(provider) {
@@ -337,9 +798,12 @@ class AIChat {
       const savedKey = await this.wallboard.storage.getAPIKey(provider);
       if (apiKeyInput) {
         apiKeyInput.value = savedKey || '';
+        // Apply readonly to prevent password manager interference
+        apiKeyInput.setAttribute('readonly', 'true');
       }
     } else if (apiKeyInput) {
       apiKeyInput.value = '';
+      apiKeyInput.setAttribute('readonly', 'true');
     }
 
     // Update default endpoint and model
@@ -405,7 +869,35 @@ class AIChat {
     }
   }
 
-  async streamResponse(userMessage, assistantMsgId) {
+  async streamResponse(userMessage, assistantMsgId, providedMessages = null, toolCallRound = 0) {
+    // Limit tool calling rounds to prevent infinite loops
+    const MAX_TOOL_ROUNDS = 5;
+
+    if (toolCallRound >= MAX_TOOL_ROUNDS) {
+      console.warn(`[Tool] Maximum tool calling rounds (${MAX_TOOL_ROUNDS}) reached, stopping to prevent infinite loop`);
+
+      // Get current message content and append a note
+      const messageDiv = document.getElementById(`ai-msg-${assistantMsgId}`);
+      if (messageDiv) {
+        const textDiv = messageDiv.querySelector('.ai-message-text');
+        const currentContent = textDiv.innerHTML;
+        textDiv.innerHTML = currentContent + '<br><br><em style="color: var(--text-tertiary);">[Stopped: Tool calling limit reached to prevent infinite loop]</em>';
+      }
+
+      return;
+    }
+
+    console.log(`[Tool] Starting stream response, round ${toolCallRound} of max ${MAX_TOOL_ROUNDS}`);
+
+    // Reset tool use tracking for this response
+    this.currentAssistantToolUses = [];
+    this.openAIToolCalls = {};
+
+    // Clear previous tool calls if this is round 0 (new conversation turn)
+    if (toolCallRound === 0) {
+      this.previousToolCalls = [];
+    }
+
     // Ensure storage is ready and API key is loaded for cloud providers
     if (this.provider !== 'ollama' && !this.apiKey) {
       await this.ensureStorageReady();
@@ -432,13 +924,34 @@ class AIChat {
     // Build system prompt with board manipulation capabilities
     const systemPrompt = this.buildSystemPrompt();
 
-    // Build message history - only include if there are saved messages
-    const messages = [
-      { role: 'system', content: systemPrompt },
-      // Only include recent history if messages array is not empty, and filter out empty messages
-      ...(this.messages.length > 0 ? this.messages.slice(-10).filter(m => m.content && m.content.trim()).map(m => ({ role: m.role, content: m.content })) : []),
-      { role: 'user', content: userMessage }
-    ];
+    // Use provided messages if available (for multi-turn tool calling)
+    // Otherwise build from message history
+    let messages;
+
+    if (providedMessages) {
+      // Use pre-built messages (includes tool_use and tool_result blocks)
+      messages = [{ role: 'system', content: systemPrompt }, ...providedMessages];
+      console.log('[Tool] Using provided messages for continuation');
+    } else {
+      // Build message history - only include if there are saved messages
+      messages = [
+        { role: 'system', content: systemPrompt },
+        // Only include recent history if messages array is not empty, and filter out empty messages
+        // Note: content can be a string or array (for tool results)
+        ...(this.messages.length > 0 ? this.messages.slice(-10).filter(m => {
+          if (!m.content) return false;
+          if (typeof m.content === 'string') return m.content.trim() !== '';
+          if (Array.isArray(m.content)) return m.content.length > 0;
+          return true;
+        }).map(m => ({ role: m.role, content: m.content })) : [])
+      ];
+
+      // Only add current user message if it's not empty
+      // (for multi-turn tool calling, userMessage can be empty)
+      if (userMessage && userMessage.trim()) {
+        messages.push({ role: 'user', content: userMessage });
+      }
+    }
 
     console.log(`Sending ${messages.length} messages (including system prompt and current message)`);
     console.log('History messages:', this.messages.length);
@@ -471,9 +984,14 @@ class AIChat {
         model: this.apiModel,
         max_tokens: 4096,
         messages: userMessages,
+        tools: this.getToolDefinitions(), // Native tool use
         stream: true,
-        temperature: 0.7,
       };
+
+      // Only add temperature if configured (some models require default)
+      if (this.temperature !== null && this.temperature !== undefined) {
+        requestBody.temperature = this.temperature;
+      }
 
       if (systemMessage) {
         requestBody.system = systemMessage.content;
@@ -488,18 +1006,29 @@ class AIChat {
         apiKey: this.apiKey, // Proxy extracts this
         model: this.apiModel,
         messages: messages,
+        tools: this.getToolDefinitions(), // Native tool use
+        tool_choice: "auto", // Let model decide when to use tools
         stream: true,
-        temperature: 0.7,
       };
+
+      // Only add temperature if configured (some models require default)
+      if (this.temperature !== null && this.temperature !== undefined) {
+        requestBody.temperature = this.temperature;
+      }
     } else {
       // Ollama native API
       requestBody = {
         model: this.apiModel,
         messages: messages,
+        tools: this.getToolDefinitions(), // Native tool use
         stream: true,
-        temperature: 0.7,
         think: true // Enable thinking for better responses
       };
+
+      // Only add temperature if configured (some models require default)
+      if (this.temperature !== null && this.temperature !== undefined) {
+        requestBody.temperature = this.temperature;
+      }
     }
 
     console.log('Sending request to:', this.apiEndpoint, 'Provider:', this.provider);
@@ -554,25 +1083,236 @@ class AIChat {
           // Check if response is done (Ollama format)
           if (json.done) continue;
 
-          // Extract thinking and content based on provider
+          // Extract thinking, content, and tool calls based on provider
           let thinking = '';
           let content = '';
+          let hasToolCall = false;
 
           if (isAnthropic) {
-            // Anthropic format
-            if (json.type === 'content_block_delta') {
-              content = json.delta?.text || '';
-            } else if (json.type === 'content_block_start') {
-              // Start of content block, no content yet
-              continue;
+            // Anthropic SSE format with tool use support
+            if (json.type === 'content_block_start') {
+              const block = json.content_block;
+              if (block.type === 'tool_use') {
+                // Start of a new tool use block
+                this.currentToolUse = {
+                  id: block.id,
+                  name: block.name,
+                  input: null
+                };
+                this.accumulatedToolJson = '';
+                hasToolCall = true;
+                console.log('[Tool] Starting tool use:', block.name);
+              }
+            } else if (json.type === 'content_block_delta') {
+              const delta = json.delta;
+              if (delta.type === 'input_json_delta') {
+                // Accumulate partial JSON for tool input
+                this.accumulatedToolJson += delta.partial_json;
+                hasToolCall = true;
+              } else if (delta.type === 'text_delta') {
+                // Regular text content
+                content = delta.text || '';
+              }
+            } else if (json.type === 'content_block_stop') {
+              // End of content block
+              if (this.currentToolUse && this.accumulatedToolJson) {
+                // Parse completed JSON and execute tool
+                try {
+                  this.currentToolUse.input = JSON.parse(this.accumulatedToolJson);
+                  console.log('[Tool] Completed tool JSON:', this.currentToolUse);
+
+                  // Save tool_use block for assistant message
+                  this.currentAssistantToolUses.push({
+                    type: 'tool_use',
+                    id: this.currentToolUse.id,
+                    name: this.currentToolUse.name,
+                    input: this.currentToolUse.input
+                  });
+
+                  // Update message to show we're still working (keeps thinking animation alive)
+                  if (!fullResponse) {
+                    this.updateMessage(assistantMsgId, '', fullThinking);
+                  }
+
+                  await this.executeTool(this.currentToolUse);
+                  hasToolCall = true;
+                } catch (e) {
+                  console.error('[Tool] Failed to parse tool JSON:', this.accumulatedToolJson, e);
+                }
+                this.currentToolUse = null;
+                this.accumulatedToolJson = '';
+              }
             }
           } else if (isOpenAI) {
-            // OpenAI format
-            content = json.choices?.[0]?.delta?.content || '';
+            // OpenAI format with tool calls
+            const delta = json.choices?.[0]?.delta;
+            content = delta?.content || '';
+
+            if (delta?.tool_calls) {
+              // OpenAI tool calls come in chunks with an index
+              for (const toolCallDelta of delta.tool_calls) {
+                const index = toolCallDelta.index;
+
+                // Initialize tool call accumulator if needed
+                if (!this.openAIToolCalls[index]) {
+                  this.openAIToolCalls[index] = {
+                    id: toolCallDelta.id || null,
+                    type: 'function',
+                    function: {
+                      name: '',
+                      arguments: ''
+                    }
+                  };
+                }
+
+                // Accumulate data
+                if (toolCallDelta.id) {
+                  this.openAIToolCalls[index].id = toolCallDelta.id;
+                }
+                if (toolCallDelta.function?.name) {
+                  this.openAIToolCalls[index].function.name += toolCallDelta.function.name;
+                }
+                if (toolCallDelta.function?.arguments) {
+                  this.openAIToolCalls[index].function.arguments += toolCallDelta.function.arguments;
+                }
+
+                hasToolCall = true;
+              }
+            }
+
+            // Check if we got finish_reason = tool_calls (means tool calls are complete)
+            if (json.choices?.[0]?.finish_reason === 'tool_calls') {
+              console.log('[Tool] OpenAI tool calls completed');
+              console.log('[Tool] Raw accumulated tool calls:', this.openAIToolCalls);
+
+              // Process all accumulated tool calls
+              for (const index in this.openAIToolCalls) {
+                const toolCall = this.openAIToolCalls[index];
+                console.log('[Tool] Processing tool call index', index);
+                console.log('[Tool] Arguments type:', typeof toolCall.function.arguments);
+                console.log('[Tool] Arguments length:', toolCall.function.arguments.length);
+                console.log('[Tool] First 100 chars:', toolCall.function.arguments.substring(0, 100));
+
+                try {
+                  let parsedArgs;
+
+                  // Try to parse the arguments
+                  try {
+                    parsedArgs = JSON.parse(toolCall.function.arguments);
+                    console.log('[Tool] Successfully parsed arguments on first try');
+                  } catch (parseError) {
+                    // If parsing fails, the arguments might already be an object or have control chars
+                    console.warn('[Tool] Direct JSON parse failed:', parseError.message);
+                    console.warn('[Tool] Problematic JSON:', toolCall.function.arguments);
+
+                    // Check if it's already an object
+                    if (typeof toolCall.function.arguments === 'object') {
+                      console.log('[Tool] Arguments are already an object');
+                      parsedArgs = toolCall.function.arguments;
+                    } else {
+                      // Try to sanitize the JSON string
+                      // The issue is that the string might contain actual newline/tab characters
+                      // inside JSON string values, which need to be escaped
+                      console.log('[Tool] Attempting to sanitize control characters');
+
+                      // The OpenAI streaming API seems to send JSON with literal control characters
+                      // We need to properly escape them for JSON parsing
+                      // Strategy: Just escape literal control characters, don't touch backslashes
+                      // since properly formatted escape sequences like \n should already work
+                      let sanitized = toolCall.function.arguments;
+
+                      // Only replace literal control characters (actual 0x0A, 0x0D, 0x09 bytes)
+                      sanitized = sanitized
+                        .replace(/\n/g, '\\n')    // Literal newlines
+                        .replace(/\r/g, '\\r')    // Literal carriage returns
+                        .replace(/\t/g, '\\t')    // Literal tabs
+                        .replace(/\f/g, '\\f')    // Form feeds
+                        .replace(/\b/g, '\\b');   // Backspaces
+
+                      console.log('[Tool] Sanitized JSON (first 100 chars):', sanitized.substring(0, 100));
+
+                      try {
+                        parsedArgs = JSON.parse(sanitized);
+                        console.log('[Tool] Successfully parsed after sanitization');
+                      } catch (sanitizeError) {
+                        console.error('[Tool] Still failed after sanitization:', sanitizeError.message);
+                        throw sanitizeError;
+                      }
+                    }
+                  }
+
+                  const toolUse = {
+                    id: toolCall.id,
+                    name: toolCall.function.name,
+                    input: parsedArgs
+                  };
+                  console.log('[Tool] Executing OpenAI tool:', toolUse);
+
+                  // Save tool_use for message history (OpenAI format)
+                  // For the arguments, we need to ensure it's a valid JSON string
+                  let argsString;
+                  if (typeof toolCall.function.arguments === 'string') {
+                    argsString = toolCall.function.arguments;
+                  } else {
+                    argsString = JSON.stringify(toolCall.function.arguments);
+                  }
+
+                  this.currentAssistantToolUses.push({
+                    id: toolCall.id,
+                    type: 'function',
+                    function: {
+                      name: toolCall.function.name,
+                      arguments: argsString
+                    }
+                  });
+
+                  // Update message to show we're still working
+                  if (!fullResponse) {
+                    this.updateMessage(assistantMsgId, '', '');
+                  }
+
+                  await this.executeTool(toolUse);
+                } catch (e) {
+                  console.error('[Tool] Failed to execute OpenAI tool call:', e);
+                  console.error('[Tool] Tool call data:', toolCall);
+                  console.error('[Tool] Arguments string:', toolCall.function.arguments);
+                }
+              }
+            }
           } else {
-            // Ollama format
+            // Ollama format with tool calls
             thinking = json.message?.thinking || '';
             content = json.message?.content || '';
+
+            if (json.message?.tool_calls) {
+              // Ollama tool calls (complete JSON in one chunk)
+              for (const toolCall of json.message.tool_calls) {
+                const toolUse = {
+                  id: `ollama_${Date.now()}_${Math.random()}`, // Generate ID for Ollama
+                  name: toolCall.function.name,
+                  input: toolCall.function.arguments
+                };
+                console.log('[Tool] Ollama tool call:', toolUse);
+
+                // Save tool_use for message history (Ollama uses same format as OpenAI)
+                this.currentAssistantToolUses.push({
+                  id: toolUse.id,
+                  type: 'function',
+                  function: {
+                    name: toolCall.function.name,
+                    arguments: JSON.stringify(toolCall.function.arguments)
+                  }
+                });
+
+                // Update message to show we're still working (keeps thinking animation alive)
+                if (!fullResponse) {
+                  this.updateMessage(assistantMsgId, '', thinking);
+                }
+
+                await this.executeTool(toolUse);
+                hasToolCall = true;
+              }
+            }
           }
 
           // Debug: Log what we're receiving
@@ -629,16 +1369,140 @@ class AIChat {
       }
     }
 
-    // Debug: Log the full response before executing commands
+    // Debug: Log the full response
     console.log('Full AI response:', fullResponse);
-
-    // Execute any board commands found in the response
-    await this.executeCommandsFromResponse(fullResponse);
 
     // If Read character, speak any remaining text
     if (this.selectedCharacter === 'read' && this.character.speak && this.speechBuffer) {
       // Speak any final chunk that might not have been spoken yet
       this.speakStreamingChunks(true);
+    }
+
+    // Multi-turn tool calling: if there are pending tool results, send them back
+    if (this.pendingToolResults.length > 0) {
+      console.log(`[Tool] Round ${toolCallRound}: Continuing conversation with ${this.pendingToolResults.length} tool results`);
+      console.log(`[Tool] Tool results:`, this.pendingToolResults.map(tr => `${tr.name}(${tr.id})`).join(', '));
+
+      // Check for repeated tool calls (potential infinite loop)
+      const currentToolSignature = this.pendingToolResults.map(tr => `${tr.name}:${JSON.stringify(tr.result.data)}`).join('|');
+      if (this.previousToolCalls.includes(currentToolSignature)) {
+        console.error('[Tool] LOOP DETECTED: Same tools with same results called again!');
+        console.error('[Tool] Current tools:', currentToolSignature);
+        console.error('[Tool] Previous calls:', this.previousToolCalls);
+
+        // Stop the loop
+        const messageDiv = document.getElementById(`ai-msg-${assistantMsgId}`);
+        if (messageDiv) {
+          const textDiv = messageDiv.querySelector('.ai-message-text');
+          const currentContent = textDiv.innerHTML;
+          textDiv.innerHTML = currentContent + '<br><br><em style="color: #ef4444;">[Stopped: Detected infinite loop - AI kept calling the same tools repeatedly]</em>';
+        }
+        return;
+      }
+
+      // Record this set of tool calls
+      this.previousToolCalls.push(currentToolSignature);
+
+      // Build tool result messages
+      const toolResultMessages = this.buildToolResultMessages();
+
+      // Build assistant message with tool_use blocks
+      // For Anthropic, we need the structured tool_use blocks, not just text
+      const isAnthropic = this.apiEndpoint.includes('anthropic');
+
+      let assistantToolMessage;
+
+      const isOpenAI = this.apiEndpoint.includes('openai') && !this.apiEndpoint.includes('/api/chat');
+
+      if (isAnthropic && this.currentAssistantToolUses.length > 0) {
+        // Anthropic format: content is array with tool_use blocks
+        const assistantContent = [];
+
+        // Add text content first if there is any
+        if (fullResponse && fullResponse.trim()) {
+          assistantContent.push({
+            type: 'text',
+            text: fullResponse
+          });
+        }
+
+        // Add all tool_use blocks
+        assistantContent.push(...this.currentAssistantToolUses);
+
+        assistantToolMessage = {
+          role: 'assistant',
+          content: assistantContent
+        };
+      } else if (isOpenAI && this.currentAssistantToolUses.length > 0) {
+        // OpenAI format: must include tool_calls array when tools were used
+        console.log('[Tool] Building OpenAI assistant message with tool_calls:', this.currentAssistantToolUses);
+        assistantToolMessage = {
+          role: 'assistant',
+          content: fullResponse || null,
+          tool_calls: this.currentAssistantToolUses
+        };
+      } else if (fullResponse) {
+        // For Ollama or if no tool uses, just add text
+        assistantToolMessage = {
+          role: 'assistant',
+          content: fullResponse
+        };
+      }
+
+      // Build temporary message history for this continuation ONLY
+      // Don't save tool messages to persistent history
+      const tempMessages = [
+        ...this.messages.slice(-10).filter(m => {
+          if (!m.content) return false;
+          if (typeof m.content === 'string') return m.content.trim() !== '';
+          if (Array.isArray(m.content)) return m.content.length > 0;
+          return true;
+        }).map(m => ({ role: m.role, content: m.content }))
+      ];
+
+      // Add assistant tool message
+      if (assistantToolMessage) {
+        tempMessages.push(assistantToolMessage);
+      }
+
+      // Add tool results
+      toolResultMessages.forEach(msg => {
+        tempMessages.push(msg);
+      });
+
+      // Clear pending results
+      this.pendingToolResults = [];
+
+      // Automatically continue the conversation with tool results
+      console.log('[Tool] Automatically continuing conversation with tool results');
+      console.log('[Tool] Temp messages:', tempMessages.length);
+      console.log('[Tool] Messages being sent:', JSON.stringify(tempMessages, null, 2));
+
+      // Keep character in thinking state during continuation
+      if (this.character) {
+        this.character.setState('thinking');
+      }
+
+      // Reuse the same assistant message ID instead of creating a new one
+      // This prevents extra thinking dot animations
+      this.updateMessage(assistantMsgId, ''); // Clear current content
+
+      // Reset controller and call streamResponse with temp messages
+      this.controller = null;
+
+      try {
+        // Increment round counter to prevent infinite loops
+        await this.streamResponse('', assistantMsgId, tempMessages, toolCallRound + 1);
+      } catch (error) {
+        console.error('[Tool] Error in multi-turn continuation:', error);
+        this.updateMessage(assistantMsgId, `Error continuing with tool results: ${error.message}`);
+        // Set to idle on error
+        if (this.character && this.selectedCharacter !== 'read') {
+          this.character.setState('idle');
+        }
+      }
+
+      return; // Exit to avoid double controller reset
     }
 
     this.controller = null;
@@ -649,43 +1513,7 @@ class AIChat {
 
     console.log('[Speech] Original text:', text.substring(0, 200));
 
-    // AGGRESSIVE: Split on [[ and ]], only keep parts outside commands
-    const parts = [];
-    let currentPos = 0;
-
-    while (true) {
-      // Find next [[
-      const startIdx = text.indexOf('[[', currentPos);
-
-      if (startIdx === -1) {
-        // No more commands, add rest of text
-        parts.push(text.substring(currentPos));
-        break;
-      }
-
-      // Add text before [[
-      parts.push(text.substring(currentPos, startIdx));
-
-      // Find matching ]]
-      const endIdx = text.indexOf(']]', startIdx);
-
-      if (endIdx === -1) {
-        // No closing ]], skip rest of text
-        console.log('[Speech] ⚠️ Unclosed command at pos', startIdx);
-        break;
-      }
-
-      // Log and skip the command
-      const command = text.substring(startIdx, endIdx + 2);
-      console.log('[Speech] 🚫 Skipping command:', command.substring(0, 60) + (command.length > 60 ? '...' : ''));
-
-      // Move past the ]]
-      currentPos = endIdx + 2;
-    }
-
-    // Join parts and clean
-    let cleaned = parts.join(' ');
-    console.log('[Speech] After command removal:', cleaned.substring(0, 200));
+    let cleaned = text;
 
     // Now clean markdown and other stuff
     cleaned = cleaned
@@ -802,14 +1630,39 @@ class AIChat {
       console.log(`  - "${c.fromTitle}" (${c.fromId}) → "${c.toTitle}" (${c.toId})`);
     });
 
-    return `You are Buddy, a friendly AI assistant integrated into QUIRK, a visual board/canvas application for organizing ideas and notes. You're represented by a cheerful cloud character and love helping people organize their thoughts visually!
+    // Base personality section
+    const defaultPersonality = `You are Buddy, a friendly AI assistant integrated into QUIRK, a visual board/canvas application for organizing ideas and notes. You're represented by a cheerful cloud character and love helping people organize their thoughts visually!
 
 **Your Personality:**
 - Enthusiastic and encouraging about ideas
 - Playful but helpful
 - You love making connections between concepts
 - You get excited when boards come together nicely
-- Brief and to-the-point (you know people are busy!)
+- Brief and to-the-point (you know people are busy!)`;
+
+    // Apply custom prompt based on mode
+    console.log('Custom Prompt:', this.customPrompt);
+    console.log('Custom Prompt Mode:', this.customPromptMode);
+
+    let personalitySection;
+    if (this.customPrompt && this.customPromptMode === 'replace') {
+      // Replace mode: Use only custom prompt
+      console.log('Using REPLACE mode - custom prompt only');
+      personalitySection = this.customPrompt;
+    } else if (this.customPrompt && this.customPromptMode === 'append') {
+      // Append mode: Add custom prompt after default
+      console.log('Using APPEND mode - default + custom');
+      personalitySection = `${defaultPersonality}
+
+**Custom Instructions:**
+${this.customPrompt}`;
+    } else {
+      // No custom prompt: Use default
+      console.log('Using DEFAULT prompt only');
+      personalitySection = defaultPersonality;
+    }
+
+    const fullPrompt = `${personalitySection}
 
 Current board: "${boardInfo.currentBoard}"
 Number of nodes: ${boardInfo.nodeCount}
@@ -821,198 +1674,30 @@ FORMATTING RULES:
 - Keep your responses concise and helpful
 - Use line breaks between sections for readability
 
-BOARD COMMANDS:
-You can perform actions by including special commands in your response. Commands MUST end with ]] (two closing square brackets).
+BOARD MANIPULATION:
+You have access to powerful tools to manipulate the board:
+- **create_node**: Create new nodes with titles and markdown content
+- **edit_node**: Update existing node titles and content
+- **delete_node**: Remove nodes from the board
+- **connect_nodes**: Create connections between nodes
+- **search_nodes**: Find nodes by searching titles and content
+- **get_board_state**: Get complete board information
+- **arrange_nodes**: Auto-arrange all nodes neatly
+- **clear_board**: Remove all nodes (ask user first!)
 
-Available commands:
-- [[CREATE_NODE:Title Here|Content goes here]] - Create a new node
-- [[EDIT_NODE:nodeId|New content]] - Edit a node's content
-- [[DELETE_NODE:nodeId]] - Delete a node
-- [[CONNECT_NODES:fromNodeId|toNodeId]] - Connect two nodes
-- [[ARRANGE_NODES]] - Auto-arrange all nodes
-- [[CLEAR_BOARD]] - Clear the board (ask first!)
+When creating nodes, always use detailed, useful content with proper markdown formatting (lists, bold, code blocks, etc.). Never use placeholder text like "description here".
 
-CRITICAL COMMAND RULES:
-1. Commands MUST end with ]] (double closing square brackets) NOT }}
-2. Commands MUST be on their own line
-3. Use the exact format shown above - [[COMMAND_NAME:args]]
-4. For CREATE_NODE, use this exact format: [[CREATE_NODE:Title|Content]]
-5. Always use real, descriptive content - never placeholders
-
-CONTENT RULES:
-1. Node content should be detailed and useful with proper spacing
-2. Use markdown in node content (lists, bold, etc.) for better formatting
-3. Add line breaks between items in lists for readability
-4. Never use vague text like "description here" or "content"
-
-Example:
+Example interaction:
 User: "Create 3 nodes about Python"
-You: "I'll create 3 nodes about Python:
+You: "I'll create 3 nodes covering Python fundamentals."
+[Tool calls automatically executed: create_node for each node]
+You: "Created 3 nodes covering Python basics, popular libraries, and best practices!"`;
 
-[[CREATE_NODE:Python Basics|Introduction to Python programming language, including syntax, variables, and core concepts]]
-[[CREATE_NODE:Python Libraries|Popular libraries:
-- NumPy for numerical computing
-- Pandas for data analysis
-- Requests for HTTP]]
-[[CREATE_NODE:Python Best Practices|Key practices:
-- Follow PEP 8 style guide
-- Use virtual environments
-- Write tests with pytest]]
+    console.log('=== FULL SYSTEM PROMPT ===');
+    console.log(fullPrompt);
+    console.log('=== END SYSTEM PROMPT ===');
 
-Created **3 nodes** covering Python fundamentals, libraries, and best practices!"`;
-  }
-
-  async executeCommandsFromResponse(response) {
-    // Extract and execute commands
-    // Match [[COMMAND:args]] where args can contain anything including ] but not ]]
-    // Use negative lookahead to match ] not followed by another ]
-    const commandRegex = /\[\[([A-Z_]+)(?::((?:[^\]]|\](?!\]))+?))?\]\]/g;
-    let match;
-    let commandsExecuted = 0;
-
-    console.log('Extracting commands from response...');
-
-    while ((match = commandRegex.exec(response)) !== null) {
-      const [fullMatch, command, args] = match;
-      console.log(`Found command: ${command}`);
-      console.log(`  Full match: "${fullMatch}"`);
-      console.log(`  Args: "${args}"`);
-
-      try {
-        await this.executeCommand(command, args);
-        commandsExecuted++;
-      } catch (error) {
-        console.error(`Failed to execute command ${command}:`, error);
-      }
-    }
-
-    if (commandsExecuted > 0) {
-      console.log(`Executed ${commandsExecuted} command(s)`);
-    } else {
-      console.log('No commands found in response');
-    }
-  }
-
-  async executeCommand(command, args) {
-    console.log(`Executing command: ${command}`, args);
-
-    switch (command) {
-      case 'CREATE_NODE':
-        try {
-          const parts = args.split('|');
-          if (parts.length < 2) {
-            console.warn('CREATE_NODE requires title|content format');
-            return;
-          }
-          const title = parts[0].trim();
-          const content = parts.slice(1).join('|').trim(); // Handle content with | in it
-
-          // Create node at a smart position
-          const position = this.getSmartNodePosition();
-          const newNode = this.wallboard.nodeOperationsManager.createNode('markdown', { content }, position);
-
-          if (newNode) {
-            newNode.title = title;
-            newNode.content = content;
-
-            // Debug: Log the actual content being set
-            console.log(`Creating node with title: "${title}"`);
-            console.log(`Content length: ${content.length} chars`);
-            console.log(`Content: "${content}"`);
-            console.log(`Content (escaped):`, JSON.stringify(content));
-
-            // Remove the node and re-render with proper title
-            const nodeEl = document.getElementById(`node-${newNode.id}`);
-            if (nodeEl) {
-              nodeEl.remove();
-            }
-
-            this.wallboard.renderNode(newNode);
-            this.wallboard.autoSave();
-            console.log(`Created node: "${title}"`);
-          }
-        } catch (error) {
-          console.error('CREATE_NODE error:', error);
-        }
-        break;
-
-      case 'EDIT_NODE':
-        try {
-          const parts = args.split('|');
-          if (parts.length < 2) {
-            console.warn('EDIT_NODE requires nodeId|content format');
-            return;
-          }
-          const nodeId = parseInt(parts[0].trim());
-          const newContent = parts.slice(1).join('|').trim();
-
-          const node = this.wallboard.getNodeById(nodeId);
-          if (node) {
-            node.content = newContent;
-            node.data = node.data || {};
-            node.data.content = newContent;
-
-            // Re-render the node
-            const nodeEl = document.getElementById(`node-${nodeId}`);
-            if (nodeEl) {
-              nodeEl.remove();
-            }
-            this.wallboard.renderNode(node);
-            this.wallboard.autoSave();
-            console.log(`Edited node ${nodeId}`);
-          } else {
-            console.warn(`Node ${nodeId} not found`);
-          }
-        } catch (error) {
-          console.error('EDIT_NODE error:', error);
-        }
-        break;
-
-      case 'DELETE_NODE':
-        try {
-          const nodeId = parseInt(args.trim());
-          this.wallboard.removeNode(nodeId);
-          console.log(`Deleted node ${nodeId}`);
-        } catch (error) {
-          console.error('DELETE_NODE error:', error);
-        }
-        break;
-
-      case 'CONNECT_NODES':
-        try {
-          const [fromId, toId] = args.split('|').map(id => parseInt(id.trim()));
-
-          // Check if both nodes exist
-          const fromNode = this.wallboard.getNodeById(fromId);
-          const toNode = this.wallboard.getNodeById(toId);
-
-          if (fromNode && toNode) {
-            this.wallboard.connectionManager.createConnection(
-              { nodeId: fromId },
-              { nodeId: toId }
-            );
-            console.log(`Connected node ${fromId} to ${toId}`);
-          } else {
-            console.warn(`Cannot connect: node ${fromId} or ${toId} not found`);
-          }
-        } catch (error) {
-          console.error('CONNECT_NODES error:', error);
-        }
-        break;
-
-      case 'ARRANGE_NODES':
-        this.wallboard.autoArrangeNodes(true);
-        console.log('Auto-arranged nodes');
-        break;
-
-      case 'CLEAR_BOARD':
-        this.wallboard.clearBoard();
-        console.log('Cleared board');
-        break;
-
-      default:
-        console.warn(`Unknown command: ${command}`);
-    }
+    return fullPrompt;
   }
 
   getSmartNodePosition() {
@@ -1230,6 +1915,8 @@ Created **3 nodes** covering Python fundamentals, libraries, and best practices!
       const apiKeyInput = document.getElementById('aiApiKeyInput');
       if (apiKeyInput) {
         apiKeyInput.value = this.apiKey;
+        // Apply readonly to prevent password manager interference
+        apiKeyInput.setAttribute('readonly', 'true');
       }
     }
 
@@ -1246,11 +1933,20 @@ Created **3 nodes** covering Python fundamentals, libraries, and best practices!
     // (updateProviderUI sets defaults, but we want to show what's actually saved)
     const endpointInput = document.getElementById('aiEndpointInput');
     const modelInput = document.getElementById('aiModelInput');
+    const temperatureInput = document.getElementById('aiTemperatureInput');
+    const customPromptInput = document.getElementById('aiCustomPromptInput');
     if (endpointInput) {
       endpointInput.value = this.apiEndpoint;
     }
     if (modelInput) {
       modelInput.value = this.apiModel;
+    }
+    if (temperatureInput) {
+      // Show empty if null (use model default), otherwise show the configured value
+      temperatureInput.value = this.temperature !== null ? this.temperature : '';
+    }
+    if (customPromptInput) {
+      customPromptInput.value = this.customPrompt;
     }
 
     document.getElementById('aiSettingsModal').style.display = 'flex';
@@ -1260,6 +1956,24 @@ Created **3 nodes** covering Python fundamentals, libraries, and best practices!
     document.getElementById('aiSettingsModal').style.display = 'none';
   }
 
+  showDefaultPrompt() {
+    const defaultPrompt = `You are Buddy, a friendly AI assistant integrated into QUIRK, a visual board/canvas application for organizing ideas and notes. You're represented by a cheerful cloud character and love helping people organize their thoughts visually!
+
+**Your Personality:**
+- Enthusiastic and encouraging about ideas
+- Playful but helpful
+- You love making connections between concepts
+- You get excited when boards come together nicely
+- Brief and to-the-point (you know people are busy!)`;
+
+    // Copy to clipboard and show notification
+    navigator.clipboard.writeText(defaultPrompt).then(() => {
+      alert('Default prompt copied to clipboard!\n\n' + defaultPrompt);
+    }).catch(() => {
+      alert('Default Prompt:\n\n' + defaultPrompt);
+    });
+  }
+
   async saveSettings() {
     // Ensure storage is ready
     await this.ensureStorageReady();
@@ -1267,6 +1981,9 @@ Created **3 nodes** covering Python fundamentals, libraries, and best practices!
     const provider = document.getElementById('aiProviderSelect').value;
     const endpoint = document.getElementById('aiEndpointInput').value.trim();
     const model = document.getElementById('aiModelInput').value.trim();
+    const temperatureInput = document.getElementById('aiTemperatureInput').value.trim();
+    const customPrompt = document.getElementById('aiCustomPromptInput').value.trim();
+    const customPromptMode = document.querySelector('input[name="promptMode"]:checked')?.value || 'append';
     const apiKey = document.getElementById('aiApiKeyInput').value.trim();
     const showThinking = document.getElementById('aiShowThinkingInput').checked;
     const selectElement = document.getElementById('aiCharacterSelect');
@@ -1295,6 +2012,27 @@ Created **3 nodes** covering Python fundamentals, libraries, and best practices!
         modelInfo.textContent = model;
       }
     }
+
+    // Save temperature
+    if (temperatureInput !== '') {
+      const temperature = parseFloat(temperatureInput);
+      if (!isNaN(temperature) && temperature >= 0 && temperature <= 2) {
+        this.temperature = temperature;
+        localStorage.setItem('ai_chat_temperature', temperature.toString());
+      }
+    } else {
+      // If empty, use null to indicate "use model default"
+      this.temperature = null;
+      localStorage.removeItem('ai_chat_temperature');
+    }
+
+    // Save custom prompt
+    this.customPrompt = customPrompt;
+    localStorage.setItem('ai_custom_prompt', customPrompt);
+    this.customPromptMode = customPromptMode;
+    localStorage.setItem('ai_custom_prompt_mode', customPromptMode);
+    console.log('Saved custom prompt:', customPrompt);
+    console.log('Saved custom prompt mode:', customPromptMode);
 
     // Save API key to IndexedDB (secure storage)
     if (this.wallboard.storage && provider !== 'ollama') {

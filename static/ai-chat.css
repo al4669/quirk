@@ -8,7 +8,6 @@
   right: -450px;
   width: 450px;
   height: 100vh;
-  background: var(--bg-secondary);
   border-left: 1px solid var(--border);
   box-shadow: -20px 0 60px rgba(0, 0, 0, 0.8);
   z-index: 4000;
@@ -29,6 +28,7 @@
 .ai-settings-modal {
   /* Capture all scroll/wheel events */
   touch-action: pan-y;
+  overflow-y: auto;
 }
 
 .ai-chat-panel.ai-chat-open {
@@ -41,8 +41,6 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  border-bottom: 1px solid var(--border);
-  background: linear-gradient(135deg, var(--bg-accent-glow) 0%, transparent 100%);
   flex-shrink: 0;
 }
 
@@ -400,18 +398,22 @@
   white-space: wrap;
 }
 
-/* Thinking animation */
+/* Thinking animation - Modern gradient wave */
 .ai-thinking-dots {
   display: inline-flex;
-  gap: 4px;
+  gap: 2px;
+  align-items: center;
+  height: 20px;
+  padding: 0 4px;
 }
 
 .ai-thinking-dots span {
-  width: 6px;
-  height: 6px;
-  background: var(--accent);
-  border-radius: 50%;
-  animation: thinkingDot 1.4s ease-in-out infinite;
+  width: 3px;
+  height: 12px;
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-light) 100%);
+  border-radius: 2px;
+  animation: thinkingWave 1.2s ease-in-out infinite;
+  box-shadow: 0 0 8px var(--accent-glow);
 }
 
 .ai-thinking-dots span:nth-child(1) {
@@ -419,21 +421,21 @@
 }
 
 .ai-thinking-dots span:nth-child(2) {
-  animation-delay: 0.2s;
+  animation-delay: 0.15s;
 }
 
 .ai-thinking-dots span:nth-child(3) {
-  animation-delay: 0.4s;
+  animation-delay: 0.3s;
 }
 
-@keyframes thinkingDot {
-  0%, 60%, 100% {
-    opacity: 0.3;
-    transform: scale(0.8);
+@keyframes thinkingWave {
+  0%, 100% {
+    height: 12px;
+    opacity: 0.4;
   }
-  30% {
+  50% {
+    height: 20px;
     opacity: 1;
-    transform: scale(1.2);
   }
 }
 
@@ -529,8 +531,6 @@
 .ai-chat-input-container {
   flex-shrink: 0;
   padding: 16px 20px 20px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-secondary);
 }
 
 .ai-chat-input-wrapper {
@@ -541,7 +541,7 @@
 
 .ai-chat-input {
   flex: 1;
-  background: var(--bg-tertiary);
+  background: transparent;
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 12px 16px;
@@ -654,13 +654,29 @@
 }
 
 .ai-settings-content {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 24px;
-  width: 90%;
+  padding: 10px;
+  width: 100%;
   max-width: 400px;
+  max-height: 95vh;
+  overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+}
+
+.ai-settings-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ai-settings-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ai-settings-content::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.ai-settings-content::-webkit-scrollbar-thumb:hover {
+  background: var(--border-light);
 }
 
 .ai-settings-content h3 {
@@ -684,6 +700,27 @@
   letter-spacing: 0.5px;
 }
 
+.ai-prompt-show-default {
+  float: right;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: normal;
+  transition: all 0.2s ease;
+}
+
+.ai-prompt-show-default:hover {
+  background: var(--accent);
+  color: var(--text-on-accent);
+  border-color: var(--accent);
+}
+
 .ai-settings-field input {
   width: 100%;
   background: var(--bg-tertiary);
@@ -698,6 +735,35 @@
 }
 
 .ai-settings-field input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.ai-settings-field input[readonly] {
+  opacity: 1;
+  cursor: text;
+}
+
+.ai-settings-field input[readonly]:focus {
+  cursor: text;
+}
+
+.ai-settings-field textarea {
+  width: 100%;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: all 0.2s ease;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.ai-settings-field textarea:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
@@ -778,7 +844,7 @@
 
   .ai-settings-content {
     width: 95%;
-    padding: 20px;
+    padding: 10px;
   }
 }
 
