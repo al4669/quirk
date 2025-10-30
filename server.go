@@ -90,6 +90,10 @@ func main() {
 		io.Copy(w, resp.Body)
 	})
 
+	http.HandleFunc("/proxy", func(w http.ResponseWriter, r *http.Request) {
+		log.Println(r)
+	})
+
 	log.Println("🚀 Server running on http://localhost:8080")
 	log.Println("📝 Anthropic endpoint: http://localhost:8080/api/anthropic")
 	log.Println("📝 OpenAI endpoint: http://localhost:8080/api/openai")
