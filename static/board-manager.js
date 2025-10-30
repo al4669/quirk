@@ -336,7 +336,13 @@ class BoardManager {
     }
 
     if (DialogUtils.confirmAction(`Are you sure you want to delete board "${currentBoard.name}"? This action cannot be undone.`)) {
-      delete wallboard.boards[wallboard.currentBoardId];
+      const boardIdToDelete = wallboard.currentBoardId;
+
+      // Delete from memory
+      delete wallboard.boards[boardIdToDelete];
+
+      // Delete from IndexedDB storage (this was missing!)
+      await wallboard.storage.deleteBoard(boardIdToDelete);
 
       // Switch to the first available board
       const remainingBoardIds = Object.keys(wallboard.boards);
@@ -344,8 +350,9 @@ class BoardManager {
         await this.loadBoard(wallboard, remainingBoardIds[0]);
       }
 
-      await this.saveBoardsToStorage(wallboard);
+      // Update UI
       this.updateBoardSelector(wallboard);
+      Notifications.show(`Board "${currentBoard.name}" deleted successfully`);
     }
   }
 }
