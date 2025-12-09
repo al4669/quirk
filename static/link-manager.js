@@ -339,32 +339,9 @@ class LinkManager {
    * @param {string[]} linkTitles - Array of link titles that should exist
    */
   pruneOrphanedConnections(sourceNodeId, linkTitles) {
-    // Get all outgoing connections from this node
-    const outgoingConnections = this.wallboard.connectionManager.connections.filter(
-      conn => conn.start.nodeId === sourceNodeId
-    );
-
-    // Create a set of target node IDs that should exist (based on linkTitles)
-    const validTargetIds = new Set();
-
-    linkTitles.forEach(linkTitle => {
-      const targetNode = this.wallboard.nodes.find(n => {
-        const nodeTitle = this.wallboard.getNodeTitle(n);
-        return nodeTitle.toLowerCase() === linkTitle.toLowerCase();
-      });
-
-      if (targetNode) {
-        validTargetIds.add(targetNode.id);
-      }
-    });
-
-    // Remove connections to nodes that are not in the valid set
-    outgoingConnections.forEach(conn => {
-      if (!validTargetIds.has(conn.end.nodeId)) {
-        this.wallboard.connectionManager.removeConnection(conn.id);
-        console.log(`Pruned orphaned connection: ${sourceNodeId} -> ${conn.end.nodeId}`);
-      }
-    });
+    // Previously removed connections when links vanished.
+    // We now leave connections intact to avoid surprising disconnections during edits.
+    return;
   }
 
   /**

@@ -16,15 +16,14 @@ class ZoomPanManager {
 
     e.preventDefault();
 
-    // Add transforming class for performance on mobile
+    // Add transforming class for performance on ALL devices
+    // This hides content during zoom for smoother animation
     const canvas = document.getElementById("canvas");
-    if (window.innerWidth <= 768) {
-      canvas.classList.add('transforming');
-      clearTimeout(this.wallboard.transformTimeout);
-      this.wallboard.transformTimeout = setTimeout(() => {
-        canvas.classList.remove('transforming');
-      }, 150);
-    }
+    canvas.classList.add('transforming');
+    clearTimeout(this.wallboard.transformTimeout);
+    this.wallboard.transformTimeout = setTimeout(() => {
+      canvas.classList.remove('transforming');
+    }, 150);
 
     const zoomFactor = 0.1;
 
@@ -46,17 +45,28 @@ class ZoomPanManager {
     this.wallboard.panY = viewportCenterY - (viewportCenterY - this.wallboard.panY) * zoomRatio;
 
     this.updateTransform();
+    // Persist view state (debounced via autoSave, plus quick cache)
+    BoardManager.cacheViewState?.(this.wallboard.currentBoardId, {
+      zoom: this.wallboard.zoom,
+      panX: this.wallboard.panX,
+      panY: this.wallboard.panY
+    });
+    if (this.wallboard?.autoSave) {
+      this.wallboard.autoSave();
+    }
   }
 
   handleCanvasPanStart(e) {
     // Don't pan if clicking on connections
     if (e.target.classList.contains('connection-line') ||
-        e.target.classList.contains('connection-arrow')) {
+      e.target.classList.contains('connection-arrow')) {
       return;
     }
 
-    // Only allow panning if clicking directly on canvas (not on nodes or when editing)
-    if (e.target.id === 'canvas' && !this.wallboard.isDragging && !this.wallboard.isConnectionDrag && !this.wallboard.isCutting && !e.altKey && !this.wallboard.isAnyNodeEditing && !e.target.closest('.node')) {
+    // Only allow panning if clicking directly on canvas or background (not on nodes or when editing)
+    const isCanvasOrBackground = e.target.id === 'canvas' || e.target === document.body || e.target.classList.contains('canvas-container');
+
+    if (isCanvasOrBackground && !this.wallboard.isDragging && !this.wallboard.isConnectionDrag && !this.wallboard.isCutting && !e.altKey && !this.wallboard.isAnyNodeEditing && !e.target.closest('.node')) {
       this.wallboard.isPanning = true;
       this.wallboard.panStart = { x: e.clientX - this.wallboard.panX, y: e.clientY - this.wallboard.panY };
       document.body.style.cursor = 'grabbing';
@@ -66,37 +76,18 @@ class ZoomPanManager {
 
   handleCanvasPan(e) {
     if (this.wallboard.isPanning) {
-      let newPanX = e.clientX - this.wallboard.panStart.x;
-      let newPanY = e.clientY - this.wallboard.panStart.y;
-
-      // Apply pan limits with more generous buffer on mobile
-      const isMobile = window.innerWidth <= 768;
-      const buffer = isMobile ? 100 : 200; // Smaller buffer on mobile for better boundaries
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      const scaledCanvasWidth = this.wallboard.canvasWidth * this.wallboard.zoom;
-      const scaledCanvasHeight = this.wallboard.canvasHeight * this.wallboard.zoom;
-
-      // More restrictive boundaries on mobile to prevent getting lost
-      if (isMobile) {
-        newPanX = Math.max(-(scaledCanvasWidth - viewportWidth + buffer), Math.min(buffer, newPanX));
-        newPanY = Math.max(-(scaledCanvasHeight - viewportHeight + buffer), Math.min(buffer, newPanY));
-      } else {
-        newPanX = Math.max(-(scaledCanvasWidth - viewportWidth + buffer), Math.min(buffer, newPanX));
-        newPanY = Math.max(-(scaledCanvasHeight - viewportHeight + buffer), Math.min(buffer, newPanY));
-      }
-
-      this.wallboard.panX = newPanX;
-      this.wallboard.panY = newPanY;
+      this.wallboard.panX = e.clientX - this.wallboard.panStart.x;
+      this.wallboard.panY = e.clientY - this.wallboard.panStart.y;
 
       // Update transform immediately for smooth panning
       const canvas = document.getElementById('canvas');
       canvas.style.transform = `translate(${this.wallboard.panX}px, ${this.wallboard.panY}px) scale(${this.wallboard.zoom})`;
       canvas.style.transformOrigin = '0 0';
 
-      // Throttle connection updates during panning
+      // Throttle culling + connection updates during panning
       if (!this.wallboard.panUpdateTimeout) {
         this.wallboard.panUpdateTimeout = setTimeout(() => {
+          BoardManager.updateViewportCulling(this.wallboard);
           this.wallboard.connectionManager.updateConnections();
           this.wallboard.panUpdateTimeout = null;
         }, 16); // ~60fps
@@ -117,6 +108,15 @@ class ZoomPanManager {
         this.wallboard.panUpdateTimeout = null;
       }
       this.wallboard.connectionManager.updateConnections();
+      BoardManager.updateViewportCulling(this.wallboard);
+      BoardManager.cacheViewState?.(this.wallboard.currentBoardId, {
+        zoom: this.wallboard.zoom,
+        panX: this.wallboard.panX,
+        panY: this.wallboard.panY
+      });
+      if (this.wallboard?.autoSave) {
+        this.wallboard.autoSave();
+      }
 
       e.preventDefault();
     }
@@ -127,22 +127,51 @@ class ZoomPanManager {
     DomUtils.applyTransform('canvas', this.wallboard.zoom, this.wallboard.panX, this.wallboard.panY);
 
     // Add zoomed-out class at 30% zoom for simplified view
-    if (this.wallboard.zoom <= 0.3) {
+    const wasZoomedOut = canvas.classList.contains('zoomed-out');
+    const nowZoomedOut = this.wallboard.zoom <= 0.3;
+    if (nowZoomedOut) {
       canvas.classList.add('zoomed-out');
     } else {
       canvas.classList.remove('zoomed-out');
     }
 
-    // Debounce connection updates on mobile
-    if (window.innerWidth <= 768) {
-      if (this.wallboard.updateConnectionsTimeout) {
-        cancelAnimationFrame(this.wallboard.updateConnectionsTimeout);
-      }
-      this.wallboard.updateConnectionsTimeout = requestAnimationFrame(() => {
-        this.wallboard.connectionManager.updateConnections();
-      });
-    } else {
+    // Debounce connection and culling updates for ALL devices (not just mobile)
+    // This prevents excessive recalculations during zoom/pan
+    if (this.wallboard.updateConnectionsTimeout) {
+      cancelAnimationFrame(this.wallboard.updateConnectionsTimeout);
+    }
+    this.wallboard.updateConnectionsTimeout = requestAnimationFrame(() => {
+      // Update viewport culling first (adds/removes nodes from DOM)
+      BoardManager.updateViewportCulling(this.wallboard);
+
+      // Then update connections (only for visible nodes)
       this.wallboard.connectionManager.updateConnections();
+    });
+
+    // If we crossed the zoomed-out threshold, refresh connections immediately to avoid ghosts
+    if (wasZoomedOut !== nowZoomedOut) {
+      // Clear all rendered connections so they are rebuilt for the new mode
+      if (this.wallboard?.connectionManager?.clearRenderedConnections) {
+        this.wallboard.connectionManager.clearRenderedConnections();
+        // Recreate the root SVG if it was cleared
+        const canvas = document.getElementById('canvas');
+        if (canvas && !document.getElementById('connections')) {
+          const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          svg.classList.add('svg-connections');
+          svg.id = 'connections';
+          canvas.insertBefore(svg, canvas.firstChild);
+          this.wallboard.connectionManager.svg = svg;
+        }
+      }
+      BoardManager.updateViewportCulling(this.wallboard);
+      this.wallboard.connectionManager.updateConnections();
+      // Reset title font size and refit in new mode
+      if (typeof NodeRenderer?.fitNodeTitleElement === 'function') {
+        document.querySelectorAll('.node-type').forEach(el => {
+          el.style.fontSize = '';
+          NodeRenderer.fitNodeTitleElement(el);
+        });
+      }
     }
   }
 }

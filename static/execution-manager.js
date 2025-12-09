@@ -16,6 +16,22 @@ class ExecutionManager {
     });
   }
 
+  // Clear any stale "running" states (e.g., after refresh) so nodes don't stay stuck
+  sanitizeExecutionStateOnLoad() {
+    Object.keys(this.executionState || {}).forEach(id => {
+      const state = this.executionState[id];
+      if (state?.status === 'running') {
+        this.executionState[id] = {
+          ...state,
+          status: 'idle',
+          iterationCount: 0
+        };
+        delete this.executionState[id].error;
+        delete this.executionState[id].errorStack;
+      }
+    });
+  }
+
   // Load LLM configuration from localStorage (use AI chat settings)
   async loadLLMConfig() {
     // Use the same config as AI chat for consistency
@@ -165,6 +181,7 @@ class ExecutionManager {
     try {
       // Build execution graph
       const executionGraph = this.buildExecutionGraph(nodeId);
+      const nodeCount = executionGraph.nodes.length;
 
       // Detect cycles
       const cycleInfo = this.detectCycles(executionGraph);
@@ -189,7 +206,7 @@ class ExecutionManager {
       await this.executePipeline(executionGraph.nodes);
 
       console.log('✅ Pipeline execution complete!');
-
+      this.notifyWorkflowComplete(nodeCount, startNode);
     } catch (error) {
       console.error('Pipeline execution failed:', error);
       alert(`Execution failed: ${error.message}`);
@@ -205,10 +222,17 @@ class ExecutionManager {
     return true;
   }
 
+  // Normalize node type (prefers explicit nodeType on data)
+  getNodeType(node) {
+    const explicit = node?.data?.nodeType || '';
+    const fallback = node?.title || node?.type || '';
+    return (explicit || fallback || '').toLowerCase();
+  }
+
   // Check if a node has actual code to execute
   hasExecutableCode(node) {
     if (!node.data || !node.data.content) return false;
-    const codeBlocks = this.extractCodeBlocks(node.data.content);
+    const codeBlocks = this.extractCodeBlocks(node.data.content, this.getNodeType(node));
     return codeBlocks.length > 0;
   }
 
@@ -222,9 +246,23 @@ class ExecutionManager {
     return trimmed.endsWith(' Result') && trimmed.split(' Result').length === 2;
   }
 
-  // Extract JavaScript code blocks from markdown
-  extractCodeBlocks(markdown) {
-    const codeBlockRegex = /```(?:js|javascript)\n([\s\S]*?)```/g;
+  // Extract JavaScript code to execute for a node
+  extractCodeBlocks(markdown, nodeType = '') {
+    const type = (nodeType || '').toLowerCase();
+
+    // Dedicated script nodes run their full content
+    if (type === 'script') {
+      const content = (markdown || '').trim();
+      if (!content) return [];
+
+      // If legacy fences exist, unwrap them
+      const fenced = content.match(/^```(?:[a-zA-Z]+)?\n([\s\S]*?)```$/);
+      const code = fenced ? fenced[1].trim() : content;
+      return code ? [code] : [];
+    }
+
+    // Legacy fenced script blocks (kept for backwards compatibility)
+    const codeBlockRegex = /```(?:script)\n([\s\S]*?)```/g;
     const blocks = [];
     let match;
 
@@ -235,27 +273,21 @@ class ExecutionManager {
     return blocks;
   }
 
-  // Extract instruct blocks from markdown
-  extractInstructBlocks(markdown) {
-    const instructBlockRegex = /```instruct\n([\s\S]*?)```/g;
-    const blocks = [];
-    let match;
+  // Get remaining text content (excluding executable code)
+  getTextContent(markdown, nodeType = '') {
+    if (!markdown) return '';
+    const type = (nodeType || '').toLowerCase();
 
-    while ((match = instructBlockRegex.exec(markdown)) !== null) {
-      blocks.push(match[1].trim());
+    // Script nodes don't contribute plain text content
+    if (type === 'script') return '';
+
+    // Instruction nodes return their content verbatim
+    if (type === 'instruction' || type === 'instruct') {
+      return markdown.trim();
     }
 
-    return blocks;
-  }
-
-  // Get remaining text content (excluding code and instruct blocks)
-  getTextContent(markdown) {
-    if (!markdown) return '';
-    // Remove all code blocks
-    let text = markdown.replace(/```(?:js|javascript)\n[\s\S]*?```/g, '');
-    // Remove all instruct blocks
-    text = text.replace(/```instruct\n[\s\S]*?```/g, '');
-    return text.trim();
+    // Default: strip fenced code blocks
+    return markdown.replace(/```[\s\S]*?```/g, '').trim();
   }
 
   // Strip markdown links to prevent LLM from seeing/reproducing them
@@ -275,6 +307,7 @@ class ExecutionManager {
   // Resolve template variables like {{Node Title}} or {{Node Title Result}}
   resolveTemplateVariables(text, currentNodeId, escapeForJS = false) {
     if (!text) return text;
+    const allowedUpstream = this.getAllUpstreamNodeIds(currentNodeId);
 
     // Find all {{...}} patterns
     const variableRegex = /\{\{([^}]+)\}\}/g;
@@ -305,6 +338,12 @@ class ExecutionManager {
         return match; // Keep original {{...}} if not found
       }
 
+      // Enforce data-flow: only allow current node or upstream nodes
+      if (!allowedUpstream.has(targetNode.id)) {
+        console.warn(`Template variable reference not in upstream graph: ${nodeTitle}`);
+        return match;
+      }
+
       let value;
       if (isResultReference) {
         // Reference to execution result
@@ -318,8 +357,10 @@ class ExecutionManager {
           return match; // Keep original if no result
         }
       } else {
-        // Reference to node content
-        value = targetNode.data?.content || '';
+        // Reference to node content (strip links/blocks)
+        const rawContent = targetNode.data?.content || '';
+        const textOnly = this.getTextContent(rawContent, this.getNodeType(targetNode));
+        value = this.stripMarkdownLinks(textOnly);
       }
 
       // If escaping for JS, wrap in backticks for template literal
@@ -381,6 +422,59 @@ class ExecutionManager {
       .map(conn => conn.start.nodeId);
   }
 
+  // Get all upstream node IDs (transitive) including the current node
+  getAllUpstreamNodeIds(nodeId) {
+    const visited = new Set();
+    const stack = [nodeId];
+
+    while (stack.length > 0) {
+      const current = stack.pop();
+      if (visited.has(current)) continue;
+      visited.add(current);
+
+      const directUpstream = this.getUpstreamNodeIds(current);
+      directUpstream.forEach(id => {
+        if (!visited.has(id)) {
+          stack.push(id);
+        }
+      });
+    }
+
+    return visited;
+  }
+
+  // Lightweight browser notification helper
+  showBrowserNotification(title, body) {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+
+    const trigger = () => {
+      try {
+        new Notification(title, { body });
+      } catch (e) {
+        console.warn('Notification failed:', e);
+      }
+    };
+
+    if (Notification.permission === 'granted') {
+      trigger();
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission().then((permission) => {
+        if (permission === 'granted') {
+          trigger();
+        }
+      });
+    }
+  }
+
+  // Composite notifier: toast + browser notification if allowed
+  notifyWorkflowComplete(nodeCount, startNode) {
+    const message = `${nodeCount} node${nodeCount === 1 ? '' : 's'} finished from "${startNode.title || startNode.id}"`;
+    if (typeof Notifications?.show === 'function') {
+      Notifications.show(message, 'success');
+    }
+    this.showBrowserNotification('Workflow complete', message);
+  }
+
   // Detect cycles in the execution graph
   detectCycles(executionGraph) {
     const { nodes } = executionGraph;
@@ -435,32 +529,72 @@ class ExecutionManager {
       this.executionState[node.id].iterationCount = 0;
     });
 
-    // Topological sort using Kahn's algorithm
-    const sortedNodes = this.topologicalSort(nodes);
+    // Build adjacency and indegree
+    const nodeIds = nodes.map(n => n.id);
+    const nodeMap = new Map(nodes.map(n => [n.id, n]));
+    const inDegree = {};
+    const adjList = {};
 
-    // Execute nodes in order
-    for (const node of sortedNodes) {
-      // Check iteration limit
-      const state = this.executionState[node.id] || {};
-      if (state.iterationCount >= this.maxIterations) {
-        console.warn(`Max iterations (${this.maxIterations}) reached for node ${node.id}`);
-        this.setNodeExecutionState(node.id, 'error', {
-          error: `Max iterations (${this.maxIterations}) reached`,
-          iterationCount: state.iterationCount
+    nodeIds.forEach(id => {
+      inDegree[id] = 0;
+      adjList[id] = [];
+    });
+
+    this.wallboard.connectionManager.connections.forEach(conn => {
+      const from = conn.start.nodeId;
+      const to = conn.end.nodeId;
+
+      if (nodeIds.includes(from) && nodeIds.includes(to)) {
+        adjList[from].push(to);
+        inDegree[to]++;
+      }
+    });
+
+    // Initial ready set
+    let ready = nodeIds.filter(id => inDegree[id] === 0);
+    const processed = new Set();
+
+    while (ready.length > 0) {
+      const batch = ready;
+      ready = [];
+
+      // Run current batch in parallel
+      await Promise.all(batch.map(async (nodeId) => {
+        const node = nodeMap.get(nodeId);
+        if (!node) return;
+
+        // Check iteration limit
+        const state = this.executionState[node.id] || {};
+        if (state.iterationCount >= this.maxIterations) {
+          console.warn(`Max iterations (${this.maxIterations}) reached for node ${node.id}`);
+          this.setNodeExecutionState(node.id, 'error', {
+            error: `Max iterations (${this.maxIterations}) reached`,
+            iterationCount: state.iterationCount
+          });
+          throw new Error(`Max iterations reached for node: ${node.title || node.id}`);
+        }
+
+        // Increment iteration count
+        this.executionState[node.id].iterationCount = (state.iterationCount || 0) + 1;
+
+        await this.executeSingleNode(node);
+
+        if (this.executionState[node.id]?.status === 'error') {
+          throw new Error(`Node execution failed: ${node.title || node.id}`);
+        }
+      }));
+
+      // After batch completes, update dependencies
+      batch.forEach(nodeId => {
+        if (processed.has(nodeId)) return;
+        processed.add(nodeId);
+        adjList[nodeId].forEach(childId => {
+          inDegree[childId]--;
+          if (inDegree[childId] === 0) {
+            ready.push(childId);
+          }
         });
-        throw new Error(`Max iterations reached for node: ${node.title || node.id}`);
-      }
-
-      // Increment iteration count
-      this.executionState[node.id].iterationCount = (state.iterationCount || 0) + 1;
-
-      // Execute node
-      await this.executeSingleNode(node);
-
-      // If error occurred, stop pipeline
-      if (this.executionState[node.id]?.status === 'error') {
-        throw new Error(`Node execution failed: ${node.title || node.id}`);
-      }
+      });
     }
   }
 
@@ -519,15 +653,87 @@ class ExecutionManager {
     const startTime = Date.now();
 
     try {
-      // Extract instruct blocks first
-      const instructBlocks = this.extractInstructBlocks(node.data.content);
+      const nodeType = this.getNodeType(node);
+      const isInstructionNode = nodeType === 'instruction' || nodeType === 'instruct';
+      const isImageNode = nodeType === 'image';
+      const isSystemNode = nodeType === 'system';
+      const getInputs = () => this.getUpstreamNodeIds(node.id)
+        .map(id => {
+          const state = this.executionState[id];
+          return state?.result;
+        }).filter(r => r !== undefined && r !== null);
 
-      if (instructBlocks.length > 0) {
-        // Has instruct blocks - concatenate and send ONLY those to LLM
-        console.log(`Node ${node.id} has ${instructBlocks.length} instruct block(s) - sending to LLM`);
+      const handlePassThrough = () => {
+        console.log(`Node ${node.id} has no executable content - treating as pass-through`);
 
-        // Concatenate instruct blocks
-        const instructPrompt = instructBlocks.join('\n\n');
+        const inputs = getInputs();
+        const passThroughContent = inputs.length > 0 ? inputs[0] : null;
+
+        this.executionState[node.id] = this.executionState[node.id] || {};
+        this.executionState[node.id].result = passThroughContent;
+        this.setNodeResultContent(node, passThroughContent);
+
+        const executionTime = Date.now() - startTime;
+        this.setNodeExecutionState(node.id, 'success', {
+          result: passThroughContent,
+          lastRun: Date.now(),
+          executionTime
+        });
+      };
+
+      if (isSystemNode) {
+        const inputs = getInputs();
+        const upstreamIds = this.getUpstreamNodeIds(node.id);
+        const sourceNodeId = upstreamIds[upstreamIds.length - 1];
+        const upstreamNode = sourceNodeId ? this.wallboard.getNodeById(sourceNodeId) : null;
+        const upstreamValue = inputs.length > 0
+          ? inputs[inputs.length - 1]
+          : (upstreamNode?.data?.resultContent ?? upstreamNode?.data?.content ?? null);
+
+        if (upstreamValue === undefined || upstreamValue === null ||
+            (typeof upstreamValue === 'string' && upstreamValue.trim() === '')) {
+          const message = 'No upstream output to save.';
+          this.executionState[node.id] = this.executionState[node.id] || {};
+          this.executionState[node.id].result = message;
+          this.setNodeResultContent(node, message);
+          this.setNodeExecutionState(node.id, 'success', {
+            result: message,
+            lastRun: Date.now(),
+            executionTime: Date.now() - startTime
+          });
+          return;
+        }
+
+        const saveInfo = this.saveUpstreamOutputToFile(node, upstreamValue, upstreamNode);
+
+        this.executionState[node.id] = this.executionState[node.id] || {};
+        this.executionState[node.id].result = upstreamValue;
+
+        const heading = saveInfo.hasFence
+          ? `Saved fenced ${saveInfo.language || 'code'} block to ${saveInfo.filename}`
+          : `Saved markdown to ${saveInfo.filename}`;
+        const resultDisplay = `${heading}\n\n${saveInfo.displayContent}`;
+
+        this.setNodeResultContent(node, resultDisplay);
+
+        const executionTime = Date.now() - startTime;
+        this.setNodeExecutionState(node.id, 'success', {
+          result: upstreamValue,
+          lastRun: Date.now(),
+          executionTime
+        });
+        return;
+      }
+
+      if (isInstructionNode) {
+        const instructPrompt = (node.data.content || '').trim();
+
+        if (!instructPrompt) {
+          handlePassThrough();
+          return;
+        }
+
+        console.log(`Node ${node.id} is an instruction node - sending content to LLM`);
 
         // Resolve template variables in instruct prompt
         let resolvedPrompt = this.resolveTemplateVariables(instructPrompt, node.id);
@@ -536,10 +742,7 @@ class ExecutionManager {
         resolvedPrompt = this.stripMarkdownLinks(resolvedPrompt);
 
         // Get upstream data to include in LLM context
-        const inputs = this.getUpstreamNodeIds(node.id).map(id => {
-          const state = this.executionState[id];
-          return state?.result;
-        }).filter(r => r !== undefined && r !== null);
+        const inputs = getInputs();
 
         // Build LLM prompt with ONLY instruct content and optional inputs
         let prompt = resolvedPrompt;
@@ -555,37 +758,27 @@ class ExecutionManager {
           });
         }
 
-        console.log(`Calling LLM with instruct blocks from node ${node.id}...`);
+        console.log(`Calling LLM with instruction node ${node.id}...`);
 
-        // Get text content (markdown without blocks) and strip links
-        let textContent = this.getTextContent(node.data.content);
-        textContent = this.stripMarkdownLinks(textContent);
-
-        // Create result node immediately for LLM output
-        console.log(`Creating result node for LLM node ${node.id} (${node.title})...`);
-        const resultNode = this.createResultNode(node, '_Generating response..._');
-        console.log(`Result node created:`, resultNode ? resultNode.id : 'NULL');
-
-        // Call LLM with streaming
-        const llmOutput = await this.callLLMStreaming(prompt, (chunk) => {
-          // Update result node as content streams in
-          if (resultNode) {
-            this.updateResultNodeContent(resultNode, chunk);
-          }
+        // Call LLM with streaming (no auto-created result nodes)
+        let streamed = '';
+        let flippedOnce = false;
+        const llmOutput = await this.callLLMStreaming(prompt, (partial) => {
+          streamed = partial;
+          // Keep latest partial in execution state and live-render on result side
+          this.executionState[node.id] = this.executionState[node.id] || {};
+          this.executionState[node.id].result = partial;
+          this.setNodeResultContent(node, partial, { keepSide: flippedOnce, skipBadge: true });
+          flippedOnce = true;
         });
 
-        // For instruct blocks, use ONLY the LLM output as the final result
-        // Don't append original text content (which may contain links/connections)
+        // For instruction nodes, use ONLY the LLM output as the final result
         let finalOutput = llmOutput;
-
-        // Update result node with final LLM output only
-        if (resultNode) {
-          this.updateResultNodeContent(resultNode, finalOutput);
-        }
 
         // Store result for next node
         this.executionState[node.id] = this.executionState[node.id] || {};
         this.executionState[node.id].result = finalOutput;
+        this.setNodeResultContent(node, finalOutput);
 
         const executionTime = Date.now() - startTime;
         this.setNodeExecutionState(node.id, 'success', {
@@ -601,31 +794,56 @@ class ExecutionManager {
         return;
       }
 
-      // No instruct blocks - check for code blocks
-      const codeBlocks = this.extractCodeBlocks(node.data.content);
+      if (isImageNode) {
+        let prompt = (node.data.content || '').trim();
+        const inputs = getInputs();
+        if (!prompt && inputs.length > 0) {
+          prompt = typeof inputs[0] === 'object' ? JSON.stringify(inputs[0], null, 2) : String(inputs[0]);
+        }
+
+        if (!prompt) {
+          handlePassThrough();
+          return;
+        }
+
+        // Append upstream context if present
+        if (inputs.length > 0) {
+          prompt += `\n\nContext:\n${inputs.map((input, i) => `Input ${i + 1}: ${typeof input === 'object' ? JSON.stringify(input, null, 2) : String(input)}`).join('\n')}`;
+        }
+
+        try {
+          const imageDataUrl = await this.generateImageWithOpenAI(prompt);
+          const markdownImage = `![Generated Image](${imageDataUrl})`;
+
+          this.executionState[node.id] = this.executionState[node.id] || {};
+          this.executionState[node.id].result = imageDataUrl;
+          this.setNodeResultContent(node, markdownImage);
+
+          const executionTime = Date.now() - startTime;
+          this.setNodeExecutionState(node.id, 'success', {
+            result: imageDataUrl,
+            lastRun: Date.now(),
+            executionTime
+          });
+
+          this.wallboard.autoSave();
+          return;
+        } catch (err) {
+          console.error('Image generation failed:', err);
+          this.setNodeExecutionState(node.id, 'error', {
+            error: err.message,
+            errorStack: err.stack
+          });
+          alert(`Image generation failed: ${err.message}`);
+          return;
+        }
+      }
+
+      // No instruction content - check for code blocks
+      const codeBlocks = this.extractCodeBlocks(node.data.content, nodeType);
 
       if (codeBlocks.length === 0) {
-        // No code blocks and no instruct blocks - treat as pass-through
-        console.log(`Node ${node.id} has no code or instruct blocks - treating as pass-through`);
-
-        // Get input from upstream nodes
-        const inputs = this.getUpstreamNodeIds(node.id).map(id => {
-          const state = this.executionState[id];
-          return state?.result;
-        }).filter(r => r !== undefined && r !== null);
-
-        // Pass input content forward (first input if available)
-        const passThroughContent = inputs.length > 0 ? inputs[0] : null;
-
-        this.executionState[node.id] = this.executionState[node.id] || {};
-        this.executionState[node.id].result = passThroughContent;
-
-        const executionTime = Date.now() - startTime;
-        this.setNodeExecutionState(node.id, 'success', {
-          result: passThroughContent,
-          lastRun: Date.now(),
-          executionTime
-        });
+        handlePassThrough();
         return;
       }
 
@@ -640,9 +858,9 @@ class ExecutionManager {
 
         // Create async function wrapper
         const asyncCode = `
-          (async function() {
+          (async function(quirk, q) {
             ${resolvedCode}
-          })()
+          })(quirk, quirk.q)
         `;
 
         // Execute code with context
@@ -650,12 +868,21 @@ class ExecutionManager {
         lastResult = await func(context);
       }
 
-      // Only set output if explicitly called via quirk.output()
-      // Don't auto-capture console.log or last expression result
-      // Get final result ONLY if output was explicitly set
-      const result = context.__outputSet ? this.executionState[node.id]?.result : undefined;
+      // Wait for any async outputs to settle
+      if (context.__pendingOutputs.length > 0) {
+        await Promise.all(context.__pendingOutputs);
+      }
 
-      // Set success state
+      // Automatic result: prefer explicit output(), else last returned value
+      let result = context.__outputSet ? this.executionState[node.id]?.result : lastResult;
+      if (result !== undefined && result !== null) {
+        this.executionState[node.id] = this.executionState[node.id] || {};
+        this.executionState[node.id].result = result;
+        // Final render on result side with badge
+        this.setNodeResultContent(node, result, { keepSide: true, skipBadge: false });
+      }
+
+      // Set success state AFTER final render (only once)
       const executionTime = Date.now() - startTime;
       this.setNodeExecutionState(node.id, 'success', {
         result,
@@ -665,23 +892,7 @@ class ExecutionManager {
 
       console.log(`✅ Node ${node.id} executed successfully in ${executionTime}ms`);
 
-      // Create/update result node for code execution with quirk.output()
-      if (result !== undefined && result !== null) {
-        // Always create or reuse result node for debugging
-        const resultNode = this.createResultNode(node);
-        if (resultNode) {
-          // Format result content
-          let resultContent = '';
-          if (typeof result === 'object') {
-            resultContent = '```json\n' + JSON.stringify(result, null, 2) + '\n```';
-          } else if (typeof result === 'string') {
-            resultContent = result;
-          } else {
-            resultContent = String(result);
-          }
-          this.updateResultNodeContent(resultNode, resultContent);
-        }
-      }
+      // Do not auto-create/update result nodes; rely on explicit nodes
 
     } catch (error) {
       const executionTime = Date.now() - startTime;
@@ -695,6 +906,16 @@ class ExecutionManager {
       });
 
       throw error; // Re-throw to stop pipeline
+    } finally {
+      const state = this.executionState[node.id];
+      if (state?.status === 'running') {
+        const executionTime = Date.now() - startTime;
+        this.setNodeExecutionState(node.id, 'error', {
+          error: 'Execution did not complete (auto-recovered)',
+          lastRun: Date.now(),
+          executionTime
+        });
+      }
     }
   }
 
@@ -872,7 +1093,7 @@ class ExecutionManager {
     // Update the DOM to show the new title
     const nodeTypeEl = document.getElementById(`type-${resultNode.id}`);
     if (nodeTypeEl) {
-      nodeTypeEl.textContent = expectedResultTitle.toUpperCase();
+      NodeRenderer.setNodeTypeLabel(nodeTypeEl, expectedResultTitle);
     }
 
     // Create connection from source node to result node
@@ -895,55 +1116,7 @@ class ExecutionManager {
   // Update result node content during streaming
   updateResultNodeContent(resultNode, content) {
     if (!resultNode) return;
-
-    // Update the data
-    resultNode.data.content = content;
-    resultNode.data.html = typeof MarkdownRenderer !== 'undefined'
-      ? MarkdownRenderer.render(content)
-      : marked.parse(content);
-
-    // Update the DOM - render properly like wallboard does
-    const contentEl = document.getElementById(`content-${resultNode.id}`);
-    if (contentEl) {
-      // Use the wallboard's renderNodeContent to get properly wrapped HTML
-      if (this.wallboard && this.wallboard.renderNodeContent) {
-        const renderedContent = this.wallboard.renderNodeContent(resultNode);
-        contentEl.innerHTML = typeof Sanitization !== 'undefined'
-          ? Sanitization.sanitize(renderedContent)
-          : renderedContent;
-      } else {
-        // Fallback: wrap in markdown-content div manually
-        contentEl.innerHTML = `<div class="markdown-content">${resultNode.data.html}</div>`;
-      }
-
-      // Re-enable checkboxes
-      if (this.wallboard.nodeContentManager) {
-        this.wallboard.nodeContentManager.enableCheckboxes(contentEl, resultNode);
-      } else if (this.wallboard.enableCheckboxes) {
-        this.wallboard.enableCheckboxes(contentEl, resultNode);
-      }
-
-      // Process links
-      if (this.wallboard.linkManager) {
-        this.wallboard.linkManager.processNodeLinks(resultNode.id, content, false);
-      }
-
-      // Apply syntax highlighting to code blocks
-      if (typeof Prism !== 'undefined') {
-        const codeBlocks = contentEl.querySelectorAll('pre code');
-        codeBlocks.forEach(block => {
-          Prism.highlightElement(block);
-        });
-      }
-    }
-
-    // Auto-save periodically (but not on every chunk to avoid performance issues)
-    if (!this._saveTimeout) {
-      this._saveTimeout = setTimeout(() => {
-        this.wallboard.autoSave();
-        this._saveTimeout = null;
-      }, 1000);
-    }
+    this.setNodeResultContent(resultNode, content);
   }
 
   // Create execution context (quirk API)
@@ -952,6 +1125,7 @@ class ExecutionManager {
     const context = {
       __outputSet: false,
       __consoleOutput: [], // Capture console.log output
+      __pendingOutputs: [],
 
       // Get inputs from upstream nodes
       inputs: function() {
@@ -969,24 +1143,22 @@ class ExecutionManager {
 
       // Set output for this node
       output: function(value) {
-        context.__outputSet = true;
-        self.executionState[node.id] = self.executionState[node.id] || {};
-        self.executionState[node.id].result = value;
+        const assign = (val) => {
+          context.__outputSet = true;
+          self.executionState[node.id] = self.executionState[node.id] || {};
+          self.executionState[node.id].result = val;
+          self.setNodeResultContent(node, val);
+          return val;
+        };
 
-        // Immediately create/update the Result node
-        const resultNode = self.createResultNode(node);
-        if (resultNode) {
-          // Format result content
-          let resultContent = '';
-          if (typeof value === 'object') {
-            resultContent = '```json\n' + JSON.stringify(value, null, 2) + '\n```';
-          } else if (typeof value === 'string') {
-            resultContent = value;
-          } else {
-            resultContent = String(value);
-          }
-          self.updateResultNodeContent(resultNode, resultContent);
+        // Handle promise outputs gracefully
+        if (value && typeof value.then === 'function') {
+          const p = Promise.resolve(value).then(assign);
+          context.__pendingOutputs.push(p);
+          return p;
         }
+
+        return assign(value);
       },
 
       // Override console.log to capture output
@@ -1034,7 +1206,69 @@ class ExecutionManager {
           content: n.data?.content,
           position: { ...n.position }
         };
+      },
+
+      // Convenience alias object
+      q: {}
+    };
+
+    // q.output -> set result
+    context.q.output = (value) => {
+      return context.output(value);
+    };
+
+    // q.save -> download content as a file (defaults to txt)
+    context.q.save = (data, filename = null, ext = null) => {
+      const resolveAndSave = (value) => {
+        let raw = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+
+        // If the content is a fenced block, strip fences and infer extension
+        let fenceExt = null;
+        let fenceBody = null;
+        const fenceMatch = raw.match(/```(\w+)\s*\n([\s\S]*?)\n```/);
+        if (fenceMatch) {
+          fenceExt = fenceMatch[1];
+          fenceBody = fenceMatch[2];
+          raw = fenceBody;
+        }
+
+        const hasExt = filename && filename.includes('.');
+
+        // Detect extension from filename or ext hint, fallback to .txt
+        const detectedExt = hasExt
+          ? ''
+          : (ext ? `.${ext.replace(/^\./, '')}` : '.txt');
+
+        // If filename not provided, try to infer from markdown fence in content
+        let inferredName = filename;
+        if (!inferredName) {
+          if (fenceExt) {
+            inferredName = `${(node.title || `node-${node.id}`).toString().replace(/[<>:"/\\|?*]+/g, '-')}.${fenceExt}`;
+          }
+        }
+
+        const resolvedExt = hasExt ? '' : detectedExt;
+        const safeName = filename
+          ? filename
+          : inferredName
+            ? inferredName
+            : `${(node.title || `node-${node.id}`).toString().replace(/[<>:"/\\|?*]+/g, '-')}${resolvedExt}`;
+        const blob = new Blob([raw], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = safeName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        return safeName;
+      };
+
+      if (data && typeof data.then === 'function') {
+        return Promise.resolve(data).then(resolveAndSave);
       }
+      return resolveAndSave(data);
     };
 
     return context;
@@ -1135,7 +1369,7 @@ class ExecutionManager {
                 fullResponse += parsed.message.content;
                 // Filter out <think></think> tags before displaying
                 const filtered = fullResponse.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-                onChunk(filtered);
+                onChunk && onChunk(filtered);
               }
             } else if (isOpenAI || isAnthropic) {
               // OpenAI/Anthropic format (SSE)
@@ -1151,7 +1385,7 @@ class ExecutionManager {
                     fullResponse += parsed.delta?.text || '';
                     // Filter out <think></think> tags before displaying
                     const filtered = fullResponse.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-                    onChunk(filtered);
+                    onChunk && onChunk(filtered);
                   }
                 } else {
                   // OpenAI format
@@ -1160,7 +1394,7 @@ class ExecutionManager {
                     fullResponse += delta;
                     // Filter out <think></think> tags before displaying
                     const filtered = fullResponse.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-                    onChunk(filtered);
+                    onChunk && onChunk(filtered);
                   }
                 }
               }
@@ -1271,6 +1505,273 @@ class ExecutionManager {
     return;
   }
 
+  formatResultContent(value) {
+    if (value === undefined || value === null) return '';
+    if (typeof value === 'object') {
+      try {
+        return '```json\n' + JSON.stringify(value, null, 2) + '\n```';
+      } catch (e) {
+        return String(value);
+      }
+    }
+    return String(value);
+  }
+
+  // Save upstream output to disk for system nodes
+  saveUpstreamOutputToFile(node, upstreamValue, upstreamNode = null) {
+    const raw = upstreamValue === undefined || upstreamValue === null
+      ? ''
+      : (typeof upstreamValue === 'string'
+        ? upstreamValue
+        : JSON.stringify(upstreamValue, null, 2));
+
+    const trimmed = raw.trim();
+    const fenceMatch = trimmed.match(/^```(\w+)?\s*\n([\s\S]*?)\n```$/);
+    const hasFence = !!fenceMatch;
+    const language = (fenceMatch?.[1] || '').trim();
+    const body = fenceMatch?.[2] ?? raw;
+    const extension = hasFence && language ? language.toLowerCase() : 'md';
+    const extMap = { javascript: 'js', typescript: 'ts', python: 'py', shell: 'sh', bash: 'sh' };
+    const normalizedExt = extMap[extension] || extension;
+
+    const baseTitle = (upstreamNode?.title || upstreamNode?.type || node.title || node.type || 'output')
+      .toString()
+      .trim();
+    const safeBase = baseTitle
+      .replace(/[<>:"/\\|?*]+/g, '-')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 80) || 'output';
+
+    const filename = `${safeBase}.${normalizedExt}`;
+    this.downloadTextFile(body, filename);
+
+    const displayContent = hasFence && language
+      ? `\`\`\`${language}\n${body}\n\`\`\``
+      : body;
+
+    return {
+      filename,
+      displayContent,
+      hasFence,
+      language: language || null,
+      extension
+    };
+  }
+
+  // Trigger a text file download in the browser
+  downloadTextFile(content, filename) {
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  setNodeResultContent(nodeOrId, value, options = {}) {
+    const { keepSide = false, skipBadge = false, streaming = false } = options;
+    const node = typeof nodeOrId === 'number'
+      ? this.wallboard.getNodeById(nodeOrId)
+      : nodeOrId;
+    if (!node) return;
+
+    const normalizedValue = value === undefined || value === null
+      ? ''
+      : String(value)
+          .replace(/[\u00a0\u202f\u2007]/g, ' ')   // NBSP variants
+          .replace(/[\u200b-\u200d\ufeff]/g, '')  // zero-width chars
+          .trim();
+    const hasValue = normalizedValue !== '';
+
+    if (!hasValue) {
+      delete node.data.resultContent;
+      delete node.data.resultHtml;
+      node.data.showingResult = false;
+      this.wallboard.setNodeSide(node.id, 'content');
+      if (this.executionState[node.id]) {
+        delete this.executionState[node.id].result;
+      }
+      if (this._streamingFlipped) this._streamingFlipped.delete(node.id);
+    } else {
+      if (streaming) {
+        // Lightweight streaming update: store plain content, skip markdown render
+        node.data.resultContent = value;
+        node.data.resultHtml = null;
+        // Force showing result side during streaming (but only flip once)
+        node.data.showingResult = true;
+        this._streamingFlipped = this._streamingFlipped || new Set();
+        if (!this._streamingFlipped.has(node.id)) {
+          this._streamingFlipped.add(node.id);
+          this.wallboard.setNodeSide(node.id, 'result');
+        }
+      } else {
+        if (this._streamingFlipped) this._streamingFlipped.delete(node.id);
+        const formatted = this.formatResultContent(value);
+        node.data.resultContent = formatted;
+        node.data.resultHtml = typeof MarkdownRenderer !== 'undefined'
+          ? MarkdownRenderer.render(formatted)
+          : marked.parse(formatted);
+        if (this.wallboard.linkManager) {
+          this.wallboard.linkManager.processNodeLinks(node.id, node.data.resultContent, false);
+        }
+        // Auto-flip to result side so streaming is visible (unless keepSide)
+        if (!keepSide) {
+          this.wallboard.setNodeSide(node.id, 'result');
+         }
+       }
+    }
+
+    const resultEl = document.getElementById(`result-content-${node.id}`);
+    if (resultEl) {
+      const cm = resultEl.querySelector('.text-editor')?._cmInstance;
+      if (cm) {
+        cm.setValue(node.data.resultContent || '');
+      } else if (streaming) {
+        const latest = node.data.resultContent || '';
+        const MAX_STREAM_CHARS = 300;
+        const displayText = latest.length > MAX_STREAM_CHARS
+          ? '…' + latest.slice(-MAX_STREAM_CHARS)
+          : latest;
+
+        let body = resultEl.querySelector('.stream-text');
+        if (!body) {
+          body = document.createElement('pre');
+          body.className = 'stream-text';
+          body.style.whiteSpace = 'pre-wrap';
+          body.style.margin = '0';
+          body.style.fontFamily = 'inherit';
+          resultEl.innerHTML = '';
+          resultEl.appendChild(body);
+        }
+
+        body.textContent = displayText;
+        resultEl.style.overflow = 'hidden';
+        resultEl.style.maxHeight = `${resultEl.clientHeight || 200}px`;
+        resultEl.style.scrollbarWidth = 'none';
+        resultEl.style.msOverflowStyle = 'none';
+        resultEl.scrollTop = 0;
+      } else {
+        const fullText = node.data.resultContent || '';
+        const MAX_RENDER_CHARS = 3000;
+        const shouldTruncate = fullText.length > MAX_RENDER_CHARS;
+        if (shouldTruncate) {
+          const displayText = '…' + fullText.slice(-MAX_RENDER_CHARS);
+          let body = resultEl.querySelector('.stream-text');
+          if (!body) {
+            body = document.createElement('pre');
+            body.className = 'stream-text';
+            body.style.whiteSpace = 'pre-wrap';
+            body.style.margin = '0';
+            body.style.fontFamily = 'inherit';
+            resultEl.innerHTML = '';
+            resultEl.appendChild(body);
+          }
+          body.textContent = displayText;
+          resultEl.style.overflow = 'auto';
+          resultEl.style.maxHeight = '';
+          resultEl.scrollTop = resultEl.scrollHeight;
+        } else {
+          resultEl.innerHTML = Sanitization.sanitize(this.wallboard.renderNodeContent(node, 'result'));
+          this.wallboard.htmlPreviewManager?.hydrate(resultEl, node, 'result');
+          setTimeout(() => {
+            this.wallboard.enableCheckboxes(resultEl, node);
+            if (typeof Prism !== 'undefined') {
+              const codeBlocks = resultEl.querySelectorAll('pre code');
+              codeBlocks.forEach(block => Prism.highlightElement(block));
+            }
+          }, 0);
+        }
+      }
+    }
+
+    const state = this.executionState[node.id] || {};
+    if (!skipBadge) {
+      this.updateStatusBadge(node.id, state.status || 'idle', state);
+    }
+
+    if (!streaming && resultEl && !resultEl.querySelector('.text-editor')) {
+      const isNearBottom = resultEl.scrollHeight - resultEl.scrollTop - resultEl.clientHeight < 80;
+      const wasEmpty = !hasValue;
+      if (isNearBottom || wasEmpty) {
+        resultEl.scrollTop = resultEl.scrollHeight;
+      }
+    }
+
+    if (!streaming && !this._saveTimeout) {
+      this._saveTimeout = setTimeout(() => {
+        this.wallboard.autoSave();
+        this._saveTimeout = null;
+      }, 800);
+    }
+  }
+
+  // Generate image via OpenAI Images API (basic support)
+  async generateImageWithOpenAI(prompt) {
+    // Ensure config is loaded
+    if (!this.llmConfig) {
+      await this.llmConfigPromise;
+    }
+
+    const baseEndpoint = (this.llmConfig.endpoint || '').toLowerCase();
+    const apiKey = this.llmConfig.apiKey;
+
+    if (!apiKey) {
+      throw new Error('API key required for OpenAI image generation. Configure it in AI Chat Settings.');
+    }
+
+    // Derive image endpoint from configured endpoint; fallback to OpenAI public endpoint
+    let imageEndpoint = this.llmConfig.endpoint || '';
+    const isOpenAI = baseEndpoint.includes('openai.com');
+    if (imageEndpoint.includes('/chat/completions')) {
+      imageEndpoint = imageEndpoint.replace('/chat/completions', '/images/generations');
+    } else if (!imageEndpoint.includes('/images/generations')) {
+      // If configured endpoint is not clearly OpenAI, default to the official endpoint
+      imageEndpoint = isOpenAI
+        ? (imageEndpoint.endsWith('/') ? `${imageEndpoint}images/generations` : `${imageEndpoint}/images/generations`)
+        : 'https://api.openai.com/v1/images/generations';
+    }
+
+    // Allow a dedicated image model override; otherwise default to OpenAI image model
+    const imageModel = localStorage.getItem('ai_image_model') || 'gpt-image-1';
+
+    const body = {
+      model: imageModel,
+      prompt,
+      size: '1024x1024'
+    };
+
+    const response = await fetch(imageEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Image API error: ${response.status} ${response.statusText} - ${errText}`);
+    }
+
+    const result = await response.json();
+    const item = result?.data?.[0] || {};
+    const b64 = item.b64_json;
+    const url = item.url;
+    if (b64) {
+      return `data:image/png;base64,${b64}`;
+    }
+    if (url) {
+      return url;
+    }
+    throw new Error('Image API returned no image data.');
+  }
+
   // Set node execution state and update UI
   setNodeExecutionState(nodeId, status, data = {}) {
     // Update state
@@ -1292,11 +1793,6 @@ class ExecutionManager {
       nodeElement.classList.add('executing');
     } else if (status === 'success') {
       nodeElement.classList.add('execution-success');
-
-      // Auto-remove success state after 3 seconds
-      setTimeout(() => {
-        nodeElement.classList.remove('execution-success');
-      }, 3000);
     } else if (status === 'error') {
       nodeElement.classList.add('execution-error');
     }
@@ -1307,6 +1803,9 @@ class ExecutionManager {
 
   // Update execution status badge on node
   updateStatusBadge(nodeId, status, data) {
+    status = status || 'idle';
+    data = data || {};
+    const node = this.wallboard.getNodeById(nodeId);
     const nodeElement = document.getElementById(`node-${nodeId}`);
     if (!nodeElement) return;
 
@@ -1318,33 +1817,36 @@ class ExecutionManager {
       nodeElement.appendChild(badge);
     }
 
-    // Update badge content based on status
-    if (status === 'running') {
-      badge.innerHTML = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10" opacity="0.25"/>
-          <path d="M12 2 A10 10 0 0 1 22 12" stroke-dasharray="32" stroke-dashoffset="0">
-            <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/>
-          </path>
-        </svg>
-      `;
-      badge.title = 'Executing...';
-      badge.style.display = 'flex';
-    } else if (status === 'success') {
-      const time = data.executionTime ? `${data.executionTime}ms` : '';
-      badge.innerHTML = `
-        <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10" fill="rgba(16, 185, 129, 0.1)"/>
-          <path d="M9 12l2 2 4-4"/>
-        </svg>
-      `;
-      badge.title = `Success ${time}`;
-      badge.style.display = 'flex';
+    const hasResult = !!node?.data?.resultContent;
+    const shouldShow = status === 'running' || hasResult;
 
-      // Auto-hide after 3 seconds
-      setTimeout(() => {
-        badge.style.display = 'none';
-      }, 3000);
+    if (!shouldShow) {
+      badge.style.display = 'none';
+      badge.onclick = null;
+      badge.classList.remove('is-running', 'has-result');
+      return;
+    }
+
+    // Update badge content based on status
+      if (status === 'running') {
+        badge.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" opacity="0.25"/>
+            <path d="M12 2 A10 10 0 0 1 22 12" stroke-dasharray="32" stroke-dashoffset="0">
+              <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/>
+            </path>
+          </svg>
+        `;
+        badge.title = 'Executing...';
+        badge.onclick = (e) => {
+          e.stopPropagation();
+          const showingResult = this.wallboard.isShowingResult(nodeId);
+          this.wallboard.setNodeSide(nodeId, showingResult ? 'content' : 'result');
+        };
+        badge.classList.add('is-running');
+        badge.classList.remove('has-result');
+        badge.style.display = 'flex';
+        badge.style.pointerEvents = 'auto';
     } else if (status === 'error') {
       badge.innerHTML = `
         <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1353,9 +1855,30 @@ class ExecutionManager {
         </svg>
       `;
       badge.title = `Error: ${data.error || 'Unknown error'}`;
+      badge.onclick = null;
+      badge.classList.remove('is-running');
+      badge.classList.remove('has-result');
       badge.style.display = 'flex';
-    } else {
-      badge.style.display = 'none';
+      badge.style.pointerEvents = 'auto';
+    } else if (hasResult) {
+      badge.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12a7 7 0 0 1 7-7h2" />
+          <polyline points="10 4 14 4 14 8"></polyline>
+          <path d="M19 12a7 7 0 0 1-7 7h-2"></path>
+          <polyline points="14 20 10 20 10 16"></polyline>
+        </svg>
+      `;
+      const showingResult = this.wallboard.isShowingResult(nodeId);
+      badge.title = showingResult ? 'Back to content' : 'View result';
+      badge.onclick = (e) => {
+        e.stopPropagation();
+        this.wallboard.toggleResultSide(nodeId);
+      };
+      badge.classList.remove('is-running');
+      badge.classList.add('has-result');
+      badge.style.display = 'flex';
+      badge.style.pointerEvents = 'auto';
     }
 
     // Add iteration count if cycling
@@ -1374,10 +1897,8 @@ class ExecutionManager {
     // Remove visual states from all nodes
     document.querySelectorAll('.node').forEach(nodeEl => {
       nodeEl.classList.remove('executing', 'execution-success', 'execution-error');
-      const badge = nodeEl.querySelector('.execution-status-badge');
-      if (badge) {
-        badge.style.display = 'none';
-      }
+      const nodeId = parseInt(nodeEl.id.replace('node-', ''), 10);
+      this.updateStatusBadge(nodeId, 'idle', {});
     });
   }
 

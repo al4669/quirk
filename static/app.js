@@ -19,6 +19,7 @@ class Wallboard {
     this.nodeOperationsManager = new NodeOperationsManager(this);
     this.contextMenuManager = new ContextMenuManager(this);
     this.nodeContentManager = new NodeContentManager(this);
+    this.htmlPreviewManager = new HtmlPreviewManager(this);
     this.linkManager = new LinkManager(this);
     this.graphLayoutManager = new GraphLayoutManager(this);
     this.minimap = null; // Will be initialized after board loads
@@ -48,13 +49,13 @@ class Wallboard {
     this.nodeThemes = {}; // Per-node theme overrides
 
     // Canvas boundaries
-    this.canvasWidth = CanvasConfig.WIDTH;
-    this.canvasHeight = CanvasConfig.HEIGHT;
+    this.canvasWidth = CanvasConfig.MIN_WIDTH;
+    this.canvasHeight = CanvasConfig.MIN_HEIGHT;
 
     // Zoom and pan properties - start centered
     this.zoom = CanvasConfig.DEFAULT_ZOOM;
-    this.panX = CanvasConfig.getInitialPanX();
-    this.panY = CanvasConfig.getInitialPanY();
+    this.panX = CanvasConfig.getInitialPanX(this.canvasWidth);
+    this.panY = CanvasConfig.getInitialPanY(this.canvasHeight);
     this.isPanning = false;
     this.panStart = { x: 0, y: 0 };
     this.panUpdateTimeout = null;
@@ -67,11 +68,16 @@ class Wallboard {
 
     this.alignmentManager = new AlignmentManager(this);
     this.executionManager = new ExecutionManager(this);
+    this.nodeSizeCache = new Map();
+    this.savingIndicatorEl = null;
+    this.savingHideTimeout = null;
+    this.viewWasRestored = false;
 
     this.init();
   }
 
   async init() {
+    this.initSavingIndicator();
     // Initialize board system
     await this.initBoardSystem();
 
@@ -88,8 +94,8 @@ class Wallboard {
     const handleCanvasClick = (e) => {
       // Don't exit edit mode if clicking on text editor or inside node
       if (e.target.classList.contains('text-editor') ||
-          e.target.closest('.text-editor') ||
-          e.target.closest('.node-content')) {
+        e.target.closest('.text-editor') ||
+        e.target.closest('.node-content')) {
         return;
       }
 
@@ -116,8 +122,8 @@ class Wallboard {
     // Hide context menu on click outside and exit edit modes
     document.addEventListener("click", (e) => {
       if (!e.target.closest(".context-menu") &&
-          !e.target.closest(".theme-selector") &&
-          !e.target.classList.contains('text-editor')) {
+        !e.target.closest(".theme-selector") &&
+        !e.target.classList.contains('text-editor')) {
         this.hideContextMenu();
 
         // Exit edit mode if clicking outside all nodes
@@ -173,8 +179,8 @@ class Wallboard {
     // Initialize minimap
     this.minimap = new Minimap(this);
 
-    // Center view on nodes after initial load
-    if (this.nodes.length > 0) {
+    // Center view on nodes after initial load only if we have no restored view
+    if (!this.viewWasRestored && this.nodes.length > 0) {
       setTimeout(() => {
         this.minimap.centerOnNodes();
       }, 100);
@@ -191,10 +197,10 @@ class Wallboard {
     document.addEventListener("wheel", this.handleWheel.bind(this), { passive: false });
 
     // Canvas pan listeners
-    const canvas = document.getElementById("canvas");
-    canvas.addEventListener("mousedown", this.handleCanvasPanStart.bind(this));
-    canvas.addEventListener("mousemove", this.handleCanvasPan.bind(this));
-    canvas.addEventListener("mouseup", this.handleCanvasPanEnd.bind(this));
+    // Canvas pan listeners - attached to window for infinite panning
+    window.addEventListener("mousedown", this.handleCanvasPanStart.bind(this));
+    window.addEventListener("mousemove", this.handleCanvasPan.bind(this));
+    window.addEventListener("mouseup", this.handleCanvasPanEnd.bind(this));
 
     // Event delegation for wiki-style [[links]] - handles clicks on .wiki-link elements
     document.addEventListener('click', (e) => {
@@ -223,7 +229,12 @@ class Wallboard {
   }
 
   async saveCurrentBoard() {
-    return BoardManager.saveCurrentBoard(this);
+    this.showSavingIndicator();
+    try {
+      return await BoardManager.saveCurrentBoard(this);
+    } finally {
+      this.hideSavingIndicator();
+    }
   }
 
   async saveBoardsToStorage() {
@@ -232,7 +243,9 @@ class Wallboard {
 
   autoSave() {
     // Debounced auto-save
+    this.updateCanvasBounds();
     clearTimeout(this.autoSaveTimeout);
+    this.showSavingIndicator();
     this.autoSaveTimeout = setTimeout(() => {
       this.saveCurrentBoard();
     }, 1000); // Save 1 second after last change
@@ -311,6 +324,79 @@ class Wallboard {
     return NodeUtils.getNodeById(id, this.nodes);
   }
 
+  isShowingResult(nodeId) {
+    const nodeEl = document.getElementById(`node-${nodeId}`);
+    if (nodeEl) {
+      return nodeEl.classList.contains('showing-result');
+    }
+    const node = this.getNodeById(nodeId);
+    return !!node?.data?.showingResult;
+  }
+
+  setNodeSide(nodeId, side = 'content') {
+    const node = this.getNodeById(nodeId);
+    const nodeEl = document.getElementById(`node-${nodeId}`);
+    if (!nodeEl || !node) return;
+
+    const showResult = side === 'result' && !!node.data?.resultContent;
+    node.data.showingResult = showResult;
+    nodeEl.classList.toggle('showing-result', showResult);
+    nodeEl.dataset.side = showResult ? 'result' : 'content';
+
+    // Ensure result content is rendered when first shown
+    if (showResult) {
+      const resultEl = this.getContentElement(nodeId, 'result');
+      if (resultEl && !resultEl.querySelector('.text-editor')) {
+        resultEl.innerHTML = Sanitization.sanitize(this.renderNodeContent(node, 'result'));
+        this.htmlPreviewManager?.hydrate(resultEl, node, 'result');
+        this.enableCheckboxes(resultEl, node);
+        const codeBlocks = resultEl.querySelectorAll('pre code');
+        if (typeof Prism !== 'undefined') {
+          codeBlocks.forEach(block => Prism.highlightElement(block));
+        }
+      }
+    }
+
+    // Recompute size and connections after flipping
+    if (nodeEl.isConnected) {
+      requestAnimationFrame(() => {
+        this.updateNodeSizeFromElement(nodeId, nodeEl);
+        this.updateConnections();
+      });
+    }
+  }
+
+  toggleResultSide(nodeId) {
+    const node = this.getNodeById(nodeId);
+    if (!node?.data?.resultContent) return;
+
+    const activeContent = this.getActiveContentElement(nodeId);
+    if (activeContent?.querySelector('.text-editor')) {
+      // Save and close the current editor before flipping
+      this.editModeManager.toggleEdit(nodeId);
+    }
+
+    const nextSide = this.isShowingResult(nodeId) ? 'content' : 'result';
+    this.setNodeSide(nodeId, nextSide);
+
+    // Refresh badge state to reflect which side is visible
+    const state = this.executionManager?.executionState?.[nodeId] || {};
+    this.executionManager?.updateStatusBadge(nodeId, state.status || 'idle', state);
+
+    // Update connections after layout change
+    setTimeout(() => this.updateConnections(), 50);
+  }
+
+  getContentElement(nodeId, side = null) {
+    const resolvedSide = side || (this.isShowingResult(nodeId) ? 'result' : 'content');
+    const id = resolvedSide === 'result' ? `result-content-${nodeId}` : `content-${nodeId}`;
+    return document.getElementById(id);
+  }
+
+  getActiveContentElement(nodeId) {
+    return this.getContentElement(nodeId);
+  }
+
   // Convert screen coordinates to canvas coordinates
   screenToCanvas(screenX, screenY) {
     return CoordinateUtils.screenToCanvas(screenX, screenY, this.panX, this.panY, this.zoom);
@@ -319,6 +405,331 @@ class Wallboard {
   // Convert canvas coordinates to screen coordinates
   canvasToScreen(canvasX, canvasY) {
     return CoordinateUtils.canvasToScreen(canvasX, canvasY, this.panX, this.panY, this.zoom);
+  }
+
+  updateNodeSize(nodeId, width, height) {
+    if (!Number.isFinite(width) || !Number.isFinite(height)) {
+      return;
+    }
+    this.nodeSizeCache.set(nodeId, { width, height });
+  }
+
+  updateNodeSizeFromElement(nodeId, element) {
+    if (!element) return;
+    const width = element.offsetWidth || 250;
+    const height = element.offsetHeight || 180;
+    this.updateNodeSize(nodeId, width, height);
+  }
+
+  getNodeSize(nodeId) {
+    return this.nodeSizeCache.get(nodeId);
+  }
+
+  deleteNodeSize(nodeId) {
+    this.nodeSizeCache.delete(nodeId);
+  }
+
+  clearNodeSizeCache() {
+    this.nodeSizeCache.clear();
+  }
+
+  getNodeRect(node) {
+    if (!node) return null;
+    let size = this.getNodeSize(node.id);
+    const nodeEl = document.getElementById(`node-${node.id}`);
+    if (nodeEl) {
+      this.updateNodeSizeFromElement(node.id, nodeEl);
+      size = { width: nodeEl.offsetWidth || 250, height: nodeEl.offsetHeight || 180 };
+    } else if (!size) {
+      size = { width: 250, height: 180 };
+    }
+
+    return {
+      left: node.position.x,
+      top: node.position.y,
+      right: node.position.x + size.width,
+      bottom: node.position.y + size.height,
+      width: size.width,
+      height: size.height
+    };
+  }
+
+  getDefaultNodeSize() {
+    return { width: 250, height: 180 };
+  }
+
+  getViewportCenteredPosition(nodeSize = this.getDefaultNodeSize()) {
+    const viewportCenterX = window.innerWidth / 2;
+    const viewportCenterY = window.innerHeight / 2;
+
+    // Canvas has transform: translate(panX, panY) scale(zoom)
+    const canvasX = (viewportCenterX - this.panX) / this.zoom;
+    const canvasY = (viewportCenterY - this.panY) / this.zoom;
+
+    return {
+      x: canvasX - nodeSize.width / 2,
+      y: canvasY - nodeSize.height / 2
+    };
+  }
+
+  getNextNodePosition(referenceNodes = null, nodeSize = this.getDefaultNodeSize()) {
+    // If no nodes exist, center the first node so it's visible
+    if (!this.nodes || this.nodes.length === 0) {
+      return this.getViewportCenteredPosition(nodeSize);
+    }
+
+    // Prefer explicit references, otherwise use the last node added
+    let baseNodes = [];
+    if (referenceNodes && referenceNodes.length) {
+      const refIds = new Set(referenceNodes.map(r => (typeof r === 'object' ? r.id : r)));
+      baseNodes = this.nodes.filter(n => refIds.has(n.id));
+    }
+
+    if (baseNodes.length === 0) {
+      const lastNode = this.nodes[this.nodes.length - 1];
+      if (lastNode) baseNodes = [lastNode];
+    }
+
+    const bounds = this.getNodesBounds(baseNodes);
+    if (!bounds) {
+      return this.getViewportCenteredPosition(nodeSize);
+    }
+
+    const shift = this.findAvailableDuplicateShift(bounds);
+    const centeredY = bounds.top + (bounds.height - nodeSize.height) / 2;
+
+    return {
+      x: bounds.left + shift.x,
+      y: Number.isFinite(centeredY) ? centeredY : bounds.top
+    };
+  }
+
+  initSavingIndicator() {
+    if (this.savingIndicatorEl) return;
+    const el = document.createElement('div');
+    el.className = 'saving-indicator';
+    el.innerHTML = `
+      <div class="saving-indicator__spinner">
+        <span></span><span></span><span></span>
+      </div>
+      <div class="saving-indicator__text">
+        <strong>Saving…</strong>
+        <small>Don’t close</small>
+      </div>
+    `;
+    document.body.appendChild(el);
+    this.savingIndicatorEl = el;
+    this.hideSavingIndicator(true);
+  }
+
+  showSavingIndicator() {
+    if (!this.savingIndicatorEl) return;
+    clearTimeout(this.savingHideTimeout);
+    this.savingIndicatorEl.classList.add('visible');
+    // Safety auto-hide in case something stalls
+    this.savingHideTimeout = setTimeout(() => {
+      this.hideSavingIndicator(true);
+    }, 12000);
+  }
+
+  hideSavingIndicator(immediate = false) {
+    if (!this.savingIndicatorEl) return;
+    clearTimeout(this.savingHideTimeout);
+    if (immediate) {
+      this.savingIndicatorEl.classList.remove('visible');
+      return;
+    }
+    setTimeout(() => {
+      this.savingIndicatorEl.classList.remove('visible');
+    }, 200);
+  }
+
+  getNodesBounds(nodes = []) {
+    if (!nodes || nodes.length === 0) {
+      return null;
+    }
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    nodes.forEach(node => {
+      const rect = this.getNodeRect(node);
+      if (!rect) return;
+      minX = Math.min(minX, rect.left);
+      minY = Math.min(minY, rect.top);
+      maxX = Math.max(maxX, rect.right);
+      maxY = Math.max(maxY, rect.bottom);
+    });
+
+    if (!Number.isFinite(minX) || !Number.isFinite(minY)) {
+      return null;
+    }
+
+    return {
+      left: minX,
+      top: minY,
+      right: maxX,
+      bottom: maxY,
+      width: Math.max(1, maxX - minX),
+      height: Math.max(1, maxY - minY)
+    };
+  }
+
+  rectOverlapsNodes(rect, excludeIds = null) {
+    if (!rect) return false;
+
+    const exclude = excludeIds instanceof Set ? excludeIds : new Set();
+
+    return this.nodes.some(node => {
+      if (exclude.has(node.id)) return false;
+
+      const nodeRect = this.getNodeRect(node);
+      if (!nodeRect) return false;
+
+      const separated = rect.right <= nodeRect.left ||
+        rect.left >= nodeRect.right ||
+        rect.bottom <= nodeRect.top ||
+        rect.top >= nodeRect.bottom;
+      return !separated;
+    });
+  }
+
+  findAvailableDuplicateShift(bounds, excludeIds = null, gap = 200) {
+    if (!bounds) {
+      return { x: gap, y: 0 };
+    }
+
+    const exclude = excludeIds || new Set();
+    const width = Math.max(bounds.width, 200);
+    let shiftX = width + gap;
+    let attempts = 0;
+    const maxAttempts = 20;
+
+    while (attempts < maxAttempts) {
+      const candidateRect = {
+        left: bounds.left + shiftX,
+        right: bounds.right + shiftX,
+        top: bounds.top,
+        bottom: bounds.bottom
+      };
+
+      if (!this.rectOverlapsNodes(candidateRect, exclude)) {
+        return { x: shiftX, y: 0 };
+      }
+
+      shiftX += width + gap;
+      attempts += 1;
+    }
+
+    return { x: shiftX, y: 0 };
+  }
+
+  focusOnNodes(nodeIds = []) {
+    if (!nodeIds || nodeIds.length === 0) return;
+    const nodes = this.nodes.filter(node => nodeIds.includes(node.id));
+    const bounds = this.getNodesBounds(nodes);
+    if (!bounds) return;
+
+    const centerX = (bounds.left + bounds.right) / 2;
+    const centerY = (bounds.top + bounds.bottom) / 2;
+    const viewportCenterX = window.innerWidth / 2;
+    const viewportCenterY = window.innerHeight / 2;
+
+    this.panX = viewportCenterX - (centerX * this.zoom);
+    this.panY = viewportCenterY - (centerY * this.zoom);
+    this.updateTransform();
+  }
+
+  updateCanvasBounds(padding = 0) {
+    if (!this.nodes || this.nodes.length === 0) {
+      this.canvasWidth = CanvasConfig.MIN_WIDTH;
+      this.canvasHeight = CanvasConfig.MIN_HEIGHT;
+      const canvasEl = document.getElementById('canvas');
+      const connectionsEl = document.getElementById('connections');
+      if (canvasEl) {
+        canvasEl.style.width = `${this.canvasWidth}px`;
+        canvasEl.style.height = `${this.canvasHeight}px`;
+        canvasEl.style.transformOrigin = '0 0';
+      }
+      if (connectionsEl) {
+        connectionsEl.setAttribute('width', this.canvasWidth);
+        connectionsEl.setAttribute('height', this.canvasHeight);
+      }
+      if (this.minimap) {
+        this.minimap.calculateScale();
+      }
+      return;
+    }
+
+    const bounds = this.getNodesBounds(this.nodes);
+    if (!bounds) return;
+
+    const offsetX = bounds.left - padding;
+    const offsetY = bounds.top - padding;
+    let didShift = false;
+
+    // Only shift if nodes are going into negative coordinates (beyond padding)
+    // We treat anything < -1 as needing correction. Positive offsets (moving right/down) are allowed.
+    const shiftX = offsetX < -1 ? offsetX : 0;
+    const shiftY = offsetY < -1 ? offsetY : 0;
+
+    if (shiftX !== 0 || shiftY !== 0) {
+      // Disable transitions to prevent visual twitching during coordinate reset
+      document.body.classList.add('no-transition');
+
+      this.nodes.forEach(node => {
+        node.position.x -= shiftX;
+        node.position.y -= shiftY;
+        const nodeEl = document.getElementById(`node-${node.id}`);
+        if (nodeEl) {
+          nodeEl.style.transform = `translate3d(${node.position.x}px, ${node.position.y}px, 0)`;
+        }
+      });
+
+      this.panX += shiftX * this.zoom;
+      this.panY += shiftY * this.zoom;
+      this.updateTransform();
+
+      // Force reflow to ensure the transform changes are applied instantly without transition
+      document.body.offsetHeight;
+
+      // Re-enable transitions
+      document.body.classList.remove('no-transition');
+
+      didShift = true;
+    }
+
+    const normalizedBounds = this.getNodesBounds(this.nodes);
+    if (!normalizedBounds) return;
+
+    // Use the right/bottom bounds to determine width/height, since we no longer force left/top to 0
+    const width = Math.max(normalizedBounds.right + padding, CanvasConfig.MIN_WIDTH);
+    const height = Math.max(normalizedBounds.bottom + padding, CanvasConfig.MIN_HEIGHT);
+
+    this.canvasWidth = width;
+    this.canvasHeight = height;
+
+    const canvasEl = document.getElementById('canvas');
+    const connectionsEl = document.getElementById('connections');
+    if (canvasEl) {
+      canvasEl.style.width = `${width}px`;
+      canvasEl.style.height = `${height}px`;
+      canvasEl.style.transformOrigin = '0 0';
+    }
+    if (connectionsEl) {
+      connectionsEl.setAttribute('width', width);
+      connectionsEl.setAttribute('height', height);
+    }
+
+    if (this.minimap) {
+      this.minimap.calculateScale();
+    }
+
+    if (didShift && this.connectionManager) {
+      this.connectionManager.updateConnectionsInstant();
+    }
   }
 
   // --- Mouse Event Handlers ---
@@ -568,9 +979,9 @@ class Wallboard {
       let contentElement = editor.parentElement;
 
       // If the editor is the CodeMirror wrapper, it's directly inside the content div
-      if (!contentElement || !contentElement.id || !contentElement.id.startsWith('content-')) {
-        // Try finding the closest parent with content-* id
-        contentElement = editor.closest('[id^="content-"]');
+      if (!contentElement || !contentElement.id || (!contentElement.id.startsWith('content-') && !contentElement.id.startsWith('result-content-'))) {
+        // Try finding the closest parent with content-* or result-content-* id
+        contentElement = editor.closest('[id^="content-"], [id^="result-content-"]');
       }
 
       // Check if we found a valid content element
@@ -580,7 +991,12 @@ class Wallboard {
       }
 
       const contentId = contentElement.id;
-      const nodeId = parseInt(contentId.replace("content-", ""));
+      const nodeIdMatch = contentId.match(/(?:content|result-content)-(\d+)/);
+      const nodeId = nodeIdMatch ? parseInt(nodeIdMatch[1], 10) : null;
+      if (nodeId === null || Number.isNaN(nodeId)) {
+        console.warn('[exitAllEditModes] Could not parse node id from content element', contentElement);
+        return;
+      }
 
       // Trigger save by calling toggleEdit
       this.toggleEdit(nodeId);
@@ -604,6 +1020,35 @@ class Wallboard {
     const node = this.nodes.find((n) => n.id === nodeId);
     if (node) {
       this.editorManager.openNode(node);
+    }
+  }
+
+  // Flip all nodes to result side (if available) and restore
+  toggleFlipAllNodes() {
+    if (!this._flipAllState) {
+      // Save current side state
+      this._flipAllState = {
+        saved: new Map(this.nodes.map(n => [n.id, !!n.data?.showingResult])),
+        phase: 'results'
+      };
+      this.nodes.forEach(n => {
+        const hasResult = !!n.data?.resultContent;
+        this.setNodeSide(n.id, hasResult ? 'result' : 'content');
+      });
+      Notifications?.show?.('Flipped all nodes to results', 'info');
+    } else if (this._flipAllState.phase === 'results') {
+      // Move to content phase
+      this.nodes.forEach(n => this.setNodeSide(n.id, 'content'));
+      this._flipAllState.phase = 'content';
+      Notifications?.show?.('Flipped all nodes to content', 'info');
+    } else {
+      // Restore prior state
+      this.nodes.forEach(n => {
+        const wasResult = this._flipAllState.saved.get(n.id);
+        this.setNodeSide(n.id, wasResult ? 'result' : 'content');
+      });
+      this._flipAllState = null;
+      Notifications?.show?.('Restored node sides', 'info');
     }
   }
 
@@ -650,8 +1095,8 @@ class Wallboard {
   }
 
   // Helper to render node content (uses cached HTML or marked.js)
-  renderNodeContent(node) {
-    return this.editModeManager.renderNodeContent(node);
+  renderNodeContent(node, side = 'content') {
+    return this.editModeManager.renderNodeContent(node, side);
   }
 
   // --- Node Content Management - delegated to NodeContentManager ---
@@ -695,7 +1140,23 @@ class Wallboard {
   // Auto-arrange nodes using graph layout
   autoArrangeNodes(animate = true) {
     if (this.graphLayoutManager) {
-      this.graphLayoutManager.autoArrange(animate, true); // Pan to center after arranging
+      // Center on the middle of the default canvas size
+      const centerX = CanvasConfig.MIN_WIDTH / 2;
+      const centerY = CanvasConfig.MIN_HEIGHT / 2;
+
+      // Pan to this center point
+      const viewportCenterX = window.innerWidth / 2;
+      const viewportCenterY = window.innerHeight / 2;
+
+      // Animate pan if requested (simple interpolation could be added here, but direct set is safer for sync)
+      this.panX = viewportCenterX - (centerX * this.zoom);
+      this.panY = viewportCenterY - (centerY * this.zoom);
+      this.zoomPanManager.updateTransform();
+
+      this.graphLayoutManager.autoArrange({
+        animate,
+        targetCenter: { x: centerX, y: centerY }
+      });
     }
   }
 

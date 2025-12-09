@@ -1,61 +1,58 @@
 class ConnectionManager {
   constructor(wallboardInstance = null, onChangeCallback = null) {
     this.connections = [];
-    this.connectionThemes = {}; // Store theme for each connection
+    this.connectionThemes = {};
+
+    // Cache for DOM elements to prevent constant recreation
+    this.domCache = new Map();
+
+    this.wallboard = wallboardInstance;
+    this.onChangeCallback = onChangeCallback;
+    this.svg = null;
+
+    // Tools
     this.dragLine = null;
     this.cutLine = null;
     this.cutPath = [];
-    this.svg = null;
-    this.wallboard = wallboardInstance;
-    this.onChangeCallback = onChangeCallback;
+
+    this.rafId = null;
+    this.handleArrowClick = this.handleArrowClick.bind(this);
   }
 
   init() {
     this.svg = document.getElementById("connections");
-    this.setupArrowMarkers();
+    if (!this.svg) return;
+
+    this.svg.style.pointerEvents = "none";
+    this.svg.removeEventListener('click', this.handleArrowClick);
+    this.svg.addEventListener('click', this.handleArrowClick);
   }
 
-  setupArrowMarkers() {
-    // This method is no longer needed since we use custom polygon arrows
-    // Keeping it empty to avoid breaking the init() call
-    console.log('Arrow markers setup complete (using polygon arrows)');
-  }
+  // --- CRUD Operations ---
 
   createConnection(start, end) {
-    // Check if connection already exists in the same direction
-    const existingConnection = this.connections.find(conn =>
-      conn.start.nodeId === start.nodeId && conn.end.nodeId === end.nodeId
-    );
-    if (existingConnection) {
-      console.log('Connection already exists in this direction');
-      return null;
-    }
+    const startId = Number(start?.nodeId);
+    const endId = Number(end?.nodeId);
 
-    // Check if reverse connection already exists (max 2 connections between same nodes)
-    const reverseConnection = this.connections.find(conn =>
-      conn.start.nodeId === end.nodeId && conn.end.nodeId === start.nodeId
-    );
-    // Allow creating if reverse exists (this gives us 2 connections max: A->B and B->A)
+    if (Number.isNaN(startId) || Number.isNaN(endId) || startId === endId) return null;
 
-    // Record change for undo/redo BEFORE making changes
-    if (this.wallboard && this.wallboard.keyboardShortcuts) {
-      this.wallboard.keyboardShortcuts.recordChange('create_connection', {
-        startNodeId: start.nodeId,
-        endNodeId: end.nodeId
-      });
+    const exists = this.connections.some(conn =>
+      Number(conn.start.nodeId) === startId && Number(conn.end.nodeId) === endId
+    );
+    if (exists) return null;
+
+    if (this.wallboard?.keyboardShortcuts) {
+      this.wallboard.keyboardShortcuts.recordChange('create_connection', { startNodeId: startId, endNodeId: endId });
     }
 
     const connection = {
-      id: `${start.nodeId}-${end.nodeId}`,
-      start: start,
-      end: end
+      id: `${startId}-${endId}`,
+      start: { ...start, nodeId: startId },
+      end: { ...end, nodeId: endId }
     };
-    this.connections.push(connection);
 
-    // Play snap sound with variation
-    if (typeof soundManager !== 'undefined') {
-      soundManager.playSnap();
-    }
+    this.connections.push(connection);
+    if (typeof soundManager !== 'undefined') soundManager.playSnap();
 
     this.updateConnections();
     if (this.onChangeCallback) this.onChangeCallback();
@@ -63,1017 +60,471 @@ class ConnectionManager {
   }
 
   removeConnection(connectionId) {
-    // Find the connection before removing it
-    const connection = this.connections.find(conn =>
-      `${conn.start.nodeId}-${conn.end.nodeId}` === connectionId
-    );
+    const index = this.connections.findIndex(c => c.id === connectionId);
+    if (index === -1) return;
 
-    // Remove the connection
-    this.connections = this.connections.filter(conn =>
-      `${conn.start.nodeId}-${conn.end.nodeId}` !== connectionId
-    );
+    const conn = this.connections[index];
 
-    // Clean up theme for removed connection
+    if (this.wallboard?.linkManager) {
+      this.wallboard.linkManager.removeLinkFromContent(conn.start.nodeId, conn.end.nodeId);
+    }
+
+    this.connections.splice(index, 1);
     delete this.connectionThemes[connectionId];
 
-    // If link manager exists, remove the [[link]] from the source node's markdown
-    if (connection && this.wallboard.linkManager) {
-      this.wallboard.linkManager.removeLinkFromContent(
-        connection.start.nodeId,
-        connection.end.nodeId
-      );
-    }
-
     this.updateConnections();
     if (this.onChangeCallback) this.onChangeCallback();
   }
+
+  // --- Rendering Loop ---
 
   updateConnections() {
-    if (!this.svg) return;
+    if (this.rafId) cancelAnimationFrame(this.rafId);
+    this.rafId = requestAnimationFrame(() => {
+      this._render();
+      this.rafId = null;
+    });
+  }
 
-    // Store the current selection state for re-applying after update
-    const hasSelection = this.wallboard && (this.wallboard.selectedNode || this.wallboard.selectedNodes.size > 0);
-    const selectedNodeIds = hasSelection ? Array.from(this.wallboard.selectedNodes) : [];
+  updateConnectionsInstant() {
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+    this._render();
+  }
 
-    // Clear existing connections but preserve drag line and cut line
-    const dragLine = this.svg.querySelector(".drag-line");
-    const cutLine = this.svg.querySelector(".cut-line");
-    this.svg.innerHTML = "";
-    if (dragLine) this.svg.appendChild(dragLine);
-    if (cutLine) this.svg.appendChild(cutLine);
+  _render() {
+    if (!this.svg || !this.wallboard) return;
 
-    // Store arrows to append them after all lines (ensures arrows are always on top)
-    const arrows = [];
+    // 1. Group Connections (Bidirectional Merge)
+    const uniquePairs = new Map();
+    const visibleNodes = this.wallboard.visibleNodeIds;
 
-    // Track existing connection paths to prevent crossings
-    this.existingPaths = [];
+    for (const conn of this.connections) {
+      const u = conn.start.nodeId;
+      const v = conn.end.nodeId;
 
-    this.connections.forEach((conn) => {
-      const startNode = this.wallboard.getNodeById(conn.start.nodeId);
-      const endNode = this.wallboard.getNodeById(conn.end.nodeId);
+      if (visibleNodes && (!visibleNodes.has(u) || !visibleNodes.has(v))) continue;
 
-      if (!startNode || !endNode) return;
+      const key = u < v ? `${u}-${v}` : `${v}-${u}`;
 
-      // Get actual DOM elements to get real dimensions
-      const startEl = document.getElementById(`node-${startNode.id}`);
-      const endEl = document.getElementById(`node-${endNode.id}`);
+      if (!uniquePairs.has(key)) {
+        uniquePairs.set(key, { forward: null, reverse: null, key });
+      }
 
-      if (!startEl || !endEl) return;
+      const entry = uniquePairs.get(key);
+      if (u < v) entry.forward = conn;
+      else entry.reverse = conn;
+    }
 
-      // FIX: Use offsetWidth/offsetHeight for dimensions, as they are unaffected by parent transforms (zoom).
-      // This avoids the timing issue with getBoundingClientRect() during zoom events.
-      const startCanvasRect = {
-        left: startNode.position.x,
-        top: startNode.position.y,
-        width: startEl.offsetWidth,
-        height: startEl.offsetHeight
-      };
+    // 2. Batch Measure
+    const rectCache = new Map();
+    uniquePairs.forEach((pair) => {
+      const idA = pair.forward ? pair.forward.start.nodeId : pair.reverse.end.nodeId;
+      const idB = pair.forward ? pair.forward.end.nodeId : pair.reverse.start.nodeId;
 
-      const endCanvasRect = {
-        left: endNode.position.x,
-        top: endNode.position.y,
-        width: endEl.offsetWidth,
-        height: endEl.offsetHeight
-      };
-
-      // Calculate connection points
-      const connectionPoints = this.calculateConnectionPoints(startCanvasRect, endCanvasRect);
-
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      const d = this.createSmoothPath(connectionPoints.start, connectionPoints.end, connectionPoints.direction, startCanvasRect, endCanvasRect);
-      path.setAttribute("d", d);
-      path.setAttribute("class", "connection-line");
-      path.setAttribute("data-connection-id", conn.id);
-      path.setAttribute("data-start-node", conn.start.nodeId);
-      path.setAttribute("data-end-node", conn.end.nodeId);
-
-      // Apply connection-specific theme
-      const connectionTheme = this.getConnectionTheme(conn.id);
-      const connectionColor = this.getThemeColor(connectionTheme);
-      path.style.stroke = connectionColor;
-
-      this.svg.appendChild(path);
-
-      // Track this path for future crossing detection
-      this.existingPaths.push({
-        start: connectionPoints.start,
-        end: connectionPoints.end,
-        direction: connectionPoints.direction,
-        pathData: d
-      });
-
-      // Create arrow triangle at the arrow point (node edge)
-      const arrow = this.createArrowTriangle(connectionPoints.arrow || connectionPoints.end, connectionPoints.start, connectionPoints.direction, conn.id);
-      arrow.setAttribute("class", "connection-arrow");
-      arrow.setAttribute("data-connection-id", conn.id);
-      arrow.setAttribute("data-start-node", conn.start.nodeId);
-      arrow.setAttribute("data-end-node", conn.end.nodeId);
-
-      // Add click handler to arrow as well
-      arrow.style.cursor = 'pointer';
-      arrow.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.showConnectionThemeSelector(conn.id, e);
-      });
-
-      // Store arrow to append later
-      arrows.push(arrow);
+      if (!rectCache.has(idA)) rectCache.set(idA, this.getNodeRect(idA));
+      if (!rectCache.has(idB)) rectCache.set(idB, this.getNodeRect(idB));
     });
 
-    // Append all arrows after all lines (ensures arrows are always on top)
-    arrows.forEach(arrow => this.svg.appendChild(arrow));
+    // 3. Mark existing DOM unused
+    this.domCache.forEach(el => el.inUse = false);
 
-    // Re-apply highlighting based on selection state
-    if (selectedNodeIds.length > 1) {
-      this.highlightConnectionsForMultipleNodes(selectedNodeIds);
-    } else if (selectedNodeIds.length === 1) {
-      this.highlightConnectionsForNode(selectedNodeIds[0]);
-    } else {
-      // No selection - make sure all connections are visible
-      this.clearConnectionHighlighting();
-    }
-  }
-  calculateConnectionPoints(startRect, endRect) {
-    // Get centers
-    const startCenter = {
-      x: startRect.left + startRect.width / 2,
-      y: startRect.top + startRect.height / 2
-    };
-    const endCenter = {
-      x: endRect.left + endRect.width / 2,
-      y: endRect.top + endRect.height / 2
-    };
+    // 4. Render
+    uniquePairs.forEach((pair, key) => {
+      const idA = pair.forward ? pair.forward.start.nodeId : pair.reverse.end.nodeId;
+      const idB = pair.forward ? pair.forward.end.nodeId : pair.reverse.start.nodeId;
 
-    // Calculate edges properly from rect properties
-    const startRight = startRect.left + startRect.width;
-    const startBottom = startRect.top + startRect.height;
-    const endRight = endRect.left + endRect.width;
-    const endBottom = endRect.top + endRect.height;
+      const rectA = rectCache.get(idA);
+      const rectB = rectCache.get(idB);
 
-    // Consistent offset for all connection points
-    const offset = 16;
+      const hasForward = !!pair.forward;
+      const hasReverse = !!pair.reverse;
 
-    // Calculate spatial relationship between nodes
-    const dx = endCenter.x - startCenter.x;
-    const dy = endCenter.y - startCenter.y;
-    const isMoreHorizontal = Math.abs(dx) > Math.abs(dy);
+      // Always route from the visually leftmost node to the rightmost, so all types behave the same.
+      const centerAx = rectA.x + rectA.w / 2;
+      const centerBx = rectB.x + rectB.w / 2;
+      const centerAy = rectA.y + rectA.h / 2;
+      const centerBy = rectB.y + rectB.h / 2;
 
-    // Try all possible connection combinations and pick the best one
-    const connectionOptions = [
-      // Horizontal options
-      {
-        start: { x: startRight + offset, y: startCenter.y },
-        end: { x: endRect.left - offset, y: endCenter.y },
-        arrow: { x: endRect.left, y: endCenter.y },
-        direction: 'horizontal',
-        spatialFit: dx > 0 && isMoreHorizontal ? 0 : 2 // Best fit if end is to the right and more horizontal
-      },
-      {
-        start: { x: startRect.left - offset, y: startCenter.y },
-        end: { x: endRight + offset, y: endCenter.y },
-        arrow: { x: endRight, y: endCenter.y },
-        direction: 'horizontal',
-        spatialFit: dx < 0 && isMoreHorizontal ? 0 : 2 // Best fit if end is to the left and more horizontal
-      },
-      // Vertical options
-      {
-        start: { x: startCenter.x, y: startBottom + offset },
-        end: { x: endCenter.x, y: endRect.top - offset },
-        arrow: { x: endCenter.x, y: endRect.top },
-        direction: 'vertical',
-        spatialFit: dy > 0 && !isMoreHorizontal ? 0 : 2 // Best fit if end is below and more vertical
-      },
-      {
-        start: { x: startCenter.x, y: startRect.top - offset },
-        end: { x: endCenter.x, y: endBottom + offset },
-        arrow: { x: endCenter.x, y: endBottom },
-        direction: 'vertical',
-        spatialFit: dy < 0 && !isMoreHorizontal ? 0 : 2 // Best fit if end is above and more vertical
+      let startRect = rectA;
+      let endRect = rectB;
+      let startId = idA;
+      let endId = idB;
+      let swapped = false;
+
+      if (centerAx > centerBx || (centerAx === centerBx && centerAy > centerBy)) {
+        startRect = rectB;
+        endRect = rectA;
+        startId = idB;
+        endId = idA;
+        swapped = true;
       }
-    ];
 
-    // Score each option based on spatial fit, overlaps, and distance
-    const scoredOptions = connectionOptions.map(option => {
-      const overlaps = this.countPathNodeOverlaps(option.start, option.end, startRect, endRect);
-      const distance = Math.abs(option.end.x - option.start.x) + Math.abs(option.end.y - option.start.y);
-      return { ...option, overlaps, distance };
+      // Map connections to the routed start/end order
+      const startToEndConn = swapped ? pair.reverse : pair.forward;
+      const endToStartConn = swapped ? pair.forward : pair.reverse;
+      const hasStartToEnd = !!startToEndConn;
+      const hasEndToStart = !!endToStartConn;
+
+      // Calculate the specific LR "Spine" Route
+      const route = this.calculateSymmetricRoute(startRect, endRect, hasStartToEnd, hasEndToStart);
+
+      const primaryConn = pair.forward || pair.reverse;
+
+      // Check for explicit theme on either connection in the pair
+      let themeKey = null;
+      if (pair.forward && this.connectionThemes[pair.forward.id]) {
+        themeKey = this.connectionThemes[pair.forward.id];
+      } else if (pair.reverse && this.connectionThemes[pair.reverse.id]) {
+        themeKey = this.connectionThemes[pair.reverse.id];
+      }
+
+      // Fallback to global or default if no explicit theme found
+      if (!themeKey) {
+        themeKey = this.wallboard?.globalTheme || 'default';
+      }
+
+      const color = this.getThemeColor(themeKey);
+
+      let elGroup = this.getDOMElement(key);
+
+      elGroup.path.setAttribute('d', route.path);
+      elGroup.path.style.stroke = color;
+      elGroup.path.setAttribute('data-connection-id', primaryConn.id);
+
+      // Arrow at the routed end represents the connection going start -> end
+      const startToEndId = startToEndConn ? startToEndConn.id : primaryConn.id;
+      this.updateArrow(elGroup.arrowEnd, route.endPoint, route.direction, hasStartToEnd, color, startToEndId);
+
+      // Arrow at the routed start represents the reverse connection (end -> start)
+      const startDirection = this.getOppositeDirection(route.startDirection);
+      const endToStartId = endToStartConn ? endToStartConn.id : primaryConn.id;
+      this.updateArrow(elGroup.arrowStart, route.startPoint, startDirection, hasEndToStart, color, endToStartId);
+
+      // Apply shadows
+      const r = parseInt(color.substr(1, 2), 16);
+      const g = parseInt(color.substr(3, 2), 16);
+      const b = parseInt(color.substr(5, 2), 16);
+      const shadow = `drop-shadow(0 0 3px rgba(${r}, ${g}, ${b}, 0.5))`;
+
+      elGroup.path.style.filter = shadow;
+      elGroup.arrowStart.style.filter = shadow;
+      elGroup.arrowEnd.style.filter = shadow;
+
+      elGroup.inUse = true;
     });
 
-    // Sort by: (1) spatial fit, (2) fewer overlaps, (3) shorter distance
-    scoredOptions.sort((a, b) => {
-      // First priority: How well does this connection match the spatial relationship?
-      if (a.spatialFit !== b.spatialFit) {
-        return a.spatialFit - b.spatialFit;
-      }
-
-      // Second priority: fewer overlaps
-      if (a.overlaps !== b.overlaps) {
-        return a.overlaps - b.overlaps;
-      }
-
-      // Third priority: shorter distance
-      return a.distance - b.distance;
-    });
-
-    // Return the best option
-    return scoredOptions[0];
-  }
-
-  /**
-   * Count how many nodes the connection path overlaps with
-   */
-  countPathNodeOverlaps(start, end, startRect, endRect) {
-    if (!this.wallboard || !this.wallboard.nodes) return 0;
-
-    let overlaps = 0;
-
-    // Check each node (except start and end nodes)
-    this.wallboard.nodes.forEach(node => {
-      const nodeEl = document.getElementById(`node-${node.id}`);
-      if (!nodeEl) return;
-
-      const nodeRect = {
-        left: node.position.x,
-        top: node.position.y,
-        width: nodeEl.offsetWidth,
-        height: nodeEl.offsetHeight
-      };
-
-      // Skip if this is the start or end node
-      if (this.rectsEqual(nodeRect, startRect) || this.rectsEqual(nodeRect, endRect)) {
-        return;
-      }
-
-      // Check if the bounding box of the path intersects this node
-      const pathBounds = {
-        left: Math.min(start.x, end.x),
-        right: Math.max(start.x, end.x),
-        top: Math.min(start.y, end.y),
-        bottom: Math.max(start.y, end.y)
-      };
-
-      const nodeRight = nodeRect.left + nodeRect.width;
-      const nodeBottom = nodeRect.top + nodeRect.height;
-
-      // Check for intersection
-      if (!(pathBounds.right < nodeRect.left ||
-            pathBounds.left > nodeRight ||
-            pathBounds.bottom < nodeRect.top ||
-            pathBounds.top > nodeBottom)) {
-        overlaps++;
+    // 5. Cleanup
+    this.domCache.forEach((elGroup, key) => {
+      if (!elGroup.inUse) {
+        elGroup.path.remove();
+        elGroup.arrowStart.remove();
+        elGroup.arrowEnd.remove();
+        this.domCache.delete(key);
       }
     });
-
-    return overlaps;
   }
 
   /**
-   * Check if two rectangles are equal (same position and size)
+   * REPLACED ROUTING LOGIC
+   * Strongly prefers Right -> Left flow with a shared vertical spine.
    */
-  rectsEqual(rect1, rect2) {
-    return rect1.left === rect2.left &&
-           rect1.top === rect2.top &&
-           rect1.width === rect2.width &&
-           rect1.height === rect2.height;
-  }
+  calculateSymmetricRoute(start, end, hasStartArrow, hasEndArrow) {
+    const arrowPadding = 14;
 
-  createSmoothPath(start, end, direction, startRect, endRect) {
-    // Create straight lines with right-angle turns that avoid nodes
+    // Centers
+    const startCy = start.y + start.h / 2;
+    const endCy = end.y + end.h / 2;
+    const startCx = start.x + start.w / 2;
+    const endCx = end.x + end.w / 2;
 
-    if (direction === 'horizontal') {
-      // For horizontal connections
-      if (Math.abs(start.y - end.y) < 5) {
-        // Nearly aligned horizontally - direct line
-        return `M ${start.x},${start.y} L ${end.x},${end.y}`;
-      }
+    // Edges for Right->Left flow
+    const startRightX = start.x + start.w;
+    const endLeftX = end.x;
 
-      // Check if a simple midpoint routing would hit any nodes
-      const midX = (start.x + end.x) / 2;
-      const simplePath = [
-        { x: start.x, y: start.y },
-        { x: midX, y: start.y },
-        { x: midX, y: end.y },
-        { x: end.x, y: end.y }
-      ];
+    // Is the target actually to the right? Allow mild overlap so all node types route the same.
+    const horizontalLead = endCx - startCx;
+    const verticalGap = Math.abs(endCy - startCy);
+    const hasRightClearance = endLeftX > startRightX - 10; // small tolerance for overlapping widths
+    const favorsHorizontal = horizontalLead * 1.2 >= verticalGap;
+    const isForward = horizontalLead > 0 && (hasRightClearance || favorsHorizontal);
 
-      // Find a clear horizontal position that avoids nodes
-      const clearMidX = this.findClearVerticalLine(start, end, midX, startRect, endRect);
+    let startPt, endPt, startExitDir, endExitDir;
+    let d = '';
 
-      return `M ${start.x},${start.y} L ${clearMidX},${start.y} L ${clearMidX},${end.y} L ${end.x},${end.y}`;
+    if (isForward) {
+      // --- STANDARD LEFT-TO-RIGHT FLOW ---
+
+      // 1. Exit strictly from Right side of A
+      startPt = { x: startRightX, y: startCy };
+      startExitDir = 'right';
+
+      // 2. Enter strictly from Left side of B
+      endPt = { x: endLeftX, y: endCy };
+      endExitDir = 'right'; // The arrow points right (entering from left)
+
+      // Apply Padding
+      if (hasStartArrow) startPt.x += arrowPadding;
+      if (hasEndArrow) endPt.x -= arrowPadding;
+
+      const sx = Math.round(startPt.x);
+      const sy = Math.round(startPt.y);
+      const ex = Math.round(endPt.x);
+      const ey = Math.round(endPt.y);
+
+      // 3. Calculate Shared Spine
+      // The vertical line happens exactly halfway between the nodes.
+      // If multiple nodes align in columns, this X will be identical for all of them,
+      // creating the "Reuse/Bundling" visual effect.
+      const spineX = Math.round((sx + ex) / 2);
+
+      // Draw: Move to Start -> Line to Spine -> Vertical to Target Y -> Line to End
+      d = `M ${sx},${sy} L ${spineX},${sy} L ${spineX},${ey} L ${ex},${ey}`;
 
     } else {
-      // For vertical connections
-      if (Math.abs(start.x - end.x) < 5) {
-        // Nearly aligned vertically - direct line
-        return `M ${start.x},${start.y} L ${end.x},${end.y}`;
-      }
-
-      // Check if a simple midpoint routing would hit any nodes
-      const midY = (start.y + end.y) / 2;
-
-      // Find a clear vertical position that avoids nodes
-      const clearMidY = this.findClearHorizontalLine(start, end, midY, startRect, endRect);
-
-      return `M ${start.x},${start.y} L ${start.x},${clearMidY} L ${end.x},${clearMidY} L ${end.x},${end.y}`;
-    }
-  }
-
-  /**
-   * Find a vertical line position that avoids nodes
-   */
-  findClearVerticalLine(start, end, preferredX, startRect, endRect) {
-    if (!this.wallboard || !this.wallboard.nodes) return preferredX;
-
-    const minX = Math.min(start.x, end.x);
-    const maxX = Math.max(start.x, end.x);
-    const minY = Math.min(start.y, end.y);
-    const maxY = Math.max(start.y, end.y);
-
-    // Check if preferred position is clear (both nodes and existing paths)
-    let hitNode = false;
-    for (const node of this.wallboard.nodes) {
-      const nodeEl = document.getElementById(`node-${node.id}`);
-      if (!nodeEl) continue;
-
-      const nodeRect = {
-        left: node.position.x,
-        top: node.position.y,
-        width: nodeEl.offsetWidth,
-        height: nodeEl.offsetHeight
-      };
-
-      // Skip start and end nodes
-      if (this.rectsEqual(nodeRect, startRect) || this.rectsEqual(nodeRect, endRect)) continue;
-
-      // Check if vertical line at preferredX intersects this node
-      const nodeRight = nodeRect.left + nodeRect.width;
-      const nodeBottom = nodeRect.top + nodeRect.height;
-
-      if (preferredX >= nodeRect.left - 20 && preferredX <= nodeRight + 20 &&
-          !(maxY < nodeRect.top || minY > nodeBottom)) {
-        hitNode = true;
-        break;
-      }
-    }
-
-    // Check if this vertical line would cross any existing paths
-    const wouldCrossPath = this.checkVerticalLineCrossing(preferredX, minY, maxY);
-
-    if (!hitNode && !wouldCrossPath) return preferredX;
-
-    // Try to route around - prefer staying between start and end
-    const candidates = [preferredX];
-    const step = 50;
-
-    // Add candidates moving away from center
-    for (let offset = step; offset < 300; offset += step) {
-      if (preferredX + offset <= maxX + 50) candidates.push(preferredX + offset);
-      if (preferredX - offset >= minX - 50) candidates.push(preferredX - offset);
-    }
-
-    // Find first clear candidate
-    for (const candidateX of candidates) {
-      let clear = true;
-      for (const node of this.wallboard.nodes) {
-        const nodeEl = document.getElementById(`node-${node.id}`);
-        if (!nodeEl) continue;
-
-        const nodeRect = {
-          left: node.position.x,
-          top: node.position.y,
-          width: nodeEl.offsetWidth,
-          height: nodeEl.offsetHeight
-        };
-
-        if (this.rectsEqual(nodeRect, startRect) || this.rectsEqual(nodeRect, endRect)) continue;
-
-        const nodeRight = nodeRect.left + nodeRect.width;
-        const nodeBottom = nodeRect.top + nodeRect.height;
-
-        if (candidateX >= nodeRect.left - 20 && candidateX <= nodeRight + 20 &&
-            !(maxY < nodeRect.top || minY > nodeBottom)) {
-          clear = false;
-          break;
-        }
-      }
-
-      // Also check path crossing
-      if (clear && this.checkVerticalLineCrossing(candidateX, minY, maxY)) {
-        clear = false;
-      }
-
-      if (clear) return candidateX;
-    }
-
-    return preferredX; // Fallback to preferred if no clear path found
-  }
-
-  /**
-   * Check if a vertical line would cross existing paths
-   */
-  checkVerticalLineCrossing(x, minY, maxY) {
-    if (!this.existingPaths) return false;
-
-    for (const existingPath of this.existingPaths) {
-      // Check if this vertical line crosses any horizontal segments of existing paths
-      if (existingPath.direction === 'vertical') {
-        // Existing path is vertical, check if they're close/overlapping
-        const existingMinY = Math.min(existingPath.start.y, existingPath.end.y);
-        const existingMaxY = Math.max(existingPath.start.y, existingPath.end.y);
-
-        // Check if vertical lines are close and Y ranges overlap
-        if (Math.abs(existingPath.start.x - x) < 30 &&
-            !(maxY < existingMinY || minY > existingMaxY)) {
-          return true;
-        }
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * Find a horizontal line position that avoids nodes
-   */
-  findClearHorizontalLine(start, end, preferredY, startRect, endRect) {
-    if (!this.wallboard || !this.wallboard.nodes) return preferredY;
-
-    const minX = Math.min(start.x, end.x);
-    const maxX = Math.max(start.x, end.x);
-    const minY = Math.min(start.y, end.y);
-    const maxY = Math.max(start.y, end.y);
-
-    // Check if preferred position is clear (both nodes and existing paths)
-    let hitNode = false;
-    for (const node of this.wallboard.nodes) {
-      const nodeEl = document.getElementById(`node-${node.id}`);
-      if (!nodeEl) continue;
-
-      const nodeRect = {
-        left: node.position.x,
-        top: node.position.y,
-        width: nodeEl.offsetWidth,
-        height: nodeEl.offsetHeight
-      };
-
-      // Skip start and end nodes
-      if (this.rectsEqual(nodeRect, startRect) || this.rectsEqual(nodeRect, endRect)) continue;
-
-      // Check if horizontal line at preferredY intersects this node
-      const nodeRight = nodeRect.left + nodeRect.width;
-      const nodeBottom = nodeRect.top + nodeRect.height;
-
-      if (preferredY >= nodeRect.top - 20 && preferredY <= nodeBottom + 20 &&
-          !(maxX < nodeRect.left || minX > nodeRight)) {
-        hitNode = true;
-        break;
-      }
-    }
-
-    // Check if this horizontal line would cross any existing paths
-    const wouldCrossPath = this.checkHorizontalLineCrossing(preferredY, minX, maxX);
-
-    if (!hitNode && !wouldCrossPath) return preferredY;
-
-    // Try to route around - prefer staying between start and end
-    const candidates = [preferredY];
-    const step = 50;
-
-    // Add candidates moving away from center
-    for (let offset = step; offset < 300; offset += step) {
-      if (preferredY + offset <= maxY + 50) candidates.push(preferredY + offset);
-      if (preferredY - offset >= minY - 50) candidates.push(preferredY - offset);
-    }
-
-    // Find first clear candidate
-    for (const candidateY of candidates) {
-      let clear = true;
-      for (const node of this.wallboard.nodes) {
-        const nodeEl = document.getElementById(`node-${node.id}`);
-        if (!nodeEl) continue;
-
-        const nodeRect = {
-          left: node.position.x,
-          top: node.position.y,
-          width: nodeEl.offsetWidth,
-          height: nodeEl.offsetHeight
-        };
-
-        if (this.rectsEqual(nodeRect, startRect) || this.rectsEqual(nodeRect, endRect)) continue;
-
-        const nodeRight = nodeRect.left + nodeRect.width;
-        const nodeBottom = nodeRect.top + nodeRect.height;
-
-        if (candidateY >= nodeRect.top - 20 && candidateY <= nodeBottom + 20 &&
-            !(maxX < nodeRect.left || minX > nodeRight)) {
-          clear = false;
-          break;
-        }
-      }
-
-      // Also check path crossing
-      if (clear && this.checkHorizontalLineCrossing(candidateY, minX, maxX)) {
-        clear = false;
-      }
-
-      if (clear) return candidateY;
-    }
-
-    return preferredY; // Fallback to preferred if no clear path found
-  }
-
-  /**
-   * Check if a horizontal line would cross existing paths
-   */
-  checkHorizontalLineCrossing(y, minX, maxX) {
-    if (!this.existingPaths) return false;
-
-    for (const existingPath of this.existingPaths) {
-      // Check if this horizontal line crosses any vertical segments of existing paths
-      if (existingPath.direction === 'horizontal') {
-        // Existing path is horizontal, check if they're close/overlapping
-        const existingMinX = Math.min(existingPath.start.x, existingPath.end.x);
-        const existingMaxX = Math.max(existingPath.start.x, existingPath.end.x);
-
-        // Check if horizontal lines are close and X ranges overlap
-        if (Math.abs(existingPath.start.y - y) < 30 &&
-            !(maxX < existingMinX || minX > existingMaxX)) {
-          return true;
-        }
-      }
-    }
-
-    return false;
-  }
-
-  getConnectionTheme(connectionId) {
-    // Return the stored theme for this connection, or use global theme
-    return this.connectionThemes[connectionId] || this.wallboard?.globalTheme || 'default';
-  }
-
-  getThemeColor(themeKey) {
-    // Get the color for a theme key
-    if (!Themes.definitions[themeKey]) {
-      return '#f42365'; // Default fallback
-    }
-    return Themes.definitions[themeKey].accent;
-  }
-
-  setConnectionTheme(connectionId, themeKey) {
-    // Record change for undo/redo
-    if (this.wallboard && this.wallboard.keyboardShortcuts) {
-      this.wallboard.keyboardShortcuts.recordChange('set_connection_theme', {
-        connectionId: connectionId,
-        oldTheme: this.connectionThemes[connectionId] || 'default',
-        newTheme: themeKey
-      });
-    }
-
-    if (themeKey === 'default') {
-      // Remove custom theme - connection will use global theme
-      delete this.connectionThemes[connectionId];
-    } else {
-      // Set specific theme for this connection
-      this.connectionThemes[connectionId] = themeKey;
-    }
-
-    // Update the visual representation
-    this.updateConnections();
-
-    // Trigger save
-    if (this.onChangeCallback) this.onChangeCallback();
-  }
-
-  showConnectionThemeSelector(connectionId, event) {
-    if (!this.wallboard) return;
-
-    // Hide any existing selector
-    this.hideConnectionThemeSelector();
-    // Also hide node theme selector
-    if (this.wallboard.hideThemeSelector) {
-      this.wallboard.hideThemeSelector();
-    }
-
-    const selector = document.createElement('div');
-    selector.className = 'theme-selector connection-theme-selector';
-    selector.id = 'connectionThemeSelector';
-
-    const currentTheme = this.getConnectionTheme(connectionId);
-
-    selector.innerHTML = `
-      <div class="theme-selector-header">
-        <h3>Connection Theme</h3>
-        <button class="close-btn" onclick="wallboard.connectionManager.hideConnectionThemeSelector()">×</button>
-      </div>
-      <div class="theme-grid">
-        ${Object.entries(Themes.definitions).filter(([key, theme]) => key !== 'pink').map(([key, theme]) => {
-          const isActive = currentTheme === key;
-          const displayName = key === 'default' ? 'Global' : theme.name;
-          const previewColor = key === 'default' ? Themes.definitions[this.wallboard.globalTheme].accent : theme.accent;
-
-          return `
-            <div class="theme-option ${isActive ? 'active' : ''}"
-                 onclick="wallboard.connectionManager.selectConnectionTheme('${connectionId}', '${key}')"
-                 data-theme="${key}">
-              <div class="theme-preview" style="background: ${previewColor}"></div>
-              <span class="theme-name">${displayName}</span>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `;
-
-    // Position near the click
-    selector.style.position = 'fixed';
-    selector.style.left = Math.min(event.clientX, window.innerWidth - 300) + 'px';
-    selector.style.top = Math.min(event.clientY, window.innerHeight - 400) + 'px';
-
-    document.body.appendChild(selector);
-
-    // Add click outside to close
-    setTimeout(() => {
-      document.addEventListener('click', this.handleConnectionSelectorOutsideClick.bind(this));
-    }, 10);
-  }
-
-  hideConnectionThemeSelector() {
-    const selector = document.getElementById('connectionThemeSelector');
-    if (selector) {
-      selector.remove();
-      document.removeEventListener('click', this.handleConnectionSelectorOutsideClick.bind(this));
-    }
-  }
-
-  handleConnectionSelectorOutsideClick(e) {
-    if (!e.target.closest('.connection-theme-selector')) {
-      this.hideConnectionThemeSelector();
-    }
-  }
-
-  selectConnectionTheme(connectionId, themeKey) {
-    this.setConnectionTheme(connectionId, themeKey);
-    this.hideConnectionThemeSelector();
-  }
-
-  createArrowTriangle(endPoint, startPoint, direction, connectionId = null) {
-    // Arrow size
-    const arrowSize = 24;
-
-    // Get connection-specific theme color
-    let themeColor;
-    if (connectionId) {
-      const connectionTheme = this.getConnectionTheme(connectionId);
-      themeColor = this.getThemeColor(connectionTheme);
-    } else {
-      // Fallback to global theme
-      themeColor = this.wallboard ? Themes.definitions[this.wallboard.globalTheme].accent : '#f42365';
-    }
-
-    // Calculate arrow direction based on which edge we're connecting to
-    let angle;
-
-    if (direction === 'horizontal') {
-      // Connecting to left/right edge - arrow should point horizontally
-      const dx = endPoint.x - startPoint.x;
-      if (dx > 0) {
-        // Pointing right (connecting to left edge)
-        angle = 0;
+      // --- LOOPBACK / VERTICAL STACK ---
+      // Target is behind source, or directly above/below. 
+      // Fallback to "Exit Bottom / Enter Top" to avoid crossing through node text.
+
+      const isBelow = end.y > start.y;
+
+      if (isBelow) {
+        // Downward
+        startPt = { x: startCx, y: start.y + start.h };
+        endPt = { x: endCx, y: end.y };
+        startExitDir = 'down';
+        endExitDir = 'down';
       } else {
-        // Pointing left (connecting to right edge)
-        angle = Math.PI;
+        // Upward
+        startPt = { x: startCx, y: start.y };
+        endPt = { x: endCx, y: end.y + end.h };
+        startExitDir = 'up';
+        endExitDir = 'up';
       }
-    } else {
-      // Connecting to top/bottom edge - arrow should point vertically
-      const dy = endPoint.y - startPoint.y;
-      if (dy > 0) {
-        // Pointing down (connecting to top edge)
-        angle = Math.PI / 2;
-      } else {
-        // Pointing up (connecting to bottom edge)
-        angle = -Math.PI / 2;
+
+      // Apply Padding
+      if (hasStartArrow) {
+        if (startExitDir === 'down') startPt.y += arrowPadding;
+        else startPt.y -= arrowPadding;
       }
+      if (hasEndArrow) {
+        if (endExitDir === 'down') endPt.y -= arrowPadding;
+        else endPt.y += arrowPadding;
+      }
+
+      const sx = Math.round(startPt.x), sy = Math.round(startPt.y);
+      const ex = Math.round(endPt.x), ey = Math.round(endPt.y);
+      const midY = Math.round((sy + ey) / 2);
+
+      // Simple S-bend
+      d = `M ${sx},${sy} L ${sx},${midY} L ${ex},${midY} L ${ex},${ey}`;
     }
 
-    // Position arrow with tip slightly back from node edge to prevent going inside
-    const tipOffset = 4; // Small offset to keep arrow outside node
-    const x1 = endPoint.x - tipOffset * Math.cos(angle);
-    const y1 = endPoint.y - tipOffset * Math.sin(angle);
-
-    // Base points extend backward from tip (away from node)
-    const x2 = x1 - arrowSize * Math.cos(angle - Math.PI / 6);
-    const y2 = y1 - arrowSize * Math.sin(angle - Math.PI / 6);
-    const x3 = x1 - arrowSize * Math.cos(angle + Math.PI / 6);
-    const y3 = y1 - arrowSize * Math.sin(angle + Math.PI / 6);
-
-    // Create polygon triangle
-    const arrow = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-    arrow.setAttribute("points", `${x1},${y1} ${x2},${y2} ${x3},${y3}`);
-    arrow.setAttribute("fill", themeColor);
-    arrow.setAttribute("stroke", "none");
-
-    // Convert hex to rgba for shadow
-    const r = parseInt(themeColor.substr(1, 2), 16);
-    const g = parseInt(themeColor.substr(3, 2), 16);
-    const b = parseInt(themeColor.substr(5, 2), 16);
-    arrow.style.filter = `drop-shadow(0 0 4px rgba(${r}, ${g}, ${b}, 0.4))`;
-
-    return arrow;
-  }
-
-  // Drag line methods
-  createDragLine() {
-    if (this.dragLine) this.removeDragLine();
-    this.dragLine = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    this.dragLine.setAttribute("class", "drag-line");
-    this.svg.appendChild(this.dragLine);
-  }
-
-  updateDragLine(startPos, endPos) {
-    if (!this.dragLine) return;
-
-    // Convert screen coordinates to canvas coordinates
-    const startCanvas = this.screenToCanvas(startPos.x, startPos.y);
-    const endCanvas = this.screenToCanvas(endPos.x, endPos.y);
-
-    const path = `M ${startCanvas.x},${startCanvas.y} L ${endCanvas.x},${endCanvas.y}`;
-    this.dragLine.setAttribute("d", path);
-  }
-
-  screenToCanvas(screenX, screenY) {
-    // Get canvas transform values
-    const canvas = document.getElementById('canvas');
-    const transform = new DOMMatrix(getComputedStyle(canvas).transform);
-
-    // Convert screen coordinates to canvas coordinates
     return {
-      x: (screenX - transform.e) / transform.a,
-      y: (screenY - transform.f) / transform.d
+      path: d,
+      startPoint: startPt,
+      endPoint: endPt,
+      direction: endExitDir, // Direction the line is travelling at the end
+      startDirection: startExitDir // Direction the line travels out of start
     };
   }
 
-  removeDragLine() {
-    if (this.dragLine) {
-      this.dragLine.remove();
-      this.dragLine = null;
+  // --- Boilerplate (DOM/Theme/Tools) ---
+
+  getDOMElement(key) {
+    if (this.domCache.has(key)) return this.domCache.get(key);
+
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("class", "connection-line");
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke-width", "2");
+    path.setAttribute("stroke-linejoin", "round");
+    path.style.pointerEvents = "visibleStroke";
+
+    const arrowStart = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+    arrowStart.setAttribute("class", "connection-arrow");
+    arrowStart.style.cursor = 'pointer';
+    arrowStart.style.pointerEvents = "auto";
+
+    const arrowEnd = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+    arrowEnd.setAttribute("class", "connection-arrow");
+    arrowEnd.style.cursor = 'pointer';
+    arrowEnd.style.pointerEvents = "auto";
+
+    if (this.cutLine) this.svg.insertBefore(path, this.cutLine);
+    else this.svg.appendChild(path);
+    this.svg.appendChild(arrowStart);
+    this.svg.appendChild(arrowEnd);
+
+    const group = { path, arrowStart, arrowEnd, inUse: true };
+    this.domCache.set(key, group);
+    return group;
+  }
+
+  updateArrow(arrowEl, point, direction, isVisible, color, connectionId) {
+    if (!isVisible) {
+      arrowEl.style.display = 'none';
+      return;
     }
-  }
+    arrowEl.style.display = 'block';
+    arrowEl.setAttribute('fill', color);
+    arrowEl.setAttribute('data-connection-id', connectionId);
 
-  // Cut line methods
-  createCutLine() {
-    if (this.cutLine) this.removeCutLine();
-    this.cutLine = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-    this.cutLine.setAttribute("class", "cut-line");
-    this.svg.appendChild(this.cutLine);
-  }
+    const w = 6; const l = 14;
+    const x = point.x; const y = point.y;
+    let pts = '';
 
-  addCutPoint(screenPos) {
-    const canvasPos = this.screenToCanvas(screenPos.x, screenPos.y);
-    this.cutPath.push(canvasPos);
-    this.updateCutLine();
-  }
-
-  updateCutLine() {
-    if (!this.cutLine || this.cutPath.length < 2) return;
-    const points = this.cutPath.map(point => `${point.x},${point.y}`).join(" ");
-    this.cutLine.setAttribute("points", points);
-  }
-
-  removeCutLine() {
-    if (this.cutLine) {
-      this.cutLine.remove();
-      this.cutLine = null;
+    switch (direction) {
+      case 'right': pts = `${x},${y} ${x - l},${y - w} ${x - l},${y + w}`; break;
+      case 'left': pts = `${x},${y} ${x + l},${y - w} ${x + l},${y + w}`; break;
+      case 'down': pts = `${x},${y} ${x - w},${y - l} ${x + w},${y - l}`; break;
+      case 'up': pts = `${x},${y} ${x - w},${y + l} ${x + w},${y + l}`; break;
     }
-    this.cutPath = [];
+    arrowEl.setAttribute("points", pts);
   }
 
-  processConnectionCuts() {
-    if (this.cutPath.length < 2) return;
+  getOppositeDirection(dir) {
+    if (dir === 'left') return 'right';
+    if (dir === 'right') return 'left';
+    if (dir === 'up') return 'down';
+    return 'up';
+  }
 
-    // Record change for undo/redo before making changes
-    if (this.wallboard && this.wallboard.keyboardShortcuts) {
-      this.wallboard.keyboardShortcuts.recordChange('cut_connections', {});
-    }
-
-    const connectionsToRemove = [];
-
-    this.connections.forEach((conn, index) => {
-      const startNode = this.wallboard.getNodeById(conn.start.nodeId);
-      const endNode = this.wallboard.getNodeById(conn.end.nodeId);
-
-      if (!startNode || !endNode) return;
-
-      // Get screen rects and convert to canvas
-      const startEl = document.getElementById(`node-${startNode.id}`);
-      const endEl = document.getElementById(`node-${endNode.id}`);
-
-      if (!startEl || !endEl) return;
-
-      // Use getBoundingClientRect ONLY for dimensions, not position.
-      const startDimensions = startEl.getBoundingClientRect();
-      const endDimensions = endEl.getBoundingClientRect();
-
-      // Use the reliable data model for position and scale dimensions by current zoom.
-      const startRect = {
-        left: startNode.position.x,
-        top: startNode.position.y,
-        width: startDimensions.width / this.wallboard.zoom,
-        height: startDimensions.height / this.wallboard.zoom
-      };
-
-      const endRect = {
-        left: endNode.position.x,
-        top: endNode.position.y,
-        width: endDimensions.width / this.wallboard.zoom,
-        height: endDimensions.height / this.wallboard.zoom
-      };
-
-      const connectionPoints = this.calculateConnectionPoints(startRect, endRect);
-
-      // Check intersection with cut path
-      for (let i = 0; i < this.cutPath.length - 1; i++) {
-        const cutStart = this.cutPath[i];
-        const cutEnd = this.cutPath[i + 1];
-
-        if (this.linesIntersect(connectionPoints.start, connectionPoints.end, cutStart, cutEnd)) {
-          connectionsToRemove.push(index);
-          break;
-        }
+  getNodeRect(nodeId) {
+    const node = this.wallboard.getNodeById(nodeId);
+    if (!node) return { x: 0, y: 0, w: 0, h: 0 };
+    let size = this.wallboard.getNodeSize(nodeId);
+    if (!size) {
+      const el = document.getElementById(`node-${nodeId}`);
+      if (el) {
+        size = { width: el.offsetWidth, height: el.offsetHeight };
+        this.wallboard.updateNodeSize(nodeId, size.width, size.height);
+      } else {
+        size = { width: 250, height: 180 };
       }
-    });
-
-    // Remove cut connections, clean up their themes, and remove links from markdown
-    connectionsToRemove.reverse().forEach(index => {
-      const conn = this.connections[index];
-      const connectionId = `${conn.start.nodeId}-${conn.end.nodeId}`;
-
-      // Remove the [[link]] from the source node's markdown
-      if (this.wallboard.linkManager) {
-        this.wallboard.linkManager.removeLinkFromContent(
-          conn.start.nodeId,
-          conn.end.nodeId
-        );
-      }
-
-      delete this.connectionThemes[connectionId];
-      this.connections.splice(index, 1);
-    });
-
-    if (connectionsToRemove.length > 0) {
-      this.updateConnections();
-      if (this.onChangeCallback) this.onChangeCallback();
     }
+    return { x: node.position.x, y: node.position.y, w: size.width, h: size.height };
   }
 
-  linesIntersect(p1, p2, p3, p4) {
-    const denom = (p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y);
-    if (denom === 0) return false;
-
-    const ua = ((p4.x - p3.x) * (p1.y - p3.y) - (p4.y - p3.y) * (p1.x - p3.x)) / denom;
-    const ub = ((p2.x - p1.x) * (p1.y - p3.y) - (p2.y - p1.y) * (p1.x - p3.x)) / denom;
-
-    return ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1;
-  }
-
-  // Connection highlighting methods
+  // --- Highlighting ---
   highlightConnectionsForNode(nodeId) {
-    if (!this.svg || nodeId === null || nodeId === undefined) {
-      this.clearConnectionHighlighting();
-      return;
-    }
-
-    const connectionElements = this.svg.querySelectorAll('.connection-line');
-
-    connectionElements.forEach(element => {
-      const startNodeId = parseInt(element.getAttribute('data-start-node'));
-      const endNodeId = parseInt(element.getAttribute('data-end-node'));
-
-      if (startNodeId === nodeId || endNodeId === nodeId) {
-        // This connection is related to the selected node
-        element.classList.add('active');
-        element.classList.remove('inactive');
-        element.setAttribute('marker-end', 'url(#arrow-active)');
-        // Apply connection-specific theme
-        const connectionId = element.getAttribute('data-connection-id');
-        const connectionTheme = this.getConnectionTheme(connectionId);
-        const connectionColor = this.getThemeColor(connectionTheme);
-        element.style.stroke = connectionColor;
+    if (!this.svg) return;
+    const nid = Number(nodeId);
+    this.domCache.forEach((group, key) => {
+      if (!group.inUse) return;
+      const parts = key.split('-');
+      if (Number(parts[0]) === nid || Number(parts[1]) === nid) {
+        group.path.style.opacity = '1';
+        group.arrowStart.style.opacity = '1';
+        group.arrowEnd.style.opacity = '1';
       } else {
-        // This connection is not related to the selected node - hide it completely
-        element.style.display = 'none';
-      }
-    });
-
-    // Update arrow triangles
-    const arrowElements = this.svg.querySelectorAll('.connection-arrow');
-    arrowElements.forEach(element => {
-      const startNodeId = parseInt(element.getAttribute('data-start-node'));
-      const endNodeId = parseInt(element.getAttribute('data-end-node'));
-
-      if (startNodeId === nodeId || endNodeId === nodeId) {
-        // Active arrow - bright with glow using connection-specific theme color
-        const connectionId = element.getAttribute('data-connection-id');
-        const connectionTheme = this.getConnectionTheme(connectionId);
-        const themeColor = this.getThemeColor(connectionTheme);
-        element.setAttribute('fill', themeColor);
-        const r = parseInt(themeColor.substr(1, 2), 16);
-        const g = parseInt(themeColor.substr(3, 2), 16);
-        const b = parseInt(themeColor.substr(5, 2), 16);
-        element.style.filter = `drop-shadow(0 0 8px rgba(${r}, ${g}, ${b}, 0.8))`;
-      } else {
-        // Hide arrow for unrelated connections
-        element.style.display = 'none';
-      }
-    });
-  }
-
-  highlightConnectionsForMultipleNodes(nodeIds) {
-    if (!this.svg || !nodeIds || nodeIds.length === 0) {
-      this.clearConnectionHighlighting();
-      return;
-    }
-
-    const connectionElements = this.svg.querySelectorAll('.connection-line');
-
-    connectionElements.forEach(element => {
-      const startNodeId = parseInt(element.getAttribute('data-start-node'));
-      const endNodeId = parseInt(element.getAttribute('data-end-node'));
-
-      if (nodeIds.includes(startNodeId) || nodeIds.includes(endNodeId)) {
-        // This connection is related to one of the selected nodes
-        element.classList.add('active');
-        element.classList.remove('inactive');
-        element.setAttribute('marker-end', 'url(#arrow-active)');
-        // Apply connection-specific theme
-        const connectionId = element.getAttribute('data-connection-id');
-        const connectionTheme = this.getConnectionTheme(connectionId);
-        const connectionColor = this.getThemeColor(connectionTheme);
-        element.style.stroke = connectionColor;
-      } else {
-        // This connection is not related to any selected nodes - hide it completely
-        element.style.display = 'none';
-      }
-    });
-
-    // Update arrow triangles for multiple nodes
-    const arrowElements = this.svg.querySelectorAll('.connection-arrow');
-    arrowElements.forEach(element => {
-      const startNodeId = parseInt(element.getAttribute('data-start-node'));
-      const endNodeId = parseInt(element.getAttribute('data-end-node'));
-
-      if (nodeIds.includes(startNodeId) || nodeIds.includes(endNodeId)) {
-        // Active arrow - bright with glow using connection-specific theme color
-        const connectionId = element.getAttribute('data-connection-id');
-        const connectionTheme = this.getConnectionTheme(connectionId);
-        const themeColor = this.getThemeColor(connectionTheme);
-        element.setAttribute('fill', themeColor);
-        const r = parseInt(themeColor.substr(1, 2), 16);
-        const g = parseInt(themeColor.substr(3, 2), 16);
-        const b = parseInt(themeColor.substr(5, 2), 16);
-        element.style.filter = `drop-shadow(0 0 8px rgba(${r}, ${g}, ${b}, 0.8))`;
-      } else {
-        // Hide arrow for unrelated connections
-        element.style.display = 'none';
+        group.path.style.opacity = '0.1';
+        group.arrowStart.style.opacity = '0.1';
+        group.arrowEnd.style.opacity = '0.1';
       }
     });
   }
 
   clearConnectionHighlighting() {
-    if (!this.svg) return;
-
-    const connectionElements = this.svg.querySelectorAll('.connection-line');
-    connectionElements.forEach(element => {
-      element.classList.remove('active', 'inactive');
-      element.setAttribute('marker-end', 'url(#arrow)');
-      element.style.display = ''; // Show all connections
-      // Apply connection-specific theme
-      const connectionId = element.getAttribute('data-connection-id');
-      const connectionTheme = this.getConnectionTheme(connectionId);
-      const connectionColor = this.getThemeColor(connectionTheme);
-      element.style.stroke = connectionColor;
-    });
-
-    // Reset arrow triangles to default state using connection-specific theme color
-    const arrowElements = this.svg.querySelectorAll('.connection-arrow');
-    arrowElements.forEach(element => {
-      const connectionId = element.getAttribute('data-connection-id');
-      const connectionTheme = this.getConnectionTheme(connectionId);
-      const themeColor = this.getThemeColor(connectionTheme);
-      element.setAttribute('fill', themeColor);
-      const r = parseInt(themeColor.substr(1, 2), 16);
-      const g = parseInt(themeColor.substr(3, 2), 16);
-      const b = parseInt(themeColor.substr(5, 2), 16);
-      element.style.filter = `drop-shadow(0 0 4px rgba(${r}, ${g}, ${b}, 0.4))`;
-      element.style.display = ''; // Show all arrows
+    this.domCache.forEach(group => {
+      if (group.inUse) {
+        group.path.style.opacity = '1';
+        group.arrowStart.style.opacity = '1';
+        group.arrowEnd.style.opacity = '1';
+      }
     });
   }
 
-  hideConnections() {
-    if (!this.svg) return;
-    this.svg.style.visibility = 'hidden';
+  hideAllConnections() {
+    if (this.svg) {
+      this.svg.style.opacity = '0';
+      this.svg.style.transition = 'opacity 0.2s ease';
+    }
   }
 
-  showConnections() {
-    if (!this.svg) return;
-    this.svg.style.visibility = 'visible';
+  showAllConnections() {
+    if (this.svg) {
+      this.svg.style.opacity = '1';
+    }
   }
+
+  // --- Themes & Interaction ---
+  getConnectionTheme(id) { return this.connectionThemes[id] || this.wallboard?.globalTheme || 'default'; }
+  getThemeColor(key) { return (typeof Themes !== 'undefined' && Themes.definitions?.[key]?.accent) || '#f42365'; }
+  setConnectionTheme(id, key) {
+    // Helper to update a single ID
+    const update = (targetId) => {
+      if (key === 'default') delete this.connectionThemes[targetId];
+      else this.connectionThemes[targetId] = key;
+    };
+
+    update(id);
+
+    // Also update the reverse connection if it exists, to keep them in sync
+    const parts = id.split('-');
+    if (parts.length === 2) {
+      const reverseId = `${parts[1]}-${parts[0]}`;
+      // Check if reverse connection actually exists in our model
+      const reverseExists = this.connections.some(c => c.id === reverseId);
+      if (reverseExists) {
+        update(reverseId);
+      }
+    }
+
+    this.updateConnections();
+  }
+
+  // Tools (Cut/Drag) - simplified for brevity
+  createDragLine() { this.removeDragLine(); this.dragLine = document.createElementNS("http://www.w3.org/2000/svg", "line"); this.dragLine.setAttribute("class", "drag-line"); this.dragLine.setAttribute("stroke", "rgba(255,255,255,0.5)"); this.dragLine.setAttribute("stroke-dasharray", "5,5"); this.svg.appendChild(this.dragLine); }
+  updateDragLine(start, end) { if (this.dragLine) { const s = this.screenToCanvas(start.x, start.y), e = this.screenToCanvas(end.x, end.y); this.dragLine.setAttribute("x1", s.x); this.dragLine.setAttribute("y1", s.y); this.dragLine.setAttribute("x2", e.x); this.dragLine.setAttribute("y2", e.y); } }
+  removeDragLine() { this.dragLine?.remove(); this.dragLine = null; }
+  createCutLine() { this.removeCutLine(); this.cutLine = document.createElementNS("http://www.w3.org/2000/svg", "polyline"); this.cutLine.setAttribute("class", "cut-line"); this.cutLine.setAttribute("fill", "none"); this.cutLine.setAttribute("stroke", "#ff4444"); this.svg.appendChild(this.cutLine); this.cutPath = []; }
+  addCutPoint(pos) { const p = this.screenToCanvas(pos.x, pos.y); this.cutPath.push(p); this.cutLine.setAttribute("points", this.cutPath.map(pt => `${pt.x},${pt.y}`).join(" ")); }
+  removeCutLine() { this.cutLine?.remove(); this.cutLine = null; this.cutPath = []; }
+  screenToCanvas(sx, sy) { if (this.wallboard) return { x: (sx - this.wallboard.panX) / this.wallboard.zoom, y: (sy - this.wallboard.panY) / this.wallboard.zoom }; return { x: sx, y: sy }; }
+
+  processConnectionCuts() {
+    if (this.cutPath.length < 2) return;
+    const segs = []; for (let i = 0; i < this.cutPath.length - 1; i++) segs.push({ p1: this.cutPath[i], p2: this.cutPath[i + 1] });
+    const toRem = [];
+    this.connections.forEach(c => {
+      const s = this.getNodeRect(c.start.nodeId), e = this.getNodeRect(c.end.nodeId);
+      const c1 = { x: s.x + s.w / 2, y: s.y + s.h / 2 }, c2 = { x: e.x + e.w / 2, y: e.y + e.h / 2 };
+      for (const sg of segs) if (this.linesIntersect(c1, c2, sg.p1, sg.p2)) { toRem.push(c.id); break; }
+    });
+    toRem.forEach(id => this.removeConnection(id));
+    this.removeCutLine();
+  }
+  linesIntersect(p1, p2, p3, p4) { const det = (p2.x - p1.x) * (p4.y - p3.y) - (p4.x - p3.x) * (p2.y - p1.y); if (det === 0) return false; const l = ((p4.y - p3.y) * (p4.x - p1.x) + (p3.x - p4.x) * (p4.y - p1.y)) / det, g = ((p1.y - p2.y) * (p4.x - p1.x) + (p2.x - p1.x) * (p4.y - p1.y)) / det; return (0 < l && l < 1) && (0 < g && g < 1); }
+
+  handleArrowClick(e) {
+    const arrow = e.target.closest('.connection-arrow');
+    if (!arrow) return;
+    const id = arrow.getAttribute('data-connection-id');
+    if (!id) return;
+    e.stopPropagation();
+    this.showConnectionThemeSelector(id, e);
+  }
+
+  // Theme UI methods
+  showConnectionThemeSelector(id, e) {
+    if (!this.wallboard) return;
+    this.hideConnectionThemeSelector();
+    const selector = document.createElement('div');
+    selector.className = 'theme-selector connection-theme-selector';
+    selector.id = 'connectionThemeSelector';
+    const themes = (typeof Themes !== 'undefined' && Themes.definitions) ? Themes.definitions : { 'default': { name: 'Default', accent: '#f42365' } };
+    selector.innerHTML = `<div class="theme-selector-header"><h3>Connection Theme</h3><button class="close-btn" onclick="wallboard.connectionManager.hideConnectionThemeSelector()">×</button></div><div class="theme-grid">${Object.entries(themes).filter(([k]) => k !== 'pink').map(([key, theme]) => `<div class="theme-option" onclick="wallboard.connectionManager.selectConnectionTheme('${id}', '${key}')"><div class="theme-preview" style="background: ${theme.accent || '#fff'}"></div><span class="theme-name">${key === 'default' ? 'Global' : theme.name}</span></div>`).join('')}</div>`;
+    const x = Math.min(e.clientX, window.innerWidth - 300), y = Math.min(e.clientY, window.innerHeight - 400);
+    selector.style.position = 'fixed'; selector.style.left = x + 'px'; selector.style.top = y + 'px';
+    document.body.appendChild(selector);
+    setTimeout(() => document.addEventListener('click', this.handleOutsideClick.bind(this)), 10);
+  }
+  hideConnectionThemeSelector() { document.getElementById('connectionThemeSelector')?.remove(); document.removeEventListener('click', this.handleOutsideClick.bind(this)); }
+  handleOutsideClick(e) { if (!e.target.closest('.connection-theme-selector')) this.hideConnectionThemeSelector(); }
+  selectConnectionTheme(id, key) { this.setConnectionTheme(id, key); this.hideConnectionThemeSelector(); }
 }
+
+if (typeof window !== 'undefined') window.ConnectionManager = ConnectionManager;

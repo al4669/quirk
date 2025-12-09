@@ -59,6 +59,9 @@ window.MarkdownRenderer = {
   },
 
   extractAndRenderMath(text) {
+    // Protect escaped dollars so they never trigger math parsing
+    text = text.replace(/\\\$/g, '::ESCAPED_DOLLAR::');
+
     // Extract and render block math first ($$...$$)
     // Very permissive: allows any whitespace around delimiters
     text = text.replace(/\$\$\s*([\s\S]+?)\s*\$\$/g, (match, formula) => {
@@ -76,18 +79,48 @@ window.MarkdownRenderer = {
       return `\n\n${id}\n\n`;
     });
 
-    // Extract and render inline math ($...$) - but not $$
-    // More permissive: allows content across lines
-    text = text.replace(/\$(?!\$)(.+?)\$/gs, (match, formula) => {
+    // Extract and render inline math ($...$) - but not $$ and not escaped dollars
+    // Heuristics avoid accidental matches (currency, lone $) and streaming noise
+    text = text.replace(/(^|[^\\])\$(?!\$)([^$]+?)\$(?!\$)/gs, (match, prefix, formula) => {
+      const body = formula;
+
       // Skip if this looks like it's part of a block math we already processed
-      if (match.includes('::MATHBLOCK')) {
+      if (body.includes('::MATHBLOCK')) {
+        return match;
+      }
+
+      const trimmed = body.trim();
+
+      // Reject empty or whitespace padded formulas
+      if (!trimmed || /^\s/.test(body) || /\s$/.test(body)) {
+        return match;
+      }
+
+      // Reject obvious currency / plain dollar amounts
+      if (/^\$?\s*\d[\d\s.,]*(?:k|m|b|usd)?\s*$/i.test(trimmed)) {
+        return match;
+      }
+
+      // Require some math-ish signal to avoid false positives, but allow short symbols/functions
+      const length = trimmed.length;
+      const simpleSymbol =
+        (length <= 3 && /^[A-Za-z]+$/.test(trimmed)) || // tiny symbols: n, F, H
+        (length <= 10 &&
+         /[()_'0-9]/.test(trimmed) &&
+         /^[A-Za-z0-9()_']+$/.test(trimmed));           // short tokens like H(P), x', F1
+
+      const hasMathSignal =
+        /[\\^_{}+\-=*/<>]/.test(trimmed) ||                // operators / TeX commands
+        /[0-9].*[a-zA-Z]|[a-zA-Z].*[0-9]/.test(trimmed) || // mixed alnum
+        simpleSymbol;
+      if (!hasMathSignal) {
         return match;
       }
 
       const id = `::MATHINLINE${this.mathCounter++}::`;
       try {
         // Remove any newlines/extra whitespace from inline math
-        const cleanFormula = formula.replace(/\s+/g, ' ').trim();
+        const cleanFormula = trimmed.replace(/\s+/g, ' ');
         const rendered = katex.renderToString(cleanFormula, {
           throwOnError: false,
           displayMode: false
@@ -95,10 +128,13 @@ window.MarkdownRenderer = {
         this.mathInline.set(id, rendered);
       } catch (e) {
         console.warn('KaTeX inline math error:', e, formula);
-        this.mathInline.set(id, '<span class="math-error">' + formula.trim() + '</span>');
+        this.mathInline.set(id, '<span class="math-error">' + trimmed + '</span>');
       }
-      return id;
+      return prefix + id;
     });
+
+    // Restore escaped dollars
+    text = text.replace(/::ESCAPED_DOLLAR::/g, '$');
 
     return text;
   },
@@ -126,6 +162,11 @@ window.MarkdownRenderer = {
       return rendered || id;
     });
 
+    return html;
+  },
+
+  restoreScriptBlocks(html) {
+    // No-op retained for backward compatibility; script blocks are now dedicated nodes.
     return html;
   }
 };

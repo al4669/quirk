@@ -19,6 +19,20 @@ class ContextMenuManager {
 
     // Basic node actions with proper HTML structure
     let menuItems = `
+      <div class="context-item" onclick="wallboard.keyboardShortcuts.showInsertPalette(${node.id}); wallboard.hideContextMenu();">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14m-7-7h14"></path>
+        </svg>
+        Insert & Connect…
+      </div>
+      <div class="context-item" onclick="wallboard.keyboardShortcuts.showTemplateManager(); wallboard.hideContextMenu();">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+          <path d="M8 9h8"></path>
+          <path d="M8 13h5"></path>
+        </svg>
+        Manage Templates
+      </div>
       <div class="context-item" onclick="wallboard.toggleEdit(${node.id}); wallboard.hideContextMenu();">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>

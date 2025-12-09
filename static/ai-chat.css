@@ -355,32 +355,38 @@
 
 .ai-message-text ul {
   margin: 8px 0;
-  padding-left: 20px;
-  list-style: none;
+  padding-left: 1.5em;
+  list-style: disc;
 }
 
 .ai-message-text ol {
   margin: 8px 0;
-  padding-left: 24px;
+  padding-left: 1.5em;
   list-style: decimal;
 }
 
 .ai-message-text ul li {
   margin: 4px 0;
-  padding-left: 4px;
-  position: relative;
-}
-
-.ai-message-text ul li::before {
-  content: "•";
-  position: absolute;
-  left: -16px;
-  color: var(--accent);
+  padding-left: 0;
 }
 
 .ai-message-text ol li {
   margin: 4px 0;
-  padding-left: 4px;
+  padding-left: 0;
+}
+
+/* Keep list markers visible even in flex/inline contexts */
+.ai-message-text ul,
+.ai-message-text ol {
+  list-style-position: outside;
+}
+
+/* Nested lists */
+.ai-message-text li > ul,
+.ai-message-text li > ol {
+  margin-top: 4px;
+  margin-bottom: 4px;
+  padding-left: 1.5em;
 }
 
 /* Command badges */

@@ -54,7 +54,7 @@ class MaximizeUtils {
     content.tabIndex = 0; // Make it focusable for scrolling
 
     // Copy the node content
-    const originalContent = document.getElementById(`content-${nodeId}`);
+    const originalContent = wallboard.getActiveContentElement(nodeId);
     if (originalContent) {
       content.innerHTML = originalContent.innerHTML;
     }
@@ -132,7 +132,7 @@ class MaximizeUtils {
             ? MarkdownRenderer.render(node.data.content)
             : marked.parse(node.data.content);
           // Update the original node content as well
-          const originalContent = document.getElementById(`content-${nodeId}`);
+          const originalContent = wallboard.getActiveContentElement(nodeId);
           if (originalContent) {
             originalContent.innerHTML = Sanitization.sanitize(wallboard.renderNodeContent(node));
 
@@ -205,7 +205,7 @@ class MaximizeUtils {
         }, 0);
 
         // Update the original node content as well
-        const originalContent = document.getElementById(`content-${nodeId}`);
+        const originalContent = wallboard.getActiveContentElement(nodeId);
         if (originalContent) {
           originalContent.innerHTML = Sanitization.sanitize(wallboard.renderNodeContent(node));
 

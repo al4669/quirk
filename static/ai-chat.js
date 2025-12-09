@@ -32,7 +32,7 @@ class AIChat {
   }
 
   getDefaultEndpoint(provider) {
-    switch(provider) {
+    switch (provider) {
       case 'anthropic': return 'http://localhost:8080/api/anthropic';
       case 'openai': return 'http://localhost:8080/api/openai';
       default: return 'http://localhost:11434/api/chat';
@@ -40,7 +40,7 @@ class AIChat {
   }
 
   getDefaultModel(provider) {
-    switch(provider) {
+    switch (provider) {
       case 'anthropic': return 'claude-sonnet-4-5-20250929';
       case 'openai': return 'gpt-4';
       default: return 'qwen3:4b';
@@ -169,6 +169,10 @@ class AIChat {
             content: {
               type: "string",
               description: "The detailed content of the node (use markdown: lists, bold, code blocks, etc.)"
+            },
+            node_type: {
+              type: "string",
+              description: "Node type: instruction (planning/guidance), script (JS to run), or markdown (default). Use instruction for goals/steps, script for executable JS, markdown for regular notes."
             }
           },
           required: ["title", "content"]
@@ -191,6 +195,10 @@ class AIChat {
             content: {
               type: "string",
               description: "The new content for the node (optional)"
+            },
+            node_type: {
+              type: "string",
+              description: "Update the node type (instruction | script | markdown)."
             }
           },
           required: ["node_id"]
@@ -310,12 +318,21 @@ class AIChat {
       switch (name) {
         case 'create_node': {
           const { title, content } = input;
+          const nodeType = this.normalizeNodeType(input.node_type || input.nodeType || input.type);
           const position = this.getSmartNodePosition();
-          const newNode = this.wallboard.nodeOperationsManager.createNode('markdown', { content }, position);
+          const newNode = this.wallboard.nodeOperationsManager.createNode(
+            nodeType,
+            { content, nodeType },
+            position
+          );
 
           if (newNode) {
             newNode.title = title;
             newNode.content = content;
+            newNode.type = nodeType;
+            newNode.data = newNode.data || {};
+            newNode.data.content = content;
+            newNode.data.nodeType = nodeType;
 
             // Remove and re-render with proper title
             const nodeEl = document.getElementById(`node-${newNode.id}`);
@@ -324,12 +341,20 @@ class AIChat {
             }
 
             this.wallboard.renderNode(newNode);
+            // Focus and select the newly created node
+            this.wallboard.deselectAll();
+            this.wallboard.selectedNode = newNode;
+            this.wallboard.selectedNodes.add(newNode.id);
+            const renderedEl = document.getElementById(`node-${newNode.id}`);
+            renderedEl?.classList.add("selected");
+            this.wallboard.focusOnNodes([newNode.id]);
             this.wallboard.autoSave();
 
             result.success = true;
             result.data = {
               node_id: newNode.id,
               title: newNode.title,
+              node_type: nodeType,
               message: `Created node "${title}" with ID ${newNode.id}`
             };
 
@@ -342,6 +367,10 @@ class AIChat {
 
         case 'edit_node': {
           const { node_id, title, content } = input;
+          const incomingType = input.node_type ?? input.nodeType ?? input.type;
+          const normalizedType = incomingType !== undefined
+            ? this.normalizeNodeType(incomingType)
+            : null;
           const node = this.wallboard.getNodeById(node_id);
 
           if (node) {
@@ -352,6 +381,11 @@ class AIChat {
               node.content = content;
               node.data = node.data || {};
               node.data.content = content;
+            }
+            if (normalizedType) {
+              node.data = node.data || {};
+              node.data.nodeType = normalizedType;
+              node.type = normalizedType;
             }
 
             // Re-render the node
@@ -365,6 +399,7 @@ class AIChat {
             result.success = true;
             result.data = {
               node_id: node_id,
+              node_type: node.data?.nodeType || node.type,
               message: `Updated node ${node_id}`
             };
 
@@ -448,8 +483,9 @@ class AIChat {
             nodes: this.wallboard.nodes.map(n => ({
               id: n.id,
               title: this.wallboard.getNodeTitle(n),
-              content: n.content ? n.content.substring(0, 150) : '',
-              type: n.type
+              content: (n.data?.content || n.content || '').substring(0, 150),
+              type: n.data?.nodeType || n.type || 'markdown',
+              node_type: n.data?.nodeType || n.type || 'markdown'
             })),
             connections: this.wallboard.connectionManager.connections.map(c => ({
               from: c.source?.nodeId,
@@ -769,10 +805,10 @@ class AIChat {
     const apiKeyInput = document.getElementById('aiApiKeyInput');
     if (apiKeyInput) {
       apiKeyInput.setAttribute('readonly', 'true');
-      apiKeyInput.addEventListener('focus', function() {
+      apiKeyInput.addEventListener('focus', function () {
         this.removeAttribute('readonly');
       });
-      apiKeyInput.addEventListener('blur', function() {
+      apiKeyInput.addEventListener('blur', function () {
         // Re-add readonly after a short delay to prevent autofill on blur
         setTimeout(() => {
           this.setAttribute('readonly', 'true');
@@ -811,7 +847,7 @@ class AIChat {
     modelInput.value = this.getDefaultModel(provider);
 
     // Update hints
-    switch(provider) {
+    switch (provider) {
       case 'anthropic':
         endpointHint.textContent = 'Proxy endpoint (runs on your local server to bypass CORS)';
         modelHint.textContent = 'claude-sonnet-4-5-20250929, claude-3-5-sonnet-20241022, claude-3-opus-20240229';
@@ -1590,17 +1626,22 @@ class AIChat {
     const boardInfo = {
       currentBoard: this.wallboard.boards[this.wallboard.currentBoardId]?.name || 'Unknown',
       nodeCount: this.wallboard.nodes.length,
-      nodes: this.wallboard.nodes.map(n => ({
-        id: n.id,
-        title: this.wallboard.getNodeTitle(n),
-        content: n.content ? n.content.substring(0, 100) : ''
-      }))
+      nodes: this.wallboard.nodes.map(n => {
+        const nodeType = n.data?.nodeType || n.type || 'markdown';
+        const content = n.data?.content || n.content || '';
+        return {
+          id: n.id,
+          title: this.wallboard.getNodeTitle(n),
+          type: nodeType,
+          content: content.substring(0, 100)
+        };
+      })
     };
 
     // Debug: Log node details
     console.log('Nodes being sent to AI:');
     boardInfo.nodes.forEach(n => {
-      console.log(`  - Node ${n.id}: "${n.title}" (${n.content.length} chars)`);
+      console.log(`  - Node ${n.id}: "${n.title}" [${n.type}] (${n.content.length} chars)`);
     });
 
     // Get connections with node titles - filter out invalid ones
@@ -1666,13 +1707,20 @@ ${this.customPrompt}`;
 
 Current board: "${boardInfo.currentBoard}"
 Number of nodes: ${boardInfo.nodeCount}
-${boardInfo.nodes.length > 0 ? `\nExisting nodes:\n${boardInfo.nodes.map(n => `- [Node ${n.id}] "${n.title}": ${n.content}`).join('\n')}` : ''}
+${boardInfo.nodes.length > 0 ? `\nExisting nodes:\n${boardInfo.nodes.map(n => `- [${n.type}] [Node ${n.id}] "${n.title}": ${n.content}`).join('\n')}` : ''}
 ${connectionsWithTitles.length > 0 ? `\nNumber of connections: ${connectionsWithTitles.length}\nConnections:\n${connectionsWithTitles.map(c => `- "${c.fromTitle}" → "${c.toTitle}"`).join('\n')}` : 'No connections yet.'}
 
 FORMATTING RULES:
 - Use **markdown formatting** in your responses (bold with **, lists with -, etc.)
 - Keep your responses concise and helpful
 - Use line breaks between sections for readability
+- Use **MathJax syntax** for math equations: \\\`$$ ... $$\\\` for block math and \\\`$ ... $\\\` for inline math. Do NOT use LaTeX \\\`\\\\[ ... \\\\]\\\` or \\\`\\\\( ... \\\\)\\\` syntax.
+
+WORKFLOW BUILDING (Instruction + Script):
+- Prefer **Instruction** nodes for plans/steps—keep them actionable and connect them. You can pull prior node content with \`{{Node Title}}\` and prior results with \`{{Node Title RESULT}}\`; the UI resolves these for you.
+- Use **Script** nodes only when you truly need JS execution. Script content is plain JS (no fences). Use \`const inputs = quirk.inputs();\` to read upstream outputs and \`quirk.output(value);\` to emit results.
+- When creating nodes via tools, set \`node_type\` to \`instruction\`, \`script\`, or \`markdown\` as appropriate. Don't wrap code in fences.
+- Chain by connecting nodes; avoid spawning extra "Result" nodes—emit outputs from scripts and reference results via \`{{... RESULT}}\` where needed.
 
 BOARD MANIPULATION:
 You have access to powerful tools to manipulate the board:
@@ -1700,21 +1748,29 @@ You: "Created 3 nodes covering Python basics, popular libraries, and best practi
     return fullPrompt;
   }
 
+  normalizeNodeType(rawType) {
+    const normalized = (rawType || '').toString().trim().toLowerCase();
+    const type = normalized === 'html preview' ? 'html-preview' : normalized;
+    const validTypes = new Set(['instruction', 'instruct', 'script', 'markdown', 'html-preview', 'system', 'save', 'image']);
+
+    if (!type) return 'markdown';
+    if (validTypes.has(type)) {
+      return type === 'instruct' ? 'instruction' : type;
+    }
+    return 'markdown';
+  }
+
   getSmartNodePosition() {
-    // Always place at viewport center so user can see it
+    // Reuse duplicate-style placement so AI nodes slot neatly without overlap
+    if (typeof this.wallboard.getNextNodePosition === 'function') {
+      return this.wallboard.getNextNodePosition();
+    }
+    // Fallback to viewport center
     const viewportCenterX = window.innerWidth / 2;
     const viewportCenterY = window.innerHeight / 2;
-
-    // Convert to canvas coordinates using direct formula
-    // Canvas has transform: translate(panX, panY) scale(zoom)
-    // So: canvasPos = (screenPos - panX) / zoom
     const canvasX = (viewportCenterX - this.wallboard.panX) / this.wallboard.zoom;
     const canvasY = (viewportCenterY - this.wallboard.panY) / this.wallboard.zoom;
-
-    return {
-      x: canvasX - 125, // Center the node (assuming ~250px width)
-      y: canvasY - 90   // Center the node (assuming ~180px height)
-    };
+    return { x: canvasX - 125, y: canvasY - 90 };
   }
 
   stopGeneration() {
@@ -1826,9 +1882,17 @@ You: "Created 3 nodes covering Python basics, popular libraries, and best practi
       return html + '<span class="ai-thinking-dots"><span>.</span><span>.</span><span>.</span></span>';
     }
 
-    // Pre-process: ensure list items are on their own lines
-    // Match "- " that's not at the start of a line or after a newline
-    formatted = formatted.replace(/([^\n])-\s+/g, '$1\n- ');
+    // Normalize whitespace that can break markdown list parsing
+    formatted = formatted
+      .replace(/\r\n/g, '\n')                 // normalize newlines
+      .replace(/[\u00a0\u202f\u2007]/g, ' ')   // NBSP variants -> space
+      .replace(/[\u200b-\u200d\ufeff]/g, '');  // zero-width chars -> remove
+
+    // Normalize common bullet characters to standard markdown markers
+    formatted = formatted
+      .split('\n')
+      .map(line => line.replace(/^\s*[•‒–—−]\s+/u, '- '))
+      .join('\n');
 
     // Use MarkdownRenderer for unified rendering (commands + math + markdown)
     try {
@@ -2218,7 +2282,7 @@ You: "Created 3 nodes covering Python basics, popular libraries, and best practi
       }
 
       // Re-render connections
-      this.wallboard.connectionManager.renderConnections();
+      this.wallboard.connectionManager.updateConnections();
 
       // Auto-save
       this.wallboard.autoSave();

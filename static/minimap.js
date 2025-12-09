@@ -8,9 +8,16 @@ class Minimap {
     this.viewport = null;
     this.isDragging = false;
     this.updateInterval = null;
-
-    // Calculate scale to fit entire canvas in minimap
-    this.calculateScale();
+    this.boundsPadding = 500;
+    this.renderParams = {
+      baseLeft: 0,
+      baseTop: 0,
+      offsetX: 0,
+      offsetY: 0,
+      scale: 1,
+      contentWidth: 1,
+      contentHeight: 1
+    };
 
     this.init();
   }
@@ -22,15 +29,40 @@ class Minimap {
   }
 
   calculateScale() {
-    // Calculate scale to fit the entire canvas in the minimap
-    const minimapWidth = 200; // Canvas width in pixels
-    const minimapHeight = 200; // Canvas height in pixels
+    if (!this.canvas) return;
 
-    const scaleX = minimapWidth / this.wallboard.canvasWidth;
-    const scaleY = minimapHeight / this.wallboard.canvasHeight;
+    const minimapWidth = this.canvas.width;
+    const minimapHeight = this.canvas.height;
+    const bounds = this.wallboard.getNodesBounds(this.wallboard.nodes);
 
-    // Use the smaller scale to ensure everything fits
-    this.scale = Math.min(scaleX, scaleY);
+    let baseLeft = 0;
+    let baseTop = 0;
+    let contentWidth = Math.max(this.wallboard.canvasWidth, 1);
+    let contentHeight = Math.max(this.wallboard.canvasHeight, 1);
+
+    if (bounds) {
+      baseLeft = bounds.left - this.boundsPadding;
+      baseTop = bounds.top - this.boundsPadding;
+      contentWidth = Math.max(bounds.width + this.boundsPadding * 2, 1);
+      contentHeight = Math.max(bounds.height + this.boundsPadding * 2, 1);
+    }
+
+    const scaleX = minimapWidth / contentWidth;
+    const scaleY = minimapHeight / contentHeight;
+    const scale = Math.min(scaleX, scaleY);
+
+    const offsetX = (minimapWidth - contentWidth * scale) / 2;
+    const offsetY = (minimapHeight - contentHeight * scale) / 2;
+
+    this.renderParams = {
+      baseLeft,
+      baseTop,
+      offsetX,
+      offsetY,
+      scale,
+      contentWidth,
+      contentHeight
+    };
   }
 
   createMinimapUI() {
@@ -40,6 +72,7 @@ class Minimap {
     this.container.innerHTML = `
       <div class="minimap-header">
         <span class="minimap-title">MAP</span>
+        <span class="minimap-node-count">${this.wallboard.nodes.length} nodes</span>
         <div class="minimap-zoom-display">${Math.round(this.wallboard.zoom * 100)}%</div>
       </div>
       <canvas class="minimap-canvas" width="200" height="200"></canvas>
@@ -79,6 +112,9 @@ class Minimap {
     this.canvas = this.container.querySelector('.minimap-canvas');
     this.ctx = this.canvas.getContext('2d');
     this.zoomDisplay = this.container.querySelector('.minimap-zoom-display');
+    this.nodeCountDisplay = this.container.querySelector('.minimap-node-count');
+
+    this.calculateScale();
   }
 
   attachEventListeners() {
@@ -103,7 +139,8 @@ class Minimap {
     this.canvas.addEventListener('mousedown', (e) => this.handleMinimapMouseDown(e));
     this.canvas.addEventListener('mousemove', (e) => this.handleMinimapMouseMove(e));
     this.canvas.addEventListener('mouseup', () => this.handleMinimapMouseUp());
-    this.canvas.addEventListener('mouseleave', () => this.handleMinimapMouseUp());
+    document.addEventListener('mouseup', () => this.handleMinimapMouseUp());
+    document.addEventListener('mousemove', (e) => this.handleGlobalMouseMove(e));
   }
 
   handleMinimapMouseDown(e) {
@@ -112,6 +149,12 @@ class Minimap {
   }
 
   handleMinimapMouseMove(e) {
+    if (this.isDragging) {
+      this.updateViewportFromMinimap(e);
+    }
+  }
+
+  handleGlobalMouseMove(e) {
     if (this.isDragging) {
       this.updateViewportFromMinimap(e);
     }
@@ -126,9 +169,16 @@ class Minimap {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
+    const { baseLeft, baseTop, offsetX, offsetY, scale, contentWidth, contentHeight } = this.renderParams;
+    const scaledWidth = contentWidth * scale;
+    const scaledHeight = contentHeight * scale;
+
     // Convert minimap coordinates to canvas coordinates
-    const canvasX = x / this.scale;
-    const canvasY = y / this.scale;
+    const adjustedX = Math.min(Math.max(x - offsetX, 0), scaledWidth);
+    const adjustedY = Math.min(Math.max(y - offsetY, 0), scaledHeight);
+
+    const canvasX = baseLeft + adjustedX / scale;
+    const canvasY = baseTop + adjustedY / scale;
 
     // Center the viewport on the clicked position
     this.wallboard.panX = (window.innerWidth / 2) - (canvasX * this.wallboard.zoom);
@@ -181,11 +231,16 @@ class Minimap {
       this.wallboard.nodes.forEach(node => {
         const nodeEl = document.getElementById(`node-${node.id}`);
         if (nodeEl) {
-          minX = Math.min(minX, node.position.x);
-          minY = Math.min(minY, node.position.y);
-          maxX = Math.max(maxX, node.position.x + nodeEl.offsetWidth);
-          maxY = Math.max(maxY, node.position.y + nodeEl.offsetHeight);
+          this.wallboard.updateNodeSizeFromElement(node.id, nodeEl);
         }
+        const size = nodeEl
+          ? { width: nodeEl.offsetWidth || 250, height: nodeEl.offsetHeight || 180 }
+          : (this.wallboard.getNodeSize(node.id) || { width: 250, height: 180 });
+
+        minX = Math.min(minX, node.position.x);
+        minY = Math.min(minY, node.position.y);
+        maxX = Math.max(maxX, node.position.x + size.width);
+        maxY = Math.max(maxY, node.position.y + size.height);
       });
 
       // Calculate center
@@ -197,7 +252,8 @@ class Minimap {
       const height = maxY - minY;
       const zoomX = (window.innerWidth * 0.8) / width;
       const zoomY = (window.innerHeight * 0.8) / height;
-      const fitZoom = Math.max(0.3, Math.min(zoomX, zoomY, 1.0)); // Min 30%, max 100%
+      const minPreferredZoom = CanvasConfig.DEFAULT_ZOOM || 1.0;
+      const fitZoom = Math.max(minPreferredZoom, Math.min(zoomX, zoomY, 1.0)); // never shrink below baseline
 
       // Apply zoom and pan
       this.wallboard.zoom = fitZoom;
@@ -224,6 +280,8 @@ class Minimap {
   }
 
   render() {
+    this.calculateScale();
+
     const ctx = this.ctx;
     const canvas = this.canvas;
 
@@ -231,13 +289,17 @@ class Minimap {
     ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    const { baseLeft, baseTop, offsetX, offsetY, scale, contentWidth, contentHeight } = this.renderParams;
+    const scaledWidth = contentWidth * scale;
+    const scaledHeight = contentHeight * scale;
+
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+
     // Draw canvas bounds
     ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
     ctx.lineWidth = 2;
-    ctx.strokeRect(0, 0,
-      this.wallboard.canvasWidth * this.scale,
-      this.wallboard.canvasHeight * this.scale
-    );
+    ctx.strokeRect(0, 0, scaledWidth, scaledHeight);
 
     // Draw connections
     ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
@@ -252,17 +314,29 @@ class Minimap {
         const startEl = document.getElementById(`node-${startNode.id}`);
         const endEl = document.getElementById(`node-${endNode.id}`);
 
-        if (startEl && endEl) {
-          const startX = (startNode.position.x + startEl.offsetWidth / 2) * this.scale;
-          const startY = (startNode.position.y + startEl.offsetHeight / 2) * this.scale;
-          const endX = (endNode.position.x + endEl.offsetWidth / 2) * this.scale;
-          const endY = (endNode.position.y + endEl.offsetHeight / 2) * this.scale;
-
-          ctx.beginPath();
-          ctx.moveTo(startX, startY);
-          ctx.lineTo(endX, endY);
-          ctx.stroke();
+        if (startEl) {
+          this.wallboard.updateNodeSizeFromElement(startNode.id, startEl);
         }
+        if (endEl) {
+          this.wallboard.updateNodeSizeFromElement(endNode.id, endEl);
+        }
+
+        const startSize = startEl
+          ? { width: startEl.offsetWidth || 250, height: startEl.offsetHeight || 180 }
+          : (this.wallboard.getNodeSize(startNode.id) || { width: 250, height: 180 });
+        const endSize = endEl
+          ? { width: endEl.offsetWidth || 250, height: endEl.offsetHeight || 180 }
+          : (this.wallboard.getNodeSize(endNode.id) || { width: 250, height: 180 });
+
+        const startX = ((startNode.position.x + startSize.width / 2) - baseLeft) * scale;
+        const startY = ((startNode.position.y + startSize.height / 2) - baseTop) * scale;
+        const endX = ((endNode.position.x + endSize.width / 2) - baseLeft) * scale;
+        const endY = ((endNode.position.y + endSize.height / 2) - baseTop) * scale;
+
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
       }
     });
 
@@ -271,12 +345,17 @@ class Minimap {
     // Draw nodes
     this.wallboard.nodes.forEach(node => {
       const nodeEl = document.getElementById(`node-${node.id}`);
-      if (!nodeEl) return;
+      if (nodeEl) {
+        this.wallboard.updateNodeSizeFromElement(node.id, nodeEl);
+      }
+      const size = nodeEl
+        ? { width: nodeEl.offsetWidth || 250, height: nodeEl.offsetHeight || 180 }
+        : (this.wallboard.getNodeSize(node.id) || { width: 250, height: 180 });
 
-      const x = node.position.x * this.scale;
-      const y = node.position.y * this.scale;
-      const width = nodeEl.offsetWidth * this.scale;
-      const height = nodeEl.offsetHeight * this.scale;
+      const x = (node.position.x - baseLeft) * scale;
+      const y = (node.position.y - baseTop) * scale;
+      const width = size.width * scale;
+      const height = size.height * scale;
 
       // Node fill
       if (this.wallboard.selectedNodes.has(node.id)) {
@@ -292,11 +371,14 @@ class Minimap {
       ctx.strokeRect(x, y, width, height);
     });
 
+    ctx.restore();
+
     // Draw viewport rectangle
     this.drawViewport();
 
-    // Update zoom display
+    // Update zoom display and node count
     this.zoomDisplay.textContent = `${Math.round(this.wallboard.zoom * 100)}%`;
+    this.nodeCountDisplay.textContent = `${this.wallboard.nodes.length} nodes`;
   }
 
   drawViewport() {
@@ -315,11 +397,13 @@ class Minimap {
     const viewportX = -this.wallboard.panX / this.wallboard.zoom;
     const viewportY = -this.wallboard.panY / this.wallboard.zoom;
 
+    const { baseLeft, baseTop, offsetX, offsetY, scale } = this.renderParams;
+
     // Convert to minimap coordinates
-    const minimapX = viewportX * this.scale;
-    const minimapY = viewportY * this.scale;
-    const minimapWidth = viewportWidth * this.scale;
-    const minimapHeight = viewportHeight * this.scale;
+    const minimapX = offsetX + (viewportX - baseLeft) * scale;
+    const minimapY = offsetY + (viewportY - baseTop) * scale;
+    const minimapWidth = viewportWidth * scale;
+    const minimapHeight = viewportHeight * scale;
 
     // Draw viewport rectangle with subtle styling
     ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();

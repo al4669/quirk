@@ -5,15 +5,17 @@ class EditorManager {
     this.currentEditor = null;
     this.currentNode = null;
     this.editorOverlay = null;
+    this.currentSide = 'content';
   }
 
   // Open a node's content in EasyMDE
   openNode(node) {
     this.currentNode = node;
+    this.currentSide = this.wallboard.isShowingResult(node.id) ? 'result' : 'content';
     this.autoSaveTimeout = null;
 
     // Save scroll position as percentage from the node content
-    const nodeContent = document.getElementById(`content-${node.id}`);
+    const nodeContent = this.wallboard.getContentElement(node.id, this.currentSide);
     let savedScrollPercent = 0;
     if (nodeContent && nodeContent.scrollHeight > nodeContent.clientHeight) {
       savedScrollPercent = nodeContent.scrollTop / (nodeContent.scrollHeight - nodeContent.clientHeight);
@@ -70,7 +72,8 @@ class EditorManager {
 
     // Initialize EasyMDE
     const textarea = document.getElementById('easymde-editor');
-    textarea.value = node.data.content || '';
+    const contentKey = this.currentSide === 'result' ? 'resultContent' : 'content';
+    textarea.value = node.data[contentKey] || '';
 
     this.currentEditor = new EasyMDE({
       element: textarea,
@@ -512,19 +515,21 @@ class EditorManager {
   autoSave() {
     if (this.currentEditor && this.currentNode) {
       const content = this.currentEditor.value();
+      const contentKey = this.currentSide === 'result' ? 'resultContent' : 'content';
+      const htmlKey = this.currentSide === 'result' ? 'resultHtml' : 'html';
 
       // Update node content
-      this.currentNode.data.content = content;
+      this.currentNode.data[contentKey] = content;
 
       // Render with MarkdownRenderer to support math formulas
-      this.currentNode.data.html = typeof MarkdownRenderer !== 'undefined'
+      this.currentNode.data[htmlKey] = typeof MarkdownRenderer !== 'undefined'
         ? MarkdownRenderer.render(content)
         : marked.parse(content);
 
       // Update the node's display
-      const nodeContent = document.getElementById(`content-${this.currentNode.id}`);
+      const nodeContent = this.wallboard.getContentElement(this.currentNode.id, this.currentSide);
       if (nodeContent) {
-        nodeContent.innerHTML = Sanitization.sanitize(this.wallboard.renderNodeContent(this.currentNode));
+        nodeContent.innerHTML = Sanitization.sanitize(this.wallboard.renderNodeContent(this.currentNode, this.currentSide));
 
         // Re-enable checkboxes and re-highlight code blocks
         setTimeout(() => {

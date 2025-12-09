@@ -172,7 +172,15 @@ connections:`;
 
   getNodeTitle(nodes, nodeId) {
     const node = nodes.find(n => n.id === nodeId);
-    if (!node || !node.data || !node.data.content) return `node-${nodeId}`;
+    if (!node) return `node-${nodeId}`;
+
+    // Prefer explicit node title if present
+    if (node.title && typeof node.title === 'string') {
+      const clean = node.title.trim();
+      if (clean) return this.sanitizeFilename(clean);
+    }
+
+    if (!node.data || !node.data.content) return `node-${nodeId}`;
 
     // Extract title from markdown content
     const lines = node.data.content.split('\n');
@@ -285,6 +293,8 @@ connections:`;
     input.accept = '.json,.zip';
     input.onchange = (e) => this.handleImportFile(e);
     input.click();
+
+    alert('Import expects a full export (.zip or .json) from this app. Markdown-only exports cannot be imported.');
   }
 
   async handleImportFile(event) {
@@ -517,14 +527,12 @@ connections:`;
   }
 
   importBoards(data) {
+    // Multi-board backup format
     if (data.boards) {
-      // Importing all boards
       const importedCount = Object.keys(data.boards).length;
 
       if (confirm(`This will import ${importedCount} board(s). Continue?`)) {
-        // Merge with existing boards (avoiding conflicts)
         Object.entries(data.boards).forEach(([boardId, board]) => {
-          // Generate new ID if board already exists
           let newBoardId = boardId;
           if (this.wallboard.boards[boardId]) {
             newBoardId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
@@ -538,54 +546,65 @@ connections:`;
         this.wallboard.updateBoardSelector();
         alert(`Successfully imported ${importedCount} board(s)!`);
       }
-    } else {
-      alert('Invalid export file format.');
-    }
-  }
-
-  // Export board as GitHub-compatible JSON file
-  exportForGitHub() {
-    if (!this.wallboard.currentBoardId) {
-      alert('No board to export!');
       return;
     }
 
-    const board = this.wallboard.boards[this.wallboard.currentBoardId];
-    const boardName = this.sanitizeFilename(board.name);
+    // Single-board JSON (GitHub-style export)
+    if (data.nodes && data.connections) {
+      const importedBoard = this.importSingleBoardObject(data);
+      if (importedBoard) {
+        alert(`Successfully imported board "${importedBoard.name}"!`);
+      } else {
+        alert('Could not import: unsupported single-board format.');
+      }
+      return;
+    }
 
-    // Create GitHub-compatible export data
-    const githubData = {
-      name: board.name,
-      description: `Wallboard exported on ${new Date().toLocaleDateString()}`,
-      nodes: board.nodes,
-      connections: board.connections,
-      connectionThemes: board.connectionThemes || {},
-      nodeIdCounter: board.nodeIdCounter,
-      globalTheme: board.globalTheme,
-      nodeThemes: board.nodeThemes,
-      version: "1.0",
-      exportedAt: new Date().toISOString()
-    };
+    alert('Invalid export file format. Import supports full exports (zip/json), not markdown-only files.');
+  }
 
-    // Download as JSON file
-    const filename = `${boardName}-wallboard.json`;
-    this.downloadFile(filename, JSON.stringify(githubData, null, 2), 'application/json');
+  importSingleBoardObject(raw) {
+    try {
+      const boardId = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+      const name = raw.name || 'Imported Board';
 
-    // Show instructions
-    setTimeout(() => {
-      const githubUrl = `${window.location.origin}${window.location.pathname}?board=YOUR_GITHUB_RAW_URL`;
+      // Deep clone nodes to avoid mutating the source object
+      const nodes = (raw.nodes || []).map(n => ({
+        ...n,
+        data: { ...(n.data || {}) },
+        position: { ...(n.position || { x: 100, y: 100 }) }
+      }));
 
-      alert(`✅ Exported "${board.name}" as GitHub-compatible JSON!
+      const connections = (raw.connections || []).map(c => ({
+        start: c.start ? { ...c.start } : { nodeId: c.fromId },
+        end: c.end ? { ...c.end } : { nodeId: c.toId }
+      }));
 
-📁 File saved as: ${filename}
+      let maxId = 0;
+      nodes.forEach(n => { if (typeof n.id === 'number') maxId = Math.max(maxId, n.id); });
 
-🚀 To share this board:
-1. Upload ${filename} to a GitHub repository
-2. Get the raw file URL from GitHub
-3. Share this link: ${githubUrl.replace('YOUR_GITHUB_RAW_URL', '[paste-raw-url-here]')}
+      const board = {
+        id: boardId,
+        name: name + ' (imported)',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        globalTheme: raw.globalTheme || 'default',
+        nodeThemes: raw.nodeThemes || {},
+        connectionThemes: raw.connectionThemes || raw.connectionsThemes || {},
+        nodes,
+        connections,
+        nodeIdCounter: raw.nodeIdCounter || maxId + 1
+      };
 
-Example: ${window.location.origin}${window.location.pathname}?board=https://raw.githubusercontent.com/user/repo/main/board.json`);
-    }, 100);
+      this.wallboard.boards[boardId] = board;
+      this.wallboard.saveBoardsToStorage();
+      this.wallboard.updateBoardSelector();
+      this.wallboard.loadBoard(boardId);
+      return board;
+    } catch (e) {
+      console.error('Failed to import single board object', e);
+      return null;
+    }
   }
 
   // Export options dialog
@@ -596,10 +615,6 @@ Example: ${window.location.origin}${window.location.pathname}?board=https://raw.
       <div class="export-dialog-content">
         <h3>Export Options</h3>
         <div class="export-options">
-          <button class="export-btn" onclick="exportManager.exportForGitHub(); this.closest('.export-dialog').remove();">
-            Export for GitHub Sharing
-            <small>JSON file for URL sharing</small>
-          </button>
           <button class="export-btn" onclick="exportManager.exportCurrentBoard(); this.closest('.export-dialog').remove();">
             Export Current Board
             <small>Markdown files + connection map</small>
@@ -608,9 +623,13 @@ Example: ${window.location.origin}${window.location.pathname}?board=https://raw.
             Export All Boards
             <small>Complete backup as JSON + markdown</small>
           </button>
+          <button class="export-btn" onclick="exportManager.exportAsMarkdownFiles(exportManager.sanitizeFilename(exportManager.wallboard.boards[exportManager.wallboard.currentBoardId]?.name || 'board'), exportManager.wallboard.boards[exportManager.wallboard.currentBoardId]?.nodes || [], exportManager.wallboard.boards[exportManager.wallboard.currentBoardId]?.connections || [], { boardInfo: exportManager.wallboard.boards[exportManager.wallboard.currentBoardId] || {} }); this.closest('.export-dialog').remove();">
+            Export as Markdown
+            <small>One .md per node (not importable)</small>
+          </button>
           <button class="export-btn" onclick="exportManager.showImportDialog(); this.closest('.export-dialog').remove();">
             Import Boards
-            <small>Restore from backup file</small>
+            <small>Import full exports (.zip or .json), not markdown-only</small>
           </button>
         </div>
         <button class="export-cancel" onclick="this.closest('.export-dialog').remove();">Cancel</button>

@@ -10,10 +10,14 @@ class EditModeManager {
     const node = this.wallboard.nodes.find((n) => n.id === nodeId);
     if (!node) return;
 
-    const content = document.getElementById(`content-${nodeId}`);
+    const side = this.wallboard.isShowingResult(nodeId) ? 'result' : 'content';
+    const contentKey = side === 'result' ? 'resultContent' : 'content';
+    const htmlKey = side === 'result' ? 'resultHtml' : 'html';
+    const content = this.wallboard.getContentElement(nodeId, side);
+    if (!content || !node.data) return;
 
     // Allow editing for any node type that has content
-    if (node.data && node.data.content !== undefined) {
+    if (node.data && node.data[contentKey] !== undefined) {
       const isEditing = content.querySelector(".text-editor");
 
       if (isEditing) {
@@ -30,14 +34,14 @@ class EditModeManager {
         // Save and destroy CodeMirror
         const cmInstance = isEditing._cmInstance;
         if (cmInstance) {
-          node.data.content = cmInstance.getValue();
-          node.data.html = typeof MarkdownRenderer !== 'undefined'
-            ? MarkdownRenderer.render(node.data.content)
-            : marked.parse(node.data.content);
+          node.data[contentKey] = cmInstance.getValue();
+          node.data[htmlKey] = typeof MarkdownRenderer !== 'undefined'
+            ? MarkdownRenderer.render(node.data[contentKey])
+            : marked.parse(node.data[contentKey]);
 
           // Process wiki-style [[links]] immediately when exiting edit mode
           if (this.wallboard.linkManager) {
-            this.wallboard.linkManager.processNodeLinks(node.id, node.data.content, true);
+            this.wallboard.linkManager.processNodeLinks(node.id, node.data[contentKey], true);
           }
         }
 
@@ -47,6 +51,8 @@ class EditModeManager {
           nodeEl.classList.remove('editing');
           // Remove inline toolbar
           this.removeInlineToolbar(nodeEl);
+          const hints = nodeEl.querySelector('.inline-variable-hints');
+          hints?.remove();
           // Clear node width constraints
           nodeEl.style.width = "";
           nodeEl.style.maxWidth = "";
@@ -65,7 +71,8 @@ class EditModeManager {
         content.style.zoom = "";
 
         // Render node content with XSS protection
-        content.innerHTML = Sanitization.sanitize(this.renderNodeContent(node));
+        content.innerHTML = Sanitization.sanitize(this.renderNodeContent(node, side));
+        this.wallboard.htmlPreviewManager?.hydrate(content, node, side);
 
         // Restore scroll position using percentage
         if (savedScrollPercentY > 0 && content.scrollHeight > content.clientHeight) {
@@ -130,7 +137,7 @@ class EditModeManager {
         // Create textarea placeholder for CodeMirror
         const textarea = document.createElement("textarea");
         textarea.className = "text-editor";
-        textarea.value = node.data.content;
+        textarea.value = node.data[contentKey] ?? '';
 
         content.innerHTML = "";
         content.appendChild(textarea);
@@ -156,7 +163,7 @@ class EditModeManager {
         cmWrapper._cmInstance = cmInstance;
 
         // Add inline toolbar to node header
-        this.addInlineToolbar(nodeEl, cmInstance);
+        this.addInlineToolbar(nodeEl, cmInstance, node);
 
         // Style the CodeMirror editor to match view width
         cmWrapper.style.height = 'auto';
@@ -234,15 +241,23 @@ class EditModeManager {
         cmInstance.on('change', () => {
           clearTimeout(this.inlineEditTimeout);
           this.inlineEditTimeout = setTimeout(() => {
-            node.data.content = cmInstance.getValue();
-            node.data.html = typeof MathRenderer !== 'undefined'
-              ? MathRenderer.render(node.data.content)
-              : marked.parse(node.data.content);
-            this.wallboard.autoSave();
+            const normalized = this.normalizeContent(cmInstance.getValue());
+            if (contentKey === 'resultContent' && normalized === '') {
+              delete node.data.resultContent;
+              delete node.data.resultHtml;
+              node.data.showingResult = false;
+              this.wallboard.setNodeSide(node.id, 'content');
+            } else {
+              node.data[contentKey] = normalized;
+              node.data[htmlKey] = typeof MathRenderer !== 'undefined'
+                ? MathRenderer.render(node.data[contentKey])
+                : marked.parse(node.data[contentKey]);
+              this.wallboard.autoSave();
 
-            // Process wiki-style [[links]] after save
-            if (this.wallboard.linkManager) {
-              this.wallboard.linkManager.processNodeLinks(node.id, node.data.content);
+              // Process wiki-style [[links]] after save
+              if (this.wallboard.linkManager) {
+                this.wallboard.linkManager.processNodeLinks(node.id, node.data[contentKey]);
+              }
             }
           }, 300); // Reduced from 1000ms for faster response
         });
@@ -252,15 +267,23 @@ class EditModeManager {
           // Clear any pending timeout
           clearTimeout(this.inlineEditTimeout);
           // Save immediately
-          node.data.content = cmInstance.getValue();
-          node.data.html = typeof MarkdownRenderer !== 'undefined'
-            ? MarkdownRenderer.render(node.data.content)
-            : marked.parse(node.data.content);
-          this.wallboard.autoSave();
+          const normalized = this.normalizeContent(cmInstance.getValue());
+          if (contentKey === 'resultContent' && normalized === '') {
+            delete node.data.resultContent;
+            delete node.data.resultHtml;
+            node.data.showingResult = false;
+            this.wallboard.setNodeSide(node.id, 'content');
+          } else {
+            node.data[contentKey] = normalized;
+            node.data[htmlKey] = typeof MarkdownRenderer !== 'undefined'
+              ? MarkdownRenderer.render(node.data[contentKey])
+              : marked.parse(node.data[contentKey]);
+            this.wallboard.autoSave();
 
-          // Process wiki-style [[links]] immediately on blur
-          if (this.wallboard.linkManager) {
-            this.wallboard.linkManager.processNodeLinks(node.id, node.data.content, true);
+            // Process wiki-style [[links]] immediately on blur
+            if (this.wallboard.linkManager) {
+              this.wallboard.linkManager.processNodeLinks(node.id, node.data[contentKey], true);
+            }
           }
         });
 
@@ -289,30 +312,101 @@ class EditModeManager {
     this.wallboard.isAnyNodeEditing = document.querySelectorAll('.text-editor').length > 0;
   }
 
-  renderNodeContent(node) {
-    if (node.data && node.data.content !== undefined) {
-      let content = node.data.content;
+  normalizeContent(raw) {
+    if (!raw) return '';
+    return raw
+      .replace(/\r\n/g, '\n')
+      .replace(/[\u00a0\u202f\u2007]/g, ' ')
+      .replace(/[\u200b-\u200d\ufeff]/g, '')
+      .trim();
+  }
 
-      // Pre-process: ensure list items are on their own lines
-      // Match "- " that's not at the start of a line or after a newline
-      content = content.replace(/([^\n])-\s+/g, '$1\n- ');
+  renderNodeContent(node, side = 'content') {
+    const contentKey = side === 'result' ? 'resultContent' : 'content';
+    const htmlKey = side === 'result' ? 'resultHtml' : 'html';
+
+    if (node.data && node.data[contentKey] !== undefined) {
+      let content = node.data[contentKey];
+      const nodeType = (node?.data?.nodeType || node?.title || '').toLowerCase();
+      const contentType = (node?.data?.contentType || '').toLowerCase();
+
+      // Normalize whitespace that can confuse markdown parsing (NBSP/zero-width)
+      content = content
+        .replace(/\r\n/g, '\n')
+        .replace(/[\u00a0\u202f\u2007]/g, ' ')
+        .replace(/[\u200b-\u200d\ufeff]/g, '');
+
+      // Dedicated HTML preview node: render sanitized HTML inside a sandboxed iframe
+      const isHtmlPreview =
+        nodeType === 'html preview' ||
+        nodeType === 'html-preview' ||
+        nodeType === 'html' ||
+        contentType === 'html-preview' ||
+        contentType === 'html';
+      if (isHtmlPreview) {
+        const htmlFromFence = content.match(/```html\s*([\s\S]*?)```/i);
+        const rawHtml = (htmlFromFence ? htmlFromFence[1] : content || '').trim();
+        const isFullDoc = /<!doctype|<html[\s>]/i.test(rawHtml);
+        const safeHtml = isFullDoc
+          ? HtmlPreviewManager.cleanDocument(rawHtml)
+          : Sanitization.sanitize(rawHtml, {
+              ADD_TAGS: ['style', 'video', 'audio', 'source', 'canvas', 'link', 'html', 'head', 'body', 'meta', 'title'],
+              ADD_ATTR: [
+                'controls', 'poster', 'playsinline', 'rel', 'href', 'media',
+                'crossorigin', 'referrerpolicy', 'integrity', 'as', 'charset',
+                'name', 'content'
+              ],
+              ALLOW_UNKNOWN_PROTOCOLS: true
+            });
+
+        const encoded = HtmlPreviewManager.encodeHtml(safeHtml);
+
+        const previewLabel = side === 'result' ? 'Result HTML' : 'HTML Preview';
+        const helperText = rawHtml
+          ? 'Scripts are stripped; inline styles allowed. Use ```html fences to capture just the HTML block.'
+          : 'Add HTML directly or inside ```html fenced blocks.';
+
+        return `
+          <div class="markdown-content html-preview-shell" data-html-preview data-html-payload="${encoded}" data-preview-label="${previewLabel}">
+            <div class="html-preview-helper">${helperText}</div>
+          </div>
+        `;
+      }
 
       // Use stored HTML if available, otherwise render with MarkdownRenderer or marked.js
       let htmlContent;
-      if (node.data.html) {
-        htmlContent = node.data.html;
-      } else if (typeof MarkdownRenderer !== 'undefined') {
+      if (side === 'result' && typeof MarkdownRenderer !== 'undefined') {
+        // Always re-render result side to keep live outputs hydrated
         htmlContent = MarkdownRenderer.render(content);
+        node.data.resultHtml = htmlContent;
       } else {
-        htmlContent = marked.parse(content);
+        if (node.data[htmlKey]) {
+          htmlContent = node.data[htmlKey];
+        } else if (typeof MarkdownRenderer !== 'undefined') {
+          htmlContent = MarkdownRenderer.render(content);
+        } else {
+          htmlContent = marked.parse(content);
+        }
       }
 
       // Post-process: Convert [[links]] to clickable elements
       htmlContent = this.makeLinksClickable(htmlContent);
 
+      // Wrap instruction nodes with badge + body styling (content side only)
+      if (side === 'content' && (nodeType === 'instruction' || nodeType === 'instruct')) {
+        htmlContent = `
+          <div class="instruct-block">
+            <div class="instruct-badge">Instruction</div>
+            <div class="instruct-body">${htmlContent}</div>
+          </div>
+        `;
+      }
+
       return `<div class="markdown-content">${htmlContent}</div>`;
     }
-    return '';
+    return side === 'result'
+      ? '<div class="markdown-content empty-result">No result yet</div>'
+      : '';
   }
 
   makeLinksClickable(html) {
@@ -336,7 +430,7 @@ class EditModeManager {
     });
   }
 
-  addInlineToolbar(nodeEl, cmInstance) {
+  addInlineToolbar(nodeEl, cmInstance, node) {
     const header = nodeEl.querySelector('.node-header');
     if (!header) return;
 
@@ -422,6 +516,9 @@ class EditModeManager {
     // Append toolbar at the end (after node-actions)
     // The CSS order properties will handle the visual ordering
     header.appendChild(toolbar);
+
+    // Variable helper chips for incoming connections
+    this.renderVariableChips(nodeEl, cmInstance, node);
   }
 
   removeInlineToolbar(nodeEl) {
@@ -513,6 +610,70 @@ class EditModeManager {
     } else {
       const isInline = selection.startsWith('`') && selection.endsWith('`');
       cm.replaceSelection(isInline ? selection.slice(1, -1) : `\`${selection}\``);
+    }
+  }
+
+  renderVariableChips(nodeEl, cmInstance, node) {
+    if (!nodeEl) return;
+    const existing = nodeEl.querySelector('.inline-variable-hints');
+    if (existing) existing.remove();
+
+    const upstreamIds = this.wallboard?.executionManager?.getAllUpstreamNodeIds(node.id) || new Set();
+    upstreamIds.delete(node.id);
+    const upstreamNodes = this.wallboard.nodes.filter(n => upstreamIds.has(n.id));
+    if (upstreamNodes.length === 0) return;
+
+    const container = document.createElement('div');
+    container.className = 'inline-variable-hints';
+    const label = document.createElement('span');
+    label.className = 'inline-variable-label';
+    label.textContent = 'Available outputs:';
+    container.appendChild(label);
+
+    const seen = new Set();
+    upstreamNodes.forEach(src => {
+      const title = src ? this.wallboard.getNodeTitle(src) : null;
+      if (!title || seen.has(title.toLowerCase())) return;
+      seen.add(title.toLowerCase());
+
+      const srcContent = src?.data?.content || '';
+      const srcType = (src?.data?.nodeType || '').toLowerCase();
+      const isExecutable = srcType === 'instruction' || srcType === 'instruct' || srcType === 'script' || /```script\s/i.test(srcContent);
+
+      // Helper to create a chip
+      const addChip = (placeholder) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'inline-variable-chip';
+        chip.textContent = placeholder;
+        chip.title = `Insert ${placeholder}`;
+        chip.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!cmInstance) return;
+          const doc = cmInstance.getDoc();
+          doc.replaceSelection(placeholder);
+          cmInstance.focus();
+        });
+        container.appendChild(chip);
+      };
+
+      // Always allow content placeholder
+      addChip(`{{${title}}}`);
+
+      // Only allow RESULT placeholder if the upstream node has a result already
+      const hasResult =
+        !!this.wallboard.executionManager?.executionState?.[src.id]?.result ||
+        !!src.data?.resultContent;
+      if (hasResult || isExecutable) {
+        addChip(`{{${title} RESULT}}`);
+      }
+    });
+
+    if (container.children.length > 1) {
+      // Insert after toolbar inside header
+      const header = nodeEl.querySelector('.node-header');
+      header?.appendChild(container);
     }
   }
 }

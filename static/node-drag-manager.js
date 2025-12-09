@@ -2,6 +2,8 @@
 class NodeDragManager {
   constructor(wallboard) {
     this.wallboard = wallboard;
+    // Track the animation frame ID so we can cancel it
+    this.dragAnimationFrame = null;
   }
 
   handleNodeDragStart(e, node, element) {
@@ -65,9 +67,21 @@ class NodeDragManager {
   }
 
   handleNodeDrag(e) {
-    const { node, element } = this.wallboard.draggedNode;
+    // If we aren't logically dragging, stop immediately
+    if (!this.wallboard.isDragging) return;
 
-    requestAnimationFrame(() => {
+    // 1. Optimization: Cancel any pending frame to prevent stacking multiple frames
+    if (this.dragAnimationFrame) {
+      cancelAnimationFrame(this.dragAnimationFrame);
+    }
+
+    // 2. Request new frame
+    this.dragAnimationFrame = requestAnimationFrame(() => {
+      // 3. Safety check: Ensure dragging is still active when the frame actually runs
+      if (!this.wallboard.isDragging || !this.wallboard.draggedNode) return;
+
+      const { node, element } = this.wallboard.draggedNode;
+
       // Convert mouse coordinates to canvas coordinate system
       const canvasCoords = this.wallboard.screenToCanvas(e.clientX, e.clientY);
       const newX = canvasCoords.x - this.wallboard.dragOffset.x;
@@ -97,10 +111,20 @@ class NodeDragManager {
       }
 
       this.wallboard.connectionManager.updateConnections();
+      
+      // Clear the frame ID as it has completed
+      this.dragAnimationFrame = null;
     });
   }
 
   endNodeDrag() {
+    // 4. CRITICAL FIX: Cancel any pending animation frame immediately.
+    // This prevents the "twitch" where a frame runs AFTER the mouse is released.
+    if (this.dragAnimationFrame) {
+      cancelAnimationFrame(this.dragAnimationFrame);
+      this.dragAnimationFrame = null;
+    }
+
     this.wallboard.isDragging = false;
     document.body.style.userSelect = "";
     document.body.style.cursor = "";
@@ -127,6 +151,7 @@ class NodeDragManager {
     this.wallboard.primaryDragNode = null;
 
     // Auto-save after node position changes
+    this.wallboard.updateCanvasBounds();
     this.wallboard.autoSave();
   }
 }

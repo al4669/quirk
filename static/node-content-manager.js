@@ -41,7 +41,8 @@ class NodeContentManager {
         // Update the node title FIRST before updating references
         node.title = uniqueTitle;
         delete node.type;
-        typeElement.textContent = uniqueTitle.toUpperCase();
+        NodeRenderer.setNodeTypeLabel(typeElement, uniqueTitle);
+        typeElement.title = uniqueTitle;
         typeElement.style.display = "";
         input.remove();
 

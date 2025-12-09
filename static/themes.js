@@ -55,7 +55,7 @@ class Themes {
     cyan: { accent: '#0891b2', name: 'Cyan' },
     sky: { accent: '#6366f1', name: 'Sky' },
     blue: { accent: '#2563eb', name: 'Blue' },
-     mango: { accent: '#FFD700', name: 'Mango' },
+    mango: { accent: '#FFD700', name: 'Mango' },
     saffron: { accent: '#FFB84D', name: 'Saffron' },
     tangerine: { accent: '#FF8000', name: 'Tangerine' },
     burntOrange: { accent: '#CC6600', name: 'Burnt Orange' },

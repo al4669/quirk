@@ -64,6 +64,10 @@ class BoardManager {
     wallboard.connectionManager.connections = [];
     wallboard.connectionManager.connectionThemes = {};
     wallboard.nodeIdCounter = 0;
+    wallboard.clearNodeSizeCache();
+    wallboard.updateCanvasBounds();
+    wallboard.gridOffsetX = 0;
+    wallboard.gridOffsetY = 0;
 
     // Clear canvas
     document.getElementById('canvas').innerHTML = '<svg class="svg-connections" id="connections"></svg>';
@@ -83,6 +87,11 @@ class BoardManager {
     // Clear current state
     document.getElementById('canvas').innerHTML = '<svg class="svg-connections" id="connections"></svg>';
     wallboard.connectionManager.init();
+    wallboard.clearNodeSizeCache();
+    wallboard.gridOffsetX = 0;
+    wallboard.gridOffsetY = 0;
+
+    let hasViewState = !!board.viewState;
 
     // Load board state
     wallboard.nodes = board.nodes || [];
@@ -92,6 +101,28 @@ class BoardManager {
     wallboard.globalTheme = board.globalTheme || 'default';
     wallboard.nodeThemes = board.nodeThemes || {};
     wallboard.executionManager.executionState = board.executionState || {};
+    wallboard.executionManager.sanitizeExecutionStateOnLoad();
+    // Always start on front side after refresh
+    wallboard.nodes.forEach(n => {
+      if (n.data) {
+        n.data.showingResult = false;
+      }
+    });
+    if (hasViewState) {
+      wallboard.zoom = board.viewState.zoom ?? wallboard.zoom;
+      wallboard.panX = board.viewState.panX ?? wallboard.panX;
+      wallboard.panY = board.viewState.panY ?? wallboard.panY;
+    } else {
+      // Fallback to cached local view state if available
+      const cached = BoardManager.getCachedViewState(boardId);
+      if (cached) {
+        wallboard.zoom = cached.zoom ?? wallboard.zoom;
+        wallboard.panX = cached.panX ?? wallboard.panX;
+        wallboard.panY = cached.panY ?? wallboard.panY;
+        hasViewState = true;
+      }
+    }
+    wallboard.viewWasRestored = hasViewState;
 
     // Migrate old "type" field to new "title" field for backwards compatibility
     wallboard.nodes.forEach(node => {
@@ -104,8 +135,12 @@ class BoardManager {
     // Apply loaded theme
     wallboard.applyGlobalTheme(wallboard.globalTheme);
 
-    // Render all nodes
-    wallboard.nodes.forEach(node => wallboard.renderNode(node));
+    wallboard.updateCanvasBounds();
+    wallboard.updateTransform();
+
+    // Render nodes with viewport culling for better performance
+    // Will render all nodes if zoomed in, or only visible nodes if zoomed out
+    this.renderNodesWithCulling(wallboard);
 
     // Update connections
     wallboard.connectionManager.updateConnections();
@@ -115,8 +150,8 @@ class BoardManager {
 
     this.updateBoardSelector(wallboard);
 
-    // Center view on nodes after board loads
-    if (wallboard.minimap && wallboard.nodes.length > 0) {
+    // Center view on nodes after board loads (only if no stored view AND no cached view)
+    if (!hasViewState && !BoardManager.getCachedViewState(boardId) && wallboard.minimap && wallboard.nodes.length > 0) {
       // Small delay to ensure DOM elements are fully rendered
       setTimeout(() => {
         wallboard.minimap.centerOnNodes();
@@ -143,6 +178,12 @@ class BoardManager {
     board.globalTheme = wallboard.globalTheme;
     board.nodeThemes = wallboard.nodeThemes;
     board.executionState = wallboard.executionManager.executionState;
+    board.viewState = {
+      zoom: wallboard.zoom,
+      panX: wallboard.panX,
+      panY: wallboard.panY
+    };
+    BoardManager.cacheViewState(board.id, board.viewState);
     board.updatedAt = new Date().toISOString();
 
     // Save to IndexedDB (fast, async)
@@ -225,6 +266,34 @@ class BoardManager {
     }
 
     this.setupBoardSelector(wallboard);
+  }
+
+  static updateCanvasBounds(wallboard) {
+    const canvasEl = document.getElementById('canvas');
+    const connectionsEl = document.getElementById('connections');
+    if (canvasEl) {
+      // Assuming wallboard has width, height, panX, panY, zoom properties
+      // These values would typically come from the wallboard instance
+      const width = window.innerWidth; // Example: get from window or wallboard config
+      const height = window.innerHeight; // Example: get from window or wallboard config
+
+      canvasEl.style.width = `${width}px`;
+      canvasEl.style.height = `${height}px`;
+      canvasEl.style.transformOrigin = '0 0';
+
+      // Calculate grid offset based on current pan and zoom
+      // This ensures the grid pattern remains fixed relative to the content
+      const gridOffsetX = (wallboard.panX * wallboard.zoom) % 50; // Assuming 50px grid size
+      const gridOffsetY = (wallboard.panY * wallboard.zoom) % 50; // Assuming 50px grid size
+
+      canvasEl.style.setProperty('--grid-offset-x', `${gridOffsetX}px`);
+      canvasEl.style.setProperty('--grid-offset-y', `${gridOffsetY}px`);
+    }
+    // The connections element might also need bounds or transform updates
+    if (connectionsEl) {
+      // connectionsEl.style.width = `${width}px`;
+      // connectionsEl.style.height = `${height}px`;
+    }
   }
 
   static setupBoardSelector(wallboard) {
@@ -353,6 +422,83 @@ class BoardManager {
       // Update UI
       this.updateBoardSelector(wallboard);
       Notifications.show(`Board "${currentBoard.name}" deleted successfully`);
+    }
+  }
+
+  /**
+   * Render nodes with viewport culling for performance
+   * Only renders nodes that are visible or near the viewport
+   */
+  static renderNodesWithCulling(wallboard) {
+    const visibleNodeIds = ViewportCuller.getVisibleNodeIds(
+      wallboard.nodes,
+      wallboard.zoom,
+      wallboard.panX,
+      wallboard.panY
+    );
+
+    wallboard.nodes.forEach(node => {
+      const nodeElement = document.getElementById(`node-${node.id}`);
+      const isVisible = visibleNodeIds.has(node.id);
+      const isSelected = wallboard.selectedNodes.has(node.id);
+
+      // Keep selected nodes visible even if off-screen
+      if (isVisible || isSelected) {
+        // Render node if not already in DOM
+        if (!nodeElement) {
+          wallboard.renderNode(node);
+        }
+      } else {
+        // Remove node from DOM if off-screen and not selected
+        if (nodeElement) {
+          nodeElement.remove();
+        }
+      }
+    });
+
+    // Store visible IDs (including selected nodes) for connection culling
+    const allVisibleIds = new Set([...visibleNodeIds, ...wallboard.selectedNodes]);
+    wallboard.visibleNodeIds = allVisibleIds;
+  }
+
+  /**
+   * Update viewport culling when zoom or pan changes
+   * Called by zoom-pan-manager after transforms
+   */
+  static updateViewportCulling(wallboard) {
+    const shouldCull = wallboard.zoom < 0.8 || wallboard.nodes.length > 300;
+
+    if (shouldCull) {
+      this.renderNodesWithCulling(wallboard);
+    } else {
+      // Render all nodes when zoomed in
+      wallboard.nodes.forEach(node => {
+        const nodeElement = document.getElementById(`node-${node.id}`);
+        if (!nodeElement) {
+          wallboard.renderNode(node);
+        }
+      });
+      wallboard.visibleNodeIds = null; // Disable connection culling
+    }
+  }
+
+  static cacheViewState(boardId, viewState) {
+    if (!boardId || !viewState) return;
+    try {
+      localStorage.setItem(`quirk_viewstate_${boardId}`, JSON.stringify(viewState));
+    } catch (e) {
+      console.warn('Failed to cache view state', e);
+    }
+  }
+
+  static getCachedViewState(boardId) {
+    if (!boardId) return null;
+    try {
+      const raw = localStorage.getItem(`quirk_viewstate_${boardId}`);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      console.warn('Failed to read cached view state', e);
+      return null;
     }
   }
 }

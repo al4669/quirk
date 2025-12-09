@@ -8,6 +8,10 @@ class NodeUtils {
 
   // Find node by ID in array
   static getNodeById(id, nodes) {
+    const numericId = Number(id);
+    if (!Number.isNaN(numericId)) {
+      return nodes.find(node => Number(node.id) === numericId);
+    }
     return nodes.find(node => node.id === id);
   }
 

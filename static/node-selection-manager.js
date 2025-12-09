@@ -10,7 +10,10 @@ class NodeSelectionManager {
       if (this.wallboard.selectedNodes.has(node.id)) {
         // Deselect if already selected
         this.wallboard.selectedNodes.delete(node.id);
-        document.getElementById(`node-${node.id}`).classList.remove("selected");
+        const nodeElement = document.getElementById(`node-${node.id}`);
+        if (nodeElement) {
+          nodeElement.classList.remove("selected");
+        }
 
         // Update single selected node
         if (this.wallboard.selectedNodes.size === 1) {
@@ -22,7 +25,10 @@ class NodeSelectionManager {
       } else {
         // Add to selection
         this.wallboard.selectedNodes.add(node.id);
-        document.getElementById(`node-${node.id}`).classList.add("selected");
+        const nodeElement = document.getElementById(`node-${node.id}`);
+        if (nodeElement) {
+          nodeElement.classList.add("selected");
+        }
 
         // Set as primary selected node if it's the only one
         if (this.wallboard.selectedNodes.size === 1) {
@@ -34,7 +40,10 @@ class NodeSelectionManager {
       this.deselectAll();
       this.wallboard.selectedNode = node;
       this.wallboard.selectedNodes.add(node.id);
-      document.getElementById(`node-${node.id}`).classList.add("selected");
+      const nodeElement = document.getElementById(`node-${node.id}`);
+      if (nodeElement) {
+        nodeElement.classList.add("selected");
+      }
     }
 
     // Highlight connections - if multiple nodes selected, highlight all their connections
@@ -56,5 +65,6 @@ class NodeSelectionManager {
 
     // Clear connection highlighting when no node is selected
     this.wallboard.connectionManager.clearConnectionHighlighting();
+    this.wallboard.connectionManager.showAllConnections();
   }
 }
