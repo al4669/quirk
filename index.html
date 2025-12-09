@@ -122,12 +122,11 @@
             <span class="tool-text">Export</span>
         </button>
        
-        <button class="tool-btn" onclick="wallboard.createNewBoardDialog(); document.querySelector('.toolbar').classList.remove('mobile-open');">
+        <button class="tool-btn tool-btn-compact" title="Cycle node faces" onclick="wallboard.toggleFlipAllNodes(); document.querySelector('.toolbar').classList.remove('mobile-open');">
             <svg class="tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <path d="M4 7h16M4 17h16"></path>
+                <path d="M9 3 5 7l4 4M15 21l4-4-4-4"></path>
             </svg>
-            <span class="tool-text">New Board</span>
         </button>
         <button class="tool-btn" onclick="wallboard.deleteCurrentBoard(); document.querySelector('.toolbar').classList.remove('mobile-open');">
             <svg class="tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -142,6 +141,13 @@
                 <path d="M12 1v6m0 6v6M5.6 5.6l4.2 4.2m4.2 4.2l4.2 4.2M1 12h6m6 0h6M5.6 18.4l4.2-4.2m4.2-4.2l4.2-4.2"></path>
             </svg>
             <span class="tool-text">LLM Config</span>
+        </button>
+        <button class="tool-btn" onclick="wallboard.toggleFlipAllNodes(); document.querySelector('.toolbar').classList.remove('mobile-open');">
+            <svg class="tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 7h16M4 17h16"></path>
+                <path d="M9 3 5 7l4 4M15 21l4-4-4-4"></path>
+            </svg>
+            <span class="tool-text">Flip All</span>
         </button>
     </div>
 
@@ -206,6 +212,7 @@
    <script src="static/dialog-utils.js"></script>
    <script src="static/theme-selector.js"></script>
    <script src="static/theme-manager.js"></script>
+   <script src="static/node-templates.js"></script>
    <script src="static/zoom-pan-manager.js"></script>
    <script src="static/url-utils.js"></script>
    <script src="static/idb-storage.js"></script>
@@ -220,6 +227,7 @@
    <script src="static/sample-content.js"></script>
    <script src="static/node-renderer.js"></script>
    <script src="static/maximize-utils.js"></script>
+   <script src="static/viewport-culler.js"></script>
    <script src="static/board-manager.js"></script>
    <script src="static/edit-mode-manager.js"></script>
    <script src="static/node-drag-manager.js"></script>
@@ -227,6 +235,7 @@
    <script src="static/node-operations-manager.js"></script>
    <script src="static/context-menu-manager.js"></script>
    <script src="static/node-content-manager.js"></script>
+   <script src="static/html-preview-manager.js"></script>
    <script src="static/link-manager.js"></script>
    <script src="static/graph-layout-manager.js"></script>
    <script src="static/execution-manager.js"></script>
