@@ -1018,7 +1018,7 @@ class AIChat {
       requestBody = {
         apiKey: this.apiKey, // Proxy extracts this
         model: this.apiModel,
-        max_tokens: 4096,
+        max_tokens: 20000,
         messages: userMessages,
         tools: this.getToolDefinitions(), // Native tool use
         stream: true,

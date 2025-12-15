@@ -55,7 +55,7 @@ class ExecutionManager {
       model: model,
       provider: provider,
       apiKey: apiKey,
-      maxTokens: 4096
+      maxTokens: 20000
     };
   }
 
@@ -227,6 +227,18 @@ class ExecutionManager {
     const explicit = node?.data?.nodeType || '';
     const fallback = node?.title || node?.type || '';
     return (explicit || fallback || '').toLowerCase();
+  }
+
+  // Determine if a node should render HTML via the preview sandbox
+  isHtmlPreviewNode(node) {
+    if (!node) return false;
+    const type = this.getNodeType(node);
+    const contentType = (node?.data?.contentType || '').toLowerCase();
+    return type === 'html preview' ||
+      type === 'html-preview' ||
+      type === 'html' ||
+      contentType === 'html-preview' ||
+      contentType === 'html';
   }
 
   // Check if a node has actual code to execute
@@ -1274,6 +1286,55 @@ class ExecutionManager {
     return context;
   }
 
+  isAnthropicMaxTokensError(errorText) {
+    if (!errorText) return false;
+
+    try {
+      const parsed = JSON.parse(errorText);
+      const err = parsed?.error || parsed;
+      const message = err?.message || '';
+      const param = err?.param || '';
+      return param === 'max_tokens' || /max_tokens/i.test(message);
+    } catch (e) {
+      // Fall back to substring checks if the response isn't JSON
+      return errorText.includes('max_tokens') && errorText.includes('max_completion_tokens');
+    }
+  }
+
+  async sendAnthropicRequest(endpoint, headers, baseBody) {
+    const maxTokens = this.llmConfig?.maxTokens || 20000;
+
+    const attempt = async (key) => {
+      const body = { ...baseBody, [key]: maxTokens };
+      return fetch(endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body)
+      });
+    };
+
+    // First try legacy key for backwards compatibility
+    let response = await attempt('max_tokens');
+    if (response.ok) {
+      return { response, usedKey: 'max_tokens' };
+    }
+
+    const firstErrorText = await response.text();
+    if (this.isAnthropicMaxTokensError(firstErrorText)) {
+      console.warn('Anthropic rejected max_tokens; retrying with max_completion_tokens');
+      response = await attempt('max_completion_tokens');
+      if (response.ok) {
+        return { response, usedKey: 'max_completion_tokens' };
+      }
+      const retryErrorText = await response.text();
+      console.error('LLM API error response:', retryErrorText);
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+
+    console.error('LLM API error response:', firstErrorText);
+    throw new Error(`API error: ${response.status} ${response.statusText}`);
+  }
+
   // Call LLM API with streaming (supports Ollama, Anthropic, OpenAI)
   async callLLMStreaming(prompt, onChunk, config = {}) {
     // Ensure config is loaded
@@ -1291,50 +1352,56 @@ class ExecutionManager {
     const isOpenAI = (endpoint.includes('openai') || endpoint.includes('/v1/chat/completions')) && !isOllamaNative;
 
     try {
-      // Build request body based on endpoint type
-      let requestBody;
       let headers = {
         'Content-Type': 'application/json'
       };
+      let response;
 
       if (isOllamaNative) {
         // Ollama native API
-        requestBody = {
+        const requestBody = {
           model: model,
           messages: [{ role: 'user', content: prompt }],
           stream: true
         };
+        response = await fetch(endpoint, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify(requestBody)
+        });
       } else if (isAnthropic) {
         // Anthropic via proxy
         if (!apiKey) {
           throw new Error('API key required for Anthropic. Please configure in LLM Config.');
         }
-        requestBody = {
+        const baseBody = {
           apiKey: apiKey, // Proxy extracts this
           model: model,
-          max_tokens: this.llmConfig.maxTokens || 4096,
           messages: [{ role: 'user', content: prompt }],
           stream: true
         };
+        const { response: anthropicResponse } = await this.sendAnthropicRequest(endpoint, headers, baseBody);
+        response = anthropicResponse;
       } else {
         // OpenAI-compatible API (OpenAI, llama.cpp, etc.)
-        requestBody = {
+        const requestBody = {
           model: model,
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.7,
+          max_tokens: this.llmConfig.maxTokens || 20000,
           stream: true
         };
 
         if (apiKey) {
           requestBody.apiKey = apiKey; // For proxy
         }
-      }
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify(requestBody)
-      });
+        response = await fetch(endpoint, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify(requestBody)
+        });
+      }
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -1349,60 +1416,72 @@ class ExecutionManager {
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
+        if (value) {
+          buffer += decoder.decode(value, { stream: !done });
+        }
 
-        // Keep the last incomplete line in the buffer
-        buffer = lines.pop() || '';
+        // Process buffered lines when we either got new data or reached the end
+        if (buffer.includes('\n') || done) {
+          const lines = buffer.split('\n');
 
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed) continue;
+          if (!done) {
+            // Keep the last incomplete line in the buffer
+            buffer = lines.pop() || '';
+          } else {
+            // We are done, process everything
+            buffer = '';
+          }
 
-          try {
-            if (isOllamaNative) {
-              // Ollama native format
-              const parsed = JSON.parse(trimmed);
-              if (parsed.message && parsed.message.content) {
-                fullResponse += parsed.message.content;
-                // Filter out <think></think> tags before displaying
-                const filtered = fullResponse.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-                onChunk && onChunk(filtered);
-              }
-            } else if (isOpenAI || isAnthropic) {
-              // OpenAI/Anthropic format (SSE)
-              if (trimmed.startsWith('data: ')) {
-                const dataStr = trimmed.slice(6);
-                if (dataStr === '[DONE]') continue;
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
 
-                const parsed = JSON.parse(dataStr);
+            try {
+              if (isOllamaNative) {
+                // Ollama native format
+                const parsed = JSON.parse(trimmed);
+                if (parsed.message && parsed.message.content) {
+                  fullResponse += parsed.message.content;
+                  // Filter out <think></think> tags before displaying
+                  const filtered = fullResponse.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+                  onChunk && onChunk(filtered);
+                }
+              } else if (isOpenAI || isAnthropic) {
+                // OpenAI/Anthropic format (SSE)
+                if (trimmed.startsWith('data: ')) {
+                  const dataStr = trimmed.slice(6);
+                  if (dataStr === '[DONE]') continue;
 
-                if (isAnthropic) {
-                  // Anthropic format
-                  if (parsed.type === 'content_block_delta') {
-                    fullResponse += parsed.delta?.text || '';
-                    // Filter out <think></think> tags before displaying
-                    const filtered = fullResponse.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-                    onChunk && onChunk(filtered);
-                  }
-                } else {
-                  // OpenAI format
-                  const delta = parsed.choices?.[0]?.delta?.content;
-                  if (delta) {
-                    fullResponse += delta;
-                    // Filter out <think></think> tags before displaying
-                    const filtered = fullResponse.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-                    onChunk && onChunk(filtered);
+                  const parsed = JSON.parse(dataStr);
+
+                  if (isAnthropic) {
+                    // Anthropic format
+                    if (parsed.type === 'content_block_delta') {
+                      fullResponse += parsed.delta?.text || '';
+                      // Filter out <think></think> tags before displaying
+                      const filtered = fullResponse.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+                      onChunk && onChunk(filtered);
+                    }
+                  } else {
+                    // OpenAI format
+                    const delta = parsed.choices?.[0]?.delta?.content;
+                    if (delta) {
+                      fullResponse += delta;
+                      // Filter out <think></think> tags before displaying
+                      const filtered = fullResponse.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+                      onChunk && onChunk(filtered);
+                    }
                   }
                 }
               }
+            } catch (parseError) {
+              console.warn('Failed to parse streaming line:', trimmed, parseError);
             }
-          } catch (parseError) {
-            console.warn('Failed to parse streaming line:', trimmed, parseError);
           }
         }
+
+        if (done) break;
       }
 
       // Return filtered response
@@ -1430,49 +1509,55 @@ class ExecutionManager {
     const isOpenAI = (endpoint.includes('openai') || endpoint.includes('/v1/chat/completions')) && !isOllamaNative;
 
     try {
-      // Build request body based on endpoint type
-      let requestBody;
       let headers = {
         'Content-Type': 'application/json'
       };
+      let response;
 
       if (isOllamaNative) {
         // Ollama native API
-        requestBody = {
+        const requestBody = {
           model: model,
           messages: [{ role: 'user', content: prompt }],
           stream: false
         };
+        response = await fetch(endpoint, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify(requestBody)
+        });
       } else if (isAnthropic) {
         // Anthropic via proxy
         if (!apiKey) {
           throw new Error('API key required for Anthropic. Please configure in LLM Config.');
         }
-        requestBody = {
+        const baseBody = {
           apiKey: apiKey, // Proxy extracts this
           model: model,
-          max_tokens: this.llmConfig.maxTokens || 4096,
           messages: [{ role: 'user', content: prompt }]
         };
+        const { response: anthropicResponse } = await this.sendAnthropicRequest(endpoint, headers, baseBody);
+        response = anthropicResponse;
       } else {
         // OpenAI-compatible API (OpenAI, llama.cpp, etc.)
-        requestBody = {
+        const requestBody = {
           model: model,
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.7,
+          max_tokens: this.llmConfig.maxTokens || 20000,
           stream: false
         };
 
         if (apiKey) {
           requestBody.apiKey = apiKey; // For proxy
         }
-      }
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify(requestBody)
-      });
+        response = await fetch(endpoint, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify(requestBody)
+        });
+      }
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -1580,6 +1665,7 @@ class ExecutionManager {
       : nodeOrId;
     if (!node) return;
 
+    const isHtmlPreview = this.isHtmlPreviewNode(node);
     const normalizedValue = value === undefined || value === null
       ? ''
       : String(value)
@@ -1658,7 +1744,7 @@ class ExecutionManager {
       } else {
         const fullText = node.data.resultContent || '';
         const MAX_RENDER_CHARS = 3000;
-        const shouldTruncate = fullText.length > MAX_RENDER_CHARS;
+        const shouldTruncate = fullText.length > MAX_RENDER_CHARS && !isHtmlPreview;
         if (shouldTruncate) {
           const displayText = '…' + fullText.slice(-MAX_RENDER_CHARS);
           let body = resultEl.querySelector('.stream-text');

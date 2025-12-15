@@ -102,10 +102,12 @@ class BoardManager {
     wallboard.nodeThemes = board.nodeThemes || {};
     wallboard.executionManager.executionState = board.executionState || {};
     wallboard.executionManager.sanitizeExecutionStateOnLoad();
-    // Always start on front side after refresh
+    // Prefer result side for HTML preview nodes that already have result content; otherwise reset to front
     wallboard.nodes.forEach(n => {
       if (n.data) {
-        n.data.showingResult = false;
+        const isHtmlPreview = wallboard.executionManager?.isHtmlPreviewNode(n);
+        const hasResult = !!n.data.resultContent && String(n.data.resultContent).trim() !== '';
+        n.data.showingResult = isHtmlPreview && hasResult;
       }
     });
     if (hasViewState) {

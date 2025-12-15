@@ -55,8 +55,13 @@ class MaximizeUtils {
 
     // Copy the node content
     const originalContent = wallboard.getActiveContentElement(nodeId);
+    const currentSide = wallboard.isShowingResult(nodeId) ? 'result' : 'content';
     if (originalContent) {
       content.innerHTML = originalContent.innerHTML;
+      // Force re-hydration of any HTML preview shells inside the maximized copy
+      content.querySelectorAll('[data-html-preview]').forEach(el => {
+        el.removeAttribute('data-hydrated');
+      });
     }
 
     // Assemble the maximized node
@@ -69,6 +74,9 @@ class MaximizeUtils {
 
     // Enable checkboxes for the maximized view
     setTimeout(() => {
+      // Rehydrate HTML previews (buttons + iframe) inside the maximized view
+      wallboard.htmlPreviewManager?.hydrate(content, node, currentSide);
+
       wallboard.enableCheckboxes(content, node);
 
       // Also highlight code blocks
@@ -125,24 +133,25 @@ class MaximizeUtils {
       const editor = content.querySelector('.text-editor');
       if (editor) {
         const node = wallboard.nodes.find((n) => n.id === nodeId);
-        if (node && node.data && node.data.content !== undefined) {
-          node.data.content = editor.value;
-          // Regenerate HTML with MarkdownRenderer to support math formulas
-          node.data.html = typeof MarkdownRenderer !== 'undefined'
-            ? MarkdownRenderer.render(node.data.content)
-            : marked.parse(node.data.content);
-          // Update the original node content as well
-          const originalContent = wallboard.getActiveContentElement(nodeId);
-          if (originalContent) {
-            originalContent.innerHTML = Sanitization.sanitize(wallboard.renderNodeContent(node));
+      if (node && node.data && node.data.content !== undefined) {
+        node.data.content = editor.value;
+        // Regenerate HTML with MarkdownRenderer to support math formulas
+        node.data.html = typeof MarkdownRenderer !== 'undefined'
+          ? MarkdownRenderer.render(node.data.content)
+          : marked.parse(node.data.content);
+        // Update the original node content as well
+        const originalContent = wallboard.getActiveContentElement(nodeId);
+        if (originalContent) {
+          originalContent.innerHTML = Sanitization.sanitize(wallboard.renderNodeContent(node));
 
-            // Re-enable checkboxes and re-highlight syntax for original node
-            setTimeout(() => {
-              wallboard.enableCheckboxes(originalContent, node);
+          // Re-enable checkboxes and re-highlight syntax for original node
+          setTimeout(() => {
+            wallboard.htmlPreviewManager?.hydrate(originalContent, node, wallboard.isShowingResult(nodeId) ? 'result' : 'content');
+            wallboard.enableCheckboxes(originalContent, node);
 
-              const codeBlocks = originalContent.querySelectorAll('pre code');
-              codeBlocks.forEach(block => {
-                Prism.highlightElement(block);
+            const codeBlocks = originalContent.querySelectorAll('pre code');
+            codeBlocks.forEach(block => {
+              Prism.highlightElement(block);
               });
             }, 0);
           }
@@ -193,9 +202,13 @@ class MaximizeUtils {
         content.style.minWidth = "";
         content.classList.remove('editing');
         content.innerHTML = Sanitization.sanitize(wallboard.renderNodeContent(node));
+        content.querySelectorAll('[data-html-preview]').forEach(el => {
+          el.removeAttribute('data-hydrated');
+        });
 
         // Re-enable checkboxes and re-highlight syntax after DOM update for maximized view
         setTimeout(() => {
+          wallboard.htmlPreviewManager?.hydrate(content, node, wallboard.isShowingResult(nodeId) ? 'result' : 'content');
           wallboard.enableCheckboxes(content, node);
 
           const codeBlocks = content.querySelectorAll('pre code');
@@ -211,6 +224,7 @@ class MaximizeUtils {
 
           // Re-enable checkboxes and re-highlight syntax for original node too
           setTimeout(() => {
+            wallboard.htmlPreviewManager?.hydrate(originalContent, node, wallboard.isShowingResult(nodeId) ? 'result' : 'content');
             wallboard.enableCheckboxes(originalContent, node);
 
             const codeBlocks = originalContent.querySelectorAll('pre code');
