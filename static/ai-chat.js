@@ -905,20 +905,17 @@ class AIChat {
     }
   }
 
-  async streamResponse(userMessage, assistantMsgId, providedMessages = null, toolCallRound = 0) {
+  async streamResponse(userMessage, assistantMsgId, providedMessages = null, toolCallRound = 0, cachedSystemPrompt = null) {
     // Limit tool calling rounds to prevent infinite loops
-    const MAX_TOOL_ROUNDS = 5;
+    // Limit tool calling rounds to prevent infinite loops
+    const MAX_TOOL_ROUNDS = 15;
 
     if (toolCallRound >= MAX_TOOL_ROUNDS) {
       console.warn(`[Tool] Maximum tool calling rounds (${MAX_TOOL_ROUNDS}) reached, stopping to prevent infinite loop`);
 
-      // Get current message content and append a note
-      const messageDiv = document.getElementById(`ai-msg-${assistantMsgId}`);
-      if (messageDiv) {
-        const textDiv = messageDiv.querySelector('.ai-message-text');
-        const currentContent = textDiv.innerHTML;
-        textDiv.innerHTML = currentContent + '<br><br><em style="color: var(--text-tertiary);">[Stopped: Tool calling limit reached to prevent infinite loop]</em>';
-      }
+      // Update state properly instead of just DOM
+      const stopMessage = '<br><br><em style="color: var(--text-tertiary);">[Stopped: Tool calling limit reached to prevent infinite loop]</em>';
+      this.updateMessage(assistantMsgId, stopMessage);
 
       return;
     }
@@ -958,7 +955,8 @@ class AIChat {
     }
 
     // Build system prompt with board manipulation capabilities
-    const systemPrompt = this.buildSystemPrompt();
+    // Use cached prompt if available (to maintain consistent state across tool turns)
+    const systemPrompt = cachedSystemPrompt || this.buildSystemPrompt();
 
     // Use provided messages if available (for multi-turn tool calling)
     // Otherwise build from message history
@@ -966,7 +964,8 @@ class AIChat {
 
     if (providedMessages) {
       // Use pre-built messages (includes tool_use and tool_result blocks)
-      messages = [{ role: 'system', content: systemPrompt }, ...providedMessages];
+      // They already contain the system prompt from the previous round
+      messages = providedMessages;
       console.log('[Tool] Using provided messages for continuation');
     } else {
       // Build message history - only include if there are saved messages
@@ -974,12 +973,21 @@ class AIChat {
         { role: 'system', content: systemPrompt },
         // Only include recent history if messages array is not empty, and filter out empty messages
         // Note: content can be a string or array (for tool results)
-        ...(this.messages.length > 0 ? this.messages.slice(-10).filter(m => {
+        ...(this.messages.length > 0 ? this.messages.slice(-20).filter(m => {
+          // Allow if has tool_calls (OpenAI/Ollama)
+          if (m.tool_calls && m.tool_calls.length > 0) return true;
+          // Allow if has content
           if (!m.content) return false;
           if (typeof m.content === 'string') return m.content.trim() !== '';
           if (Array.isArray(m.content)) return m.content.length > 0;
           return true;
-        }).map(m => ({ role: m.role, content: m.content })) : [])
+        }).map(m => {
+          const msg = { role: m.role, content: m.content };
+          if (m.tool_calls) msg.tool_calls = m.tool_calls;
+          if (m.tool_call_id) msg.tool_call_id = m.tool_call_id;
+          if (m.name) msg.name = m.name;
+          return msg;
+        }) : [])
       ];
 
       // Only add current user message if it's not empty
@@ -1106,14 +1114,31 @@ class AIChat {
         try {
           let json;
 
-          // Handle SSE format (data: prefix) for OpenAI/Anthropic
+          // Handle SSE format
+          if (trimmed.startsWith('event:')) {
+            // Ignore event type lines (message_start, content_block_start, etc.)
+            continue;
+          }
+
           if (trimmed.startsWith('data: ')) {
             const data = trimmed.slice(6);
             if (data === '[DONE]') continue;
-            json = JSON.parse(data);
+            try {
+              json = JSON.parse(data);
+            } catch (e) {
+              console.warn('Failed to parse SSE data:', data.substring(0, 100));
+              continue;
+            }
           } else {
             // Handle plain JSON format (Ollama)
-            json = JSON.parse(trimmed);
+            try {
+              json = JSON.parse(trimmed);
+            } catch (e) {
+              // If it's not JSON and not data/event, it might be a partial chunk or garbage
+              // Just log debug and skip
+              // console.debug('Skipping non-JSON line:', trimmed.substring(0, 50));
+              continue;
+            }
           }
 
           // Check if response is done (Ollama format)
@@ -1485,25 +1510,44 @@ class AIChat {
         };
       }
 
-      // Build temporary message history for this continuation ONLY
-      // Don't save tool messages to persistent history
-      const tempMessages = [
-        ...this.messages.slice(-10).filter(m => {
-          if (!m.content) return false;
-          if (typeof m.content === 'string') return m.content.trim() !== '';
-          if (Array.isArray(m.content)) return m.content.length > 0;
-          return true;
-        }).map(m => ({ role: m.role, content: m.content }))
-      ];
+      // 1. UPDATE PERSISTENT HISTORY
+      // Update the existing assistant message in history with the formal tool structure
+      const existingMsg = this.messages.find(m => m.id === assistantMsgId);
+      if (existingMsg && assistantToolMessage) {
+        // Merge the tool structure into the existing message
+        Object.assign(existingMsg, assistantToolMessage);
+        // Ensure content carries over if it was just text updates before
+        if (!existingMsg.content && assistantToolMessage.content) {
+          existingMsg.content = assistantToolMessage.content;
+        }
+      }
+
+      // Add tool results to persistent history (hidden from UI)
+      toolResultMessages.forEach(msg => {
+        // Add ID if missing
+        const msgWithId = {
+          ...msg,
+          id: Date.now() + Math.random(),
+          hidden: true // Hide from main chat UI
+        };
+        this.messages.push(msgWithId);
+      });
+
+      this.saveChatHistory(); // Save immediately so it's safe
+
+      // 2. PREPARE RECURSION CONTEXT
+      // Use the messages that triggered this response + new items
+      // distinct from this.messages to ensure we don't lose system prompt or temporary context
+      const nextMessages = [...messages];
 
       // Add assistant tool message
       if (assistantToolMessage) {
-        tempMessages.push(assistantToolMessage);
+        nextMessages.push(assistantToolMessage);
       }
 
       // Add tool results
       toolResultMessages.forEach(msg => {
-        tempMessages.push(msg);
+        nextMessages.push(msg);
       });
 
       // Clear pending results
@@ -1511,29 +1555,53 @@ class AIChat {
 
       // Automatically continue the conversation with tool results
       console.log('[Tool] Automatically continuing conversation with tool results');
-      console.log('[Tool] Temp messages:', tempMessages.length);
-      console.log('[Tool] Messages being sent:', JSON.stringify(tempMessages, null, 2));
+      console.log('[Tool] Messages context size:', nextMessages.length);
 
       // Keep character in thinking state during continuation
       if (this.character) {
         this.character.setState('thinking');
       }
 
-      // Reuse the same assistant message ID instead of creating a new one
-      // This prevents extra thinking dot animations
-      this.updateMessage(assistantMsgId, ''); // Clear current content
+      // DECIDE ON MESSAGE ID REUSE
+      // If the current message has visible content (text), we should NOT reuse it for the next step,
+      // because we want to keep that text visible to the user.
+      // If it was empty (just internal tool calls), we reuse it to avoid empty bubbles.
+      let nextAssistantMsgId = null;
 
-      // Reset controller and call streamResponse with temp messages
+      // Check if content is effectively empty
+      let hasContent = false;
+      if (typeof assistantToolMessage.content === 'string') {
+        hasContent = assistantToolMessage.content.trim() !== '';
+      } else if (Array.isArray(assistantToolMessage.content)) {
+        hasContent = assistantToolMessage.content.length > 0;
+      }
+
+      if (!hasContent) {
+        nextAssistantMsgId = assistantMsgId;
+        // Only clear if reusing
+        this.updateMessage(assistantMsgId, '');
+        console.log('[Tool] Reusing message ID for silent tool step');
+      } else {
+        console.log('[Tool] content present, creating new message ID for next step');
+        // nextAssistantMsgId remains null, triggering creation of new message
+      }
+
+      // Reset controller and call streamResponse with next messages
       this.controller = null;
 
       try {
         // Increment round counter to prevent infinite loops
-        await this.streamResponse('', assistantMsgId, tempMessages, toolCallRound + 1);
+        await this.streamResponse('', nextAssistantMsgId, nextMessages, toolCallRound + 1, systemPrompt);
+
+        // Ensure state is idle after recursion returns
+        if (this.character) {
+          this.character.setState('idle');
+        }
       } catch (error) {
         console.error('[Tool] Error in multi-turn continuation:', error);
         this.updateMessage(assistantMsgId, `Error continuing with tool results: ${error.message}`);
         // Set to idle on error
-        if (this.character && this.selectedCharacter !== 'read') {
+        if (this.character) {
           this.character.setState('idle');
         }
       }
@@ -1542,6 +1610,11 @@ class AIChat {
     }
 
     this.controller = null;
+
+    // Final completion - set idle
+    if (this.character) {
+      this.character.setState('idle');
+    }
   }
 
   cleanTextForSpeech(text) {
@@ -2190,6 +2263,11 @@ You: "Created 3 nodes covering Python basics, popular libraries, and best practi
 
     if (this.messages.length > 0) {
       this.messages.forEach(msg => {
+        // Skip hidden messages or tool messages
+        if (msg.hidden || msg.role === 'tool' || (msg.role === 'user' && Array.isArray(msg.content) && msg.content[0]?.type === 'tool_result')) {
+          return;
+        }
+
         const messageDiv = document.createElement('div');
         messageDiv.className = `ai-message ai-message-${msg.role}`;
         messageDiv.id = `ai-msg-${msg.id}`;

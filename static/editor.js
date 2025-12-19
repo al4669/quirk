@@ -268,17 +268,15 @@ class EditorManager {
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 20px;
         overflow: hidden;
       }
 
       .editor-container {
         width: 100%;
-        max-width: 1200px;
-        height: 90vh;
+        width: 100vw;
+        height: 100vh;
         background: var(--bg-secondary);
         backdrop-filter: blur(20px);
-        border-radius: 16px;
         display: flex;
         flex-direction: column;
         overflow: hidden;

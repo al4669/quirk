@@ -826,6 +826,26 @@ body {
   box-sizing: border-box;
 }
 
+
+.CodeMirror-scroll {
+  max-width: 800px;
+  margin: 0 auto;
+
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+
+  /* Ensure scrolling still works */
+  overflow: auto;
+}
+
 .text-editor.CodeMirror .CodeMirror-vscrollbar,
 .text-editor.CodeMirror .CodeMirror-hscrollbar,
 .text-editor.CodeMirror .CodeMirror-scrollbar-filler {
@@ -902,6 +922,11 @@ body {
   font-size: 0.85em !important;
   font-weight: 600 !important;
   line-height: 1.25 !important;
+}
+
+.editor-toolbar {
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 /* Text content styling */
@@ -1951,11 +1976,8 @@ body {
 .maximized-node {
   background: var(--bg-secondary);
   backdrop-filter: blur(20px);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  width: 90vw;
-  height: 85vh;
-  max-width: 1200px;
+  width: 100vw;
+  height: 100vh;
   box-shadow: 0 30px 100px rgba(0, 0, 0, 0.8);
   display: flex;
   flex-direction: column;
